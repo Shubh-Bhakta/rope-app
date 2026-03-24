@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef, useCallback } from "react";
-import { getUser, addRopeEntry, suggestBooks } from "@/lib/store";
+import { getOrCreateUser, addRopeEntry, suggestBooks } from "@/lib/store";
 
 const steps = [
   { letter: "R", word: "Revelation", placeholder: "" },
@@ -9,6 +9,26 @@ const steps = [
   { letter: "P", word: "Prayer", placeholder: "Write your prayer about this passage." },
   { letter: "E", word: "Execution", placeholder: "How will you live this out tomorrow?" },
 ];
+
+// ─── AI Suggestion Helpers ──────────────────────────────────────────────────
+
+function generatePrayerSuggestion(verseRef: string, observation: string): string {
+  const ref = verseRef.trim() || "this passage";
+  if (!observation.trim()) {
+    return `Lord, speak to me through ${ref}. Help me hear Your voice and understand what You want me to learn today. Amen.`;
+  }
+  const theme = observation.trim().split(/[.!?]/)[0].trim().toLowerCase();
+  const shortTheme = theme.length > 60 ? theme.slice(0, 60) + "..." : theme;
+  return `Lord, as I reflect on ${ref}, I ask that You help me to understand that ${shortTheme}. Open my heart to what You're showing me through this passage. Help me to live this out in my daily walk. Amen.`;
+}
+
+function generateExecutionSuggestion(verseRef: string, observation: string): string {
+  const ref = verseRef.trim() || "this passage";
+  if (!observation.trim()) {
+    return `Tomorrow, I will set aside time to reflect on ${ref} and look for ways to apply its truth in my interactions.`;
+  }
+  return `Tomorrow, I will intentionally look for a moment to apply the truth from ${ref}. When I face challenges, I will remember this passage and choose to respond with faith and obedience.`;
+}
 
 // ─── Voice Input Hook ────────────────────────────────────────────────────────
 
@@ -129,6 +149,41 @@ function MicButton({
   );
 }
 
+// ─── Suggestion Card Component ───────────────────────────────────────────────
+
+function SuggestionCard({
+  suggestion,
+  onUse,
+  onDismiss,
+}: {
+  suggestion: string;
+  onUse: () => void;
+  onDismiss: () => void;
+}) {
+  return (
+    <div
+      className="mt-3 bg-cream border border-brown/15 rounded-xl p-4"
+      style={{ animation: "fadeInUp 0.3s ease-out both" }}
+    >
+      <p className="text-dark text-sm leading-relaxed italic mb-3">{suggestion}</p>
+      <div className="flex gap-2">
+        <button
+          onClick={onUse}
+          className="px-3 py-1.5 bg-brown text-ivory text-xs font-medium rounded-lg hover:bg-brown/90 transition"
+        >
+          Use this
+        </button>
+        <button
+          onClick={onDismiss}
+          className="px-3 py-1.5 text-muted text-xs font-medium rounded-lg hover:bg-brown/5 transition"
+        >
+          Dismiss
+        </button>
+      </div>
+    </div>
+  );
+}
+
 // ─── Journal Page ────────────────────────────────────────────────────────────
 
 export default function JournalPage() {
@@ -145,6 +200,10 @@ export default function JournalPage() {
   const [showSuggestions, setShowSuggestions] = useState(false);
   const suggestionsRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+
+  // AI suggestion state
+  const [prayerSuggestion, setPrayerSuggestion] = useState<string | null>(null);
+  const [executionSuggestion, setExecutionSuggestion] = useState<string | null>(null);
 
   const { supported: speechSupported, startListening } = useSpeechRecognition();
 
@@ -212,8 +271,7 @@ export default function JournalPage() {
   }
 
   function handleSave() {
-    const user = getUser();
-    if (!user) return;
+    const user = getOrCreateUser();
     if (!verseRef.trim() || !observation.trim() || !prayer.trim() || !execution.trim()) return;
 
     addRopeEntry({
@@ -230,7 +288,10 @@ export default function JournalPage() {
 
   if (saved) {
     return (
-      <div className="min-h-[80vh] flex flex-col items-center justify-center px-6 text-center">
+      <div
+        className="min-h-[80vh] flex flex-col items-center justify-center px-6 text-center"
+        style={{ animation: "fadeIn 0.4s ease-out both" }}
+      >
         <div className="w-16 h-16 bg-brown/10 rounded-full flex items-center justify-center mb-5">
           <svg
             width="32"
@@ -262,6 +323,8 @@ export default function JournalPage() {
             setObservation("");
             setPrayer("");
             setExecution("");
+            setPrayerSuggestion(null);
+            setExecutionSuggestion(null);
           }}
           className="mt-8 px-6 py-2.5 text-brown border border-brown/30 rounded-xl text-sm font-medium hover:bg-brown/5 transition"
         >
@@ -278,7 +341,10 @@ export default function JournalPage() {
 
       <div className="space-y-6">
         {/* Step 1: Revelation */}
-        <section className="bg-cream rounded-2xl p-5 shadow-sm">
+        <section
+          className="bg-cream rounded-2xl p-5 shadow-sm"
+          style={{ animation: "fadeInUp 0.5s ease-out both", animationDelay: "0s" }}
+        >
           <div className="flex items-center gap-3 mb-4">
             <div className="w-9 h-9 bg-brown text-ivory rounded-full flex items-center justify-center font-serif font-bold text-sm shrink-0">
               R
@@ -312,6 +378,7 @@ export default function JournalPage() {
               <div
                 ref={suggestionsRef}
                 className="absolute left-0 right-16 top-12 z-20 bg-cream border border-brown/15 rounded-xl shadow-lg overflow-hidden"
+                style={{ animation: "fadeIn 0.15s ease-out both" }}
               >
                 {suggestions.map((book) => (
                   <button
@@ -339,7 +406,10 @@ export default function JournalPage() {
         </section>
 
         {/* Step 2: Observation */}
-        <section className="bg-cream rounded-2xl p-5 shadow-sm">
+        <section
+          className="bg-cream rounded-2xl p-5 shadow-sm"
+          style={{ animation: "fadeInUp 0.5s ease-out both", animationDelay: "0.1s" }}
+        >
           <div className="flex items-center gap-3 mb-4">
             <div className="w-9 h-9 bg-brown text-ivory rounded-full flex items-center justify-center font-serif font-bold text-sm shrink-0">
               O
@@ -365,12 +435,26 @@ export default function JournalPage() {
         </section>
 
         {/* Step 3: Prayer */}
-        <section className="bg-cream rounded-2xl p-5 shadow-sm">
+        <section
+          className="bg-cream rounded-2xl p-5 shadow-sm"
+          style={{ animation: "fadeInUp 0.5s ease-out both", animationDelay: "0.2s" }}
+        >
           <div className="flex items-center gap-3 mb-4">
             <div className="w-9 h-9 bg-brown text-ivory rounded-full flex items-center justify-center font-serif font-bold text-sm shrink-0">
               P
             </div>
-            <h2 className="font-serif text-lg text-dark">Prayer</h2>
+            <div className="flex items-center gap-2 flex-1">
+              <h2 className="font-serif text-lg text-dark">Prayer</h2>
+              <button
+                onClick={() => {
+                  const suggestion = generatePrayerSuggestion(verseRef, observation);
+                  setPrayerSuggestion(suggestion);
+                }}
+                className="px-2.5 py-1 text-xs text-muted hover:text-brown bg-brown/5 hover:bg-brown/10 rounded-full transition flex items-center gap-1"
+              >
+                <span>&#10024;</span> Suggest
+              </button>
+            </div>
           </div>
           <div className="relative">
             <textarea
@@ -388,15 +472,39 @@ export default function JournalPage() {
               }
             />
           </div>
+          {prayerSuggestion && (
+            <SuggestionCard
+              suggestion={prayerSuggestion}
+              onUse={() => {
+                setPrayer(prayerSuggestion);
+                setPrayerSuggestion(null);
+              }}
+              onDismiss={() => setPrayerSuggestion(null)}
+            />
+          )}
         </section>
 
         {/* Step 4: Execution */}
-        <section className="bg-cream rounded-2xl p-5 shadow-sm">
+        <section
+          className="bg-cream rounded-2xl p-5 shadow-sm"
+          style={{ animation: "fadeInUp 0.5s ease-out both", animationDelay: "0.3s" }}
+        >
           <div className="flex items-center gap-3 mb-4">
             <div className="w-9 h-9 bg-brown text-ivory rounded-full flex items-center justify-center font-serif font-bold text-sm shrink-0">
               E
             </div>
-            <h2 className="font-serif text-lg text-dark">Execution</h2>
+            <div className="flex items-center gap-2 flex-1">
+              <h2 className="font-serif text-lg text-dark">Execution</h2>
+              <button
+                onClick={() => {
+                  const suggestion = generateExecutionSuggestion(verseRef, observation);
+                  setExecutionSuggestion(suggestion);
+                }}
+                className="px-2.5 py-1 text-xs text-muted hover:text-brown bg-brown/5 hover:bg-brown/10 rounded-full transition flex items-center gap-1"
+              >
+                <span>&#10024;</span> Suggest
+              </button>
+            </div>
           </div>
           <div className="relative">
             <textarea
@@ -414,6 +522,16 @@ export default function JournalPage() {
               }
             />
           </div>
+          {executionSuggestion && (
+            <SuggestionCard
+              suggestion={executionSuggestion}
+              onUse={() => {
+                setExecution(executionSuggestion);
+                setExecutionSuggestion(null);
+              }}
+              onDismiss={() => setExecutionSuggestion(null)}
+            />
+          )}
         </section>
       </div>
 

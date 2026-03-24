@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import {
-  getUser,
+  getOrCreateUser,
   getRopeEntries,
   getStreak,
   getBookFrequency,
@@ -21,8 +21,7 @@ export default function InsightsPage() {
   const [topBook, setTopBook] = useState<string | null>(null);
 
   useEffect(() => {
-    const u = getUser();
-    if (!u) return;
+    const u = getOrCreateUser();
     setUserState(u);
     setEntries(getRopeEntries(u.id));
     setStreakVal(getStreak(u.id));
@@ -41,7 +40,10 @@ export default function InsightsPage() {
 
   if (entries.length === 0) {
     return (
-      <div className="min-h-[80vh] flex flex-col items-center justify-center px-6 text-center">
+      <div
+        className="min-h-[80vh] flex flex-col items-center justify-center px-6 text-center"
+        style={{ animation: "fadeIn 0.4s ease-out both" }}
+      >
         <div className="w-16 h-16 bg-brown/10 rounded-full flex items-center justify-center mb-5">
           <svg
             width="28"
@@ -81,97 +83,102 @@ export default function InsightsPage() {
   const ringOffset = ringCircumference - (execRate / 100) * ringCircumference;
 
   return (
-    <div className="px-5 pt-6 pb-8">
+    <div className="px-5 pt-6 pb-8" style={{ animation: "fadeIn 0.4s ease-out both" }}>
       {/* Header */}
       <div className="mb-6">
         <h1 className="font-serif text-2xl text-brown">Your ROPE Journey</h1>
         <p className="text-muted text-sm">Patterns in your spiritual growth</p>
       </div>
 
-      {/* Stats Row */}
+      {/* Stats Row — 3 cols on all sizes */}
       <div className="grid grid-cols-3 gap-3 mb-8">
-        <div className="bg-cream rounded-2xl p-4 text-center shadow-sm">
-          <p className="font-serif text-2xl text-brown font-bold">{entries.length}</p>
-          <p className="text-muted text-xs mt-1">Total Entries</p>
-        </div>
-        <div className="bg-cream rounded-2xl p-4 text-center shadow-sm">
-          <p className="font-serif text-2xl text-brown font-bold">{streak}</p>
-          <p className="text-muted text-xs mt-1">Day Streak</p>
-        </div>
-        <div className="bg-cream rounded-2xl p-4 text-center shadow-sm">
-          <p className="font-serif text-2xl text-brown font-bold truncate text-lg">
-            {topBook || "—"}
-          </p>
-          <p className="text-muted text-xs mt-1">Top Book</p>
-        </div>
+        {[
+          { value: entries.length, label: "Total Entries" },
+          { value: streak, label: "Day Streak" },
+          { value: topBook || "\u2014", label: "Top Book" },
+        ].map((stat, i) => (
+          <div
+            key={stat.label}
+            className="bg-cream rounded-2xl p-4 text-center shadow-sm"
+            style={{ animation: "fadeIn 0.4s ease-out both", animationDelay: `${i * 0.1}s` }}
+          >
+            <p className={`font-serif text-2xl text-brown font-bold ${typeof stat.value === "string" ? "truncate text-lg" : ""}`}>
+              {stat.value}
+            </p>
+            <p className="text-muted text-xs mt-1">{stat.label}</p>
+          </div>
+        ))}
       </div>
 
-      {/* Book Frequency Chart */}
-      {top5Books.length > 0 && (
-        <section className="bg-cream rounded-2xl p-5 shadow-sm mb-6">
-          <h2 className="font-serif text-lg text-dark mb-4">Most Read Books</h2>
-          <div className="space-y-3">
-            {top5Books.map(({ book, count }) => (
-              <div key={book} className="flex items-center gap-3">
-                <span className="text-sm text-dark w-28 truncate shrink-0">{book}</span>
-                <div className="flex-1 bg-ivory rounded-full h-5 overflow-hidden">
-                  <div
-                    className="h-full bg-brown/70 rounded-full transition-all duration-500"
-                    style={{ width: `${Math.max((count / maxCount) * 100, 8)}%` }}
-                  />
+      {/* Desktop: Book Frequency + Execution Score side by side */}
+      <div className="md:grid md:grid-cols-2 md:gap-6 space-y-6 md:space-y-0 mb-6">
+        {/* Book Frequency Chart */}
+        {top5Books.length > 0 && (
+          <section className="bg-cream rounded-2xl p-5 shadow-sm">
+            <h2 className="font-serif text-lg text-dark mb-4">Most Read Books</h2>
+            <div className="space-y-3">
+              {top5Books.map(({ book, count }) => (
+                <div key={book} className="flex items-center gap-3">
+                  <span className="text-sm text-dark w-28 truncate shrink-0">{book}</span>
+                  <div className="flex-1 bg-ivory rounded-full h-5 overflow-hidden">
+                    <div
+                      className="h-full bg-brown/70 rounded-full transition-all duration-500"
+                      style={{ width: `${Math.max((count / maxCount) * 100, 8)}%` }}
+                    />
+                  </div>
+                  <span className="text-xs text-muted w-6 text-right">{count}</span>
                 </div>
-                <span className="text-xs text-muted w-6 text-right">{count}</span>
-              </div>
-            ))}
-          </div>
-        </section>
-      )}
-
-      {/* Execution Score */}
-      <section className="bg-cream rounded-2xl p-5 shadow-sm mb-6">
-        <h2 className="font-serif text-lg text-dark mb-4">Execution Score</h2>
-        {hasExecData ? (
-          <div className="flex flex-col items-center">
-            <div className="relative w-32 h-32">
-              <svg className="w-32 h-32 -rotate-90" viewBox="0 0 120 120">
-                <circle
-                  cx="60"
-                  cy="60"
-                  r={ringRadius}
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="8"
-                  className="text-ivory"
-                />
-                <circle
-                  cx="60"
-                  cy="60"
-                  r={ringRadius}
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="8"
-                  strokeLinecap="round"
-                  strokeDasharray={ringCircumference}
-                  strokeDashoffset={ringOffset}
-                  className="text-brown transition-all duration-700"
-                />
-              </svg>
-              <div className="absolute inset-0 flex items-center justify-center">
-                <span className="font-serif text-3xl text-brown font-bold">{execRate}%</span>
-              </div>
+              ))}
             </div>
-            <p className="text-muted text-xs mt-3 text-center">
-              of your commitments fully lived out
-            </p>
-          </div>
-        ) : (
-          <p className="text-muted text-sm text-center py-4">
-            Complete your first check-in to see your execution score. Keep going!
-          </p>
+          </section>
         )}
-      </section>
 
-      {/* Theme Timeline */}
+        {/* Execution Score */}
+        <section className="bg-cream rounded-2xl p-5 shadow-sm">
+          <h2 className="font-serif text-lg text-dark mb-4">Execution Score</h2>
+          {hasExecData ? (
+            <div className="flex flex-col items-center">
+              <div className="relative w-32 h-32">
+                <svg className="w-32 h-32 -rotate-90" viewBox="0 0 120 120">
+                  <circle
+                    cx="60"
+                    cy="60"
+                    r={ringRadius}
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="8"
+                    className="text-ivory"
+                  />
+                  <circle
+                    cx="60"
+                    cy="60"
+                    r={ringRadius}
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="8"
+                    strokeLinecap="round"
+                    strokeDasharray={ringCircumference}
+                    strokeDashoffset={ringOffset}
+                    className="text-brown transition-all duration-700"
+                  />
+                </svg>
+                <div className="absolute inset-0 flex items-center justify-center">
+                  <span className="font-serif text-3xl text-brown font-bold">{execRate}%</span>
+                </div>
+              </div>
+              <p className="text-muted text-xs mt-3 text-center">
+                of your commitments fully lived out
+              </p>
+            </div>
+          ) : (
+            <p className="text-muted text-sm text-center py-4">
+              Complete your first check-in to see your execution score. Keep going!
+            </p>
+          )}
+        </section>
+      </div>
+
+      {/* Theme Timeline — full width */}
       <section className="bg-cream rounded-2xl p-5 shadow-sm mb-6">
         <h2 className="font-serif text-lg text-dark mb-4">Recent Reflections</h2>
         <div className="space-y-0">

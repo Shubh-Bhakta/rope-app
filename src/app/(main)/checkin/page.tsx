@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { getUser, getYesterdayEntry, updateRopeEntry, type RopeEntry, type ExecutionStatus } from "@/lib/store";
+import { getOrCreateUser, getYesterdayEntry, updateRopeEntry, type RopeEntry, type ExecutionStatus } from "@/lib/store";
 
 export default function CheckinPage() {
   const [entry, setEntry] = useState<RopeEntry | null>(null);
@@ -11,12 +11,10 @@ export default function CheckinPage() {
   const [saved, setSaved] = useState(false);
 
   useEffect(() => {
-    const user = getUser();
-    if (user) {
-      const yesterday = getYesterdayEntry(user.id);
-      if (yesterday && yesterday.executionStatus === null) {
-        setEntry(yesterday);
-      }
+    const user = getOrCreateUser();
+    const yesterday = getYesterdayEntry(user.id);
+    if (yesterday && yesterday.executionStatus === null) {
+      setEntry(yesterday);
     }
     setLoaded(true);
   }, []);
@@ -40,7 +38,10 @@ export default function CheckinPage() {
 
   if (saved) {
     return (
-      <div className="min-h-[80vh] flex flex-col items-center justify-center px-6 text-center">
+      <div
+        className="min-h-[80vh] flex flex-col items-center justify-center px-6 text-center"
+        style={{ animation: "fadeIn 0.4s ease-out both" }}
+      >
         <div className="w-16 h-16 bg-prayer/15 rounded-full flex items-center justify-center mb-5">
           <svg
             width="32"
@@ -66,7 +67,10 @@ export default function CheckinPage() {
 
   if (!entry) {
     return (
-      <div className="min-h-[80vh] flex flex-col items-center justify-center px-6 text-center">
+      <div
+        className="min-h-[80vh] flex flex-col items-center justify-center px-6 text-center"
+        style={{ animation: "fadeIn 0.4s ease-out both" }}
+      >
         <p className="text-4xl mb-5">&#x1F54A;</p>
         <h2 className="font-serif text-xl text-brown mb-2">
           You&apos;re all caught up!
@@ -126,7 +130,7 @@ export default function CheckinPage() {
   ];
 
   return (
-    <div className="px-5 pt-6 pb-8">
+    <div className="px-5 pt-6 pb-8" style={{ animation: "fadeIn 0.4s ease-out both" }}>
       <h1 className="font-serif text-2xl text-brown mb-1">Execution Check-in</h1>
       <p className="text-muted text-sm mb-6">Reflect on yesterday&apos;s commitment</p>
 
@@ -142,16 +146,18 @@ export default function CheckinPage() {
 
       <p className="font-serif text-lg text-dark mb-3">Did you live it out?</p>
 
+      {/* Desktop: row, Mobile: row (grid-cols-3 already) */}
       <div className="grid grid-cols-3 gap-3 mb-6">
-        {options.map((opt) => (
+        {options.map((opt, i) => (
           <button
             key={opt.value}
             onClick={() => setStatus(opt.value)}
-            className={`flex flex-col items-center gap-2 p-4 rounded-2xl border-2 transition-all ${
+            className={`flex flex-col items-center gap-2 p-4 md:p-6 rounded-2xl border-2 transition-all ${
               status === opt.value
                 ? `${opt.bg} ${opt.border} scale-[1.02]`
                 : "bg-cream border-transparent"
             }`}
+            style={{ animation: "fadeInUp 0.4s ease-out both", animationDelay: `${i * 0.1}s` }}
           >
             {opt.icon}
             <span

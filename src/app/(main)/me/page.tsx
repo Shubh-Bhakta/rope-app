@@ -1,27 +1,18 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { useRouter } from "next/navigation";
-import { getUser, getRopeEntries, logout, type User, type RopeEntry } from "@/lib/store";
+import { getOrCreateUser, getRopeEntries, type User, type RopeEntry } from "@/lib/store";
 
 export default function MePage() {
-  const router = useRouter();
   const [user, setUserState] = useState<User | null>(null);
   const [entries, setEntries] = useState<RopeEntry[]>([]);
   const [expandedId, setExpandedId] = useState<string | null>(null);
 
   useEffect(() => {
-    const u = getUser();
-    if (u) {
-      setUserState(u);
-      setEntries(getRopeEntries(u.id));
-    }
+    const u = getOrCreateUser();
+    setUserState(u);
+    setEntries(getRopeEntries(u.id));
   }, []);
-
-  function handleLogout() {
-    logout();
-    router.replace("/login");
-  }
 
   function formatDate(dateStr: string): string {
     return new Date(dateStr).toLocaleDateString("en-US", {
@@ -40,7 +31,7 @@ export default function MePage() {
   }
 
   return (
-    <div className="px-5 pt-6 pb-8">
+    <div className="px-5 pt-6 pb-8" style={{ animation: "fadeIn 0.4s ease-out both" }}>
       <div className="text-center mb-8">
         <div className="w-20 h-20 bg-brown/10 rounded-full flex items-center justify-center mx-auto mb-4">
           <span className="font-serif text-2xl text-brown font-bold">
@@ -48,7 +39,8 @@ export default function MePage() {
           </span>
         </div>
         <h1 className="font-serif text-2xl text-dark">{user.name}</h1>
-        <p className="text-muted text-sm">{user.email}</p>
+        {user.email && <p className="text-muted text-sm">{user.email}</p>}
+        <p className="text-muted/60 text-xs mt-1">{user.anonymousAlias}</p>
       </div>
 
       <div className="mb-8">
@@ -61,9 +53,13 @@ export default function MePage() {
             </p>
           </div>
         ) : (
-          <div className="space-y-2">
-            {entries.map((entry) => (
-              <div key={entry.id} className="bg-cream rounded-2xl shadow-sm overflow-hidden">
+          <div className="space-y-2 md:grid md:grid-cols-1 md:gap-3 md:space-y-0">
+            {entries.map((entry, i) => (
+              <div
+                key={entry.id}
+                className="bg-cream rounded-2xl shadow-sm overflow-hidden"
+                style={{ animation: "fadeInUp 0.4s ease-out both", animationDelay: `${Math.min(i * 0.05, 0.5)}s` }}
+              >
                 <button
                   onClick={() =>
                     setExpandedId(expandedId === entry.id ? null : entry.id)
@@ -167,13 +163,6 @@ export default function MePage() {
           </div>
         )}
       </div>
-
-      <button
-        onClick={handleLogout}
-        className="w-full py-3.5 bg-brown text-ivory font-semibold rounded-xl hover:bg-brown/90 active:scale-[0.98] transition-all"
-      >
-        Sign Out
-      </button>
     </div>
   );
 }

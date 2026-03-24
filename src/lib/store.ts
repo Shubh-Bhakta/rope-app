@@ -97,10 +97,12 @@ export function suggestBooks(input: string): string[] {
   if (!input.trim()) return [];
   const lower = input.trim().toLowerCase();
 
-  // If input contains a space or number after what could be a book name, don't suggest
-  // Check if there's a digit in the input that's not at the very start (book prefix like "1 John")
+  // If input contains a space, the user has already selected a book — don't suggest
+  if (lower.includes(" ")) return [];
+
+  // If input has a digit not at start (like "1" for "1 Samuel"), keep suggesting
   const withoutLeadingNum = lower.replace(/^[123]\s*/, "");
-  if (/\s/.test(withoutLeadingNum) || /\d/.test(withoutLeadingNum)) return [];
+  if (/\d/.test(withoutLeadingNum)) return [];
 
   const matches: string[] = [];
 
@@ -148,36 +150,33 @@ export function getUser(): User | null {
   }
 }
 
+/** Get existing user or auto-create a default one */
+export function getOrCreateUser(): User {
+  const existing = getUser();
+  if (existing) return existing;
+
+  const user: User = {
+    id: generateId(),
+    name: "Journaler",
+    email: "",
+    anonymousAlias: `Child of God #${generateAliasNumber()}`,
+  };
+  localStorage.setItem("rope_user", JSON.stringify(user));
+  return user;
+}
+
 export function setUser(name: string, email: string): User {
   const existing = getUser();
-  if (existing && existing.email === email) return existing;
+  if (existing && existing.email === email && email !== "") return existing;
 
   const user: User = {
-    id: generateId(),
+    id: existing?.id || generateId(),
     name,
     email,
-    anonymousAlias: `Child of God #${generateAliasNumber()}`,
+    anonymousAlias: existing?.anonymousAlias || `Child of God #${generateAliasNumber()}`,
   };
   localStorage.setItem("rope_user", JSON.stringify(user));
   return user;
-}
-
-export function loginUser(email: string): User {
-  const existing = getUser();
-  if (existing && existing.email === email) return existing;
-
-  const user: User = {
-    id: generateId(),
-    name: email.split("@")[0],
-    email,
-    anonymousAlias: `Child of God #${generateAliasNumber()}`,
-  };
-  localStorage.setItem("rope_user", JSON.stringify(user));
-  return user;
-}
-
-export function logout(): void {
-  localStorage.removeItem("rope_user");
 }
 
 // ─── ROPE Entries ────────────────────────────────────────────────────────────
