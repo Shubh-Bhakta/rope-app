@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { getOrCreateUser, getYesterdayEntry, updateRopeEntry, type RopeEntry, type ExecutionStatus } from "@/lib/store";
+import { getOrCreateUser, getYesterdayEntry, updateRopeEntry, getStreak, type RopeEntry, type ExecutionStatus } from "@/lib/store";
 import { LampIcon, OliveBranch, VerseBlock } from "@/components/Accents";
 
 export default function CheckinPage() {
@@ -10,6 +10,7 @@ export default function CheckinPage() {
   const [status, setStatus] = useState<ExecutionStatus>(null);
   const [reflection, setReflection] = useState("");
   const [saved, setSaved] = useState(false);
+  const [streak, setStreakVal] = useState(0);
 
   useEffect(() => {
     const user = getOrCreateUser();
@@ -17,6 +18,7 @@ export default function CheckinPage() {
     if (yesterday && yesterday.executionStatus === null) {
       setEntry(yesterday);
     }
+    setStreakVal(getStreak(user.id));
     setLoaded(true);
   }, []);
 
@@ -39,29 +41,22 @@ export default function CheckinPage() {
 
   if (saved) {
     return (
-      <div
-        className="min-h-[80vh] flex flex-col items-center justify-center px-6 text-center"
-        style={{ animation: "fadeIn 0.4s ease-out both" }}
-      >
-        <div className="w-16 h-16 bg-prayer/15 rounded-full flex items-center justify-center mb-5">
-          <svg
-            width="32"
-            height="32"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="1.5"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            className="text-prayer"
-          >
+      <div className="min-h-[80vh] flex flex-col items-center justify-center px-6 text-center" style={{ animation: "fadeIn 0.4s ease-out both" }}>
+        <div className="w-16 h-16 bg-prayer/10 rounded-full flex items-center justify-center mb-5">
+          <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="text-prayer">
             <polyline points="20 6 9 17 4 12" />
           </svg>
         </div>
-        <h2 className="font-serif text-2xl text-brown mb-2">Check-in Saved</h2>
-        <p className="text-muted text-sm max-w-xs">
-          Thank you for reflecting honestly. God is at work in you.
+        <h2 className="font-serif text-2xl text-brown mb-2">Reflection Saved</h2>
+        <p className="text-muted text-sm max-w-xs mb-6">
+          Thank you for reflecting honestly. God is faithfully at work in you.
         </p>
+        <div className="max-w-xs w-full">
+          <VerseBlock
+            verse="He who began a good work in you will carry it on to completion until the day of Christ Jesus."
+            reference="Philippians 1:6"
+          />
+        </div>
       </div>
     );
   }
@@ -156,7 +151,15 @@ export default function CheckinPage() {
   return (
     <div className="px-5 pt-6 pb-8" style={{ animation: "fadeIn 0.4s ease-out both" }}>
       <h1 className="font-serif text-2xl text-brown mb-1">Execution Check-in</h1>
-      <p className="text-muted text-sm mb-6">Reflect on yesterday&apos;s commitment</p>
+      <p className="text-muted text-sm mb-4">Reflect on yesterday&apos;s commitment</p>
+
+      {/* Streak badge */}
+      {streak > 0 && (
+        <div className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-accent-gold/8 rounded-full mb-6" style={{ animation: "fadeIn 0.4s ease-out 0.2s both" }}>
+          <span className="text-accent-gold text-xs">&#x2728;</span>
+          <span className="text-brown text-xs font-medium">{streak} day streak</span>
+        </div>
+      )}
 
       <div className="card-surface rounded-2xl p-5 mb-6">
         <p className="text-xs text-muted uppercase tracking-wide mb-2">
@@ -194,9 +197,19 @@ export default function CheckinPage() {
         ))}
       </div>
 
+      {status === "yes" && (
+        <p className="text-prayer text-sm italic mb-4 px-1">
+          Praise God for His faithfulness through you. What fruit did you see?
+        </p>
+      )}
+      {status === "partly" && (
+        <p className="text-praise text-sm italic mb-4 px-1">
+          Progress is still progress. Where did you see grace in the gap?
+        </p>
+      )}
       {status === "not_yet" && (
         <p className="text-muted text-sm italic mb-4 px-1">
-          That&apos;s okay. God&apos;s mercies are new every morning. Growth takes time.
+          His mercies are new every morning. Growth takes time. What got in the way?
         </p>
       )}
 

@@ -1,18 +1,26 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { getOrCreateUser, getRopeEntries, type User, type RopeEntry } from "@/lib/store";
+import { getOrCreateUser, getRopeEntries, getStreak, getUniqueBooksCount, getMostCommonBook, getThemes, type User, type RopeEntry } from "@/lib/store";
 import { LampIcon, OliveBranch } from "@/components/Accents";
 
 export default function MePage() {
   const [user, setUserState] = useState<User | null>(null);
   const [entries, setEntries] = useState<RopeEntry[]>([]);
   const [expandedId, setExpandedId] = useState<string | null>(null);
+  const [streak, setStreakVal] = useState(0);
+  const [uniqueBooks, setUniqueBooks] = useState(0);
+  const [topBook, setTopBook] = useState<string | null>(null);
+  const [themes, setThemes] = useState<string[]>([]);
 
   useEffect(() => {
     const u = getOrCreateUser();
     setUserState(u);
     setEntries(getRopeEntries(u.id));
+    setStreakVal(getStreak(u.id));
+    setUniqueBooks(getUniqueBooksCount(u.id));
+    setTopBook(getMostCommonBook(u.id));
+    setThemes(getThemes(u.id));
   }, []);
 
   function formatDate(dateStr: string): string {
@@ -43,6 +51,30 @@ export default function MePage() {
         {user.email && <p className="text-muted text-sm">{user.email}</p>}
         <p className="text-muted/60 text-xs mt-1">{user.anonymousAlias}</p>
       </div>
+
+      {/* Walk Snapshot */}
+      <div className="grid grid-cols-3 gap-3 mb-8">
+        {[
+          { value: entries.length, label: "Entries" },
+          { value: streak, label: "Streak" },
+          { value: uniqueBooks, label: "Books" },
+        ].map((stat, i) => (
+          <div key={stat.label} className="text-center p-3 bg-brown/[0.03] rounded-xl" style={{ animation: "fadeIn 0.3s ease-out both", animationDelay: `${i * 0.1}s` }}>
+            <p className="font-serif text-xl text-brown font-bold">{stat.value}</p>
+            <p className="text-muted text-[10px] uppercase tracking-wider mt-0.5">{stat.label}</p>
+          </div>
+        ))}
+      </div>
+
+      {/* Current walk summary */}
+      {topBook && (
+        <div className="card-surface rounded-2xl p-4 mb-8 border-l-2 border-l-accent-gold/20">
+          <p className="text-dark/70 text-sm italic leading-relaxed">
+            Lately you&apos;ve been spending time in <span className="font-medium not-italic text-brown">{topBook}</span>.
+            {themes.length > 0 && <> Themes of <span className="font-medium not-italic text-brown">{themes.slice(0, 2).join(" and ")}</span> are emerging in your reflections.</>}
+          </p>
+        </div>
+      )}
 
       <div className="mb-8">
         <h2 className="font-serif text-lg text-brown mb-3">Your ROPE Entries</h2>

@@ -353,13 +353,40 @@ export default function JournalPage() {
         <OliveBranch className="opacity-50" />
       </div>
 
+      {/* ROPE Progress */}
+      <div className="flex items-center gap-1.5 mb-6">
+        {["R", "O", "P", "E"].map((letter, i) => {
+          const filled =
+            (i === 0 && (verseLookedUp || verseRef.trim())) ||
+            (i === 1 && observation.trim()) ||
+            (i === 2 && prayer.trim()) ||
+            (i === 3 && execution.trim());
+          return (
+            <div key={letter} className="flex items-center gap-1.5 flex-1">
+              <div className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-serif font-bold transition-all duration-300 ${
+                filled
+                  ? "bg-brown text-ivory shadow-sm"
+                  : "bg-brown/8 text-brown/40"
+              }`}>
+                {letter}
+              </div>
+              {i < 3 && (
+                <div className="flex-1 h-0.5 rounded-full transition-all duration-500" style={{
+                  background: filled ? "var(--color-brown)" : "rgba(92,67,39,0.08)"
+                }} />
+              )}
+            </div>
+          );
+        })}
+      </div>
+
       {/* Section divider */}
       <div className="section-divider mb-5" />
 
       <div className="space-y-5">
         {/* Step 1: Revelation */}
         <section
-          className="card-surface rounded-2xl p-5"
+          className={`card-surface rounded-2xl p-5 border-l-2 ${verseLookedUp ? "border-l-brown/30" : "border-l-transparent"}`}
           style={{ animation: "fadeInUp 0.5s ease-out both", animationDelay: "0s" }}
         >
           <div className="flex items-center gap-3 mb-4">
@@ -411,18 +438,30 @@ export default function JournalPage() {
             <p className="text-struggle text-xs">{lookupError}</p>
           )}
           {verseLookedUp && verseText && (
-            <div className="bg-ivory/70 rounded-xl p-4 border-l-2 border-brown/20">
-              <p className="text-dark text-sm leading-relaxed italic">
-                &ldquo;{verseText}&rdquo;
-              </p>
-              <p className="text-muted text-xs mt-2">&mdash; {verseRef}</p>
+            <div className="mt-3 rounded-xl overflow-hidden" style={{ animation: "fadeInUp 0.3s ease-out both" }}>
+              {/* Passage card */}
+              <div className="bg-ivory/80 p-4 border-l-2 border-accent-gold/30">
+                <p className="text-dark text-sm leading-relaxed italic">
+                  &ldquo;{verseText}&rdquo;
+                </p>
+                <div className="flex items-center justify-between mt-3">
+                  <p className="text-muted text-xs">&mdash; {verseRef}</p>
+                  <span className="text-[10px] text-accent-olive/60 uppercase tracking-wider">Passage</span>
+                </div>
+              </div>
+              {/* Subtle context hint */}
+              <div className="px-4 py-2.5 bg-brown/[0.03] border-t border-brown/5">
+                <p className="text-muted/60 text-xs italic">
+                  Sit with this verse. What is God highlighting for you?
+                </p>
+              </div>
             </div>
           )}
         </section>
 
         {/* Step 2: Observation */}
         <section
-          className="card-surface rounded-2xl p-5"
+          className={`card-surface rounded-2xl p-5 border-l-2 ${observation.trim() ? "border-l-brown/30" : "border-l-transparent"}`}
           style={{ animation: "fadeInUp 0.5s ease-out both", animationDelay: "0.1s" }}
         >
           <div className="flex items-center gap-3 mb-4">
@@ -449,7 +488,7 @@ export default function JournalPage() {
 
         {/* Step 3: Prayer */}
         <section
-          className="card-surface rounded-2xl p-5"
+          className={`card-surface rounded-2xl p-5 border-l-2 ${prayer.trim() ? "border-l-brown/30" : "border-l-transparent"}`}
           style={{ animation: "fadeInUp 0.5s ease-out both", animationDelay: "0.2s" }}
         >
           <div className="flex items-center gap-3 mb-4">
@@ -497,7 +536,7 @@ export default function JournalPage() {
 
         {/* Step 4: Execution */}
         <section
-          className="card-surface rounded-2xl p-5"
+          className={`card-surface rounded-2xl p-5 border-l-2 ${execution.trim() ? "border-l-brown/30" : "border-l-transparent"}`}
           style={{ animation: "fadeInUp 0.5s ease-out both", animationDelay: "0.3s" }}
         >
           <div className="flex items-center gap-3 mb-4">
@@ -544,18 +583,19 @@ export default function JournalPage() {
         </section>
       </div>
 
-      <button
-        onClick={handleSave}
-        disabled={
-          !verseRef.trim() ||
-          !observation.trim() ||
-          !prayer.trim() ||
-          !execution.trim()
-        }
-        className="w-full mt-6 py-3.5 btn-primary text-center"
-      >
-        Save Entry
-      </button>
+      {/* Save area */}
+      <div className="mt-8 pt-6 border-t border-brown/8">
+        <button
+          onClick={handleSave}
+          disabled={!verseRef.trim() || !observation.trim() || !prayer.trim() || !execution.trim()}
+          className="w-full py-3.5 btn-primary text-center text-base"
+        >
+          Save Entry
+        </button>
+        <p className="text-center text-muted/40 text-xs mt-3 italic">
+          Your words are kept safely on this device
+        </p>
+      </div>
     </div>
   );
 }

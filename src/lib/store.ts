@@ -305,3 +305,72 @@ export function getMostCommonBook(userId: string): string | null {
   const freq = getBookFrequency(userId);
   return freq.length > 0 ? freq[0].book : null;
 }
+
+// ─── Extended Analytics ─────────────────────────────────────────────────────
+
+/** Get ROPE balance — how much the user writes in each section */
+export function getRopeBalance(userId: string): { r: number; o: number; p: number; e: number } {
+  const entries = getRopeEntries(userId);
+  if (entries.length === 0) return { r: 0, o: 0, p: 0, e: 0 };
+  let rTotal = 0, oTotal = 0, pTotal = 0, eTotal = 0;
+  for (const entry of entries) {
+    rTotal += (entry.revelationText || entry.revelationVerse).split(/\s+/).length;
+    oTotal += entry.observation.split(/\s+/).length;
+    pTotal += entry.prayer.split(/\s+/).length;
+    eTotal += entry.execution.split(/\s+/).length;
+  }
+  const sum = rTotal + oTotal + pTotal + eTotal || 1;
+  return {
+    r: Math.round((rTotal / sum) * 100),
+    o: Math.round((oTotal / sum) * 100),
+    p: Math.round((pTotal / sum) * 100),
+    e: Math.round((eTotal / sum) * 100),
+  };
+}
+
+/** Get the most recent verse reference */
+export function getLastVerse(userId: string): string | null {
+  const entries = getRopeEntries(userId);
+  return entries.length > 0 ? entries[0].revelationVerse : null;
+}
+
+/** Get total unique books studied */
+export function getUniqueBooksCount(userId: string): number {
+  const freq = getBookFrequency(userId);
+  return freq.length;
+}
+
+/** Extract common spiritual themes from observations */
+export function getThemes(userId: string): string[] {
+  const entries = getRopeEntries(userId);
+  const themeKeywords: Record<string, string[]> = {
+    "Trust": ["trust", "faith", "believe", "rely", "depend"],
+    "Obedience": ["obey", "obedience", "follow", "submit", "listen"],
+    "Peace": ["peace", "calm", "rest", "still", "quiet"],
+    "Love": ["love", "compassion", "mercy", "kindness", "grace"],
+    "Courage": ["courage", "brave", "strong", "bold", "fear not"],
+    "Gratitude": ["thank", "grateful", "praise", "blessing", "thankful"],
+    "Patience": ["patience", "wait", "endure", "persevere", "long-suffering"],
+    "Forgiveness": ["forgive", "forgiveness", "pardon", "mercy", "reconcile"],
+    "Purpose": ["purpose", "calling", "plan", "mission", "destiny"],
+    "Growth": ["grow", "growth", "mature", "transform", "renew"],
+  };
+
+  const counts: Record<string, number> = {};
+  const allText = entries.map(e => `${e.observation} ${e.prayer} ${e.execution}`).join(" ").toLowerCase();
+
+  for (const [theme, keywords] of Object.entries(themeKeywords)) {
+    let count = 0;
+    for (const kw of keywords) {
+      const regex = new RegExp(`\\b${kw}`, "gi");
+      const matches = allText.match(regex);
+      if (matches) count += matches.length;
+    }
+    if (count > 0) counts[theme] = count;
+  }
+
+  return Object.entries(counts)
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 5)
+    .map(([theme]) => theme);
+}

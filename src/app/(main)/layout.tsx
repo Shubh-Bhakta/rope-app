@@ -152,37 +152,68 @@ export default function MainLayout({ children }: { children: React.ReactNode }) 
 
       {/* Devotional side rail — xl+ only */}
       <aside className="hidden xl:flex xl:fixed xl:inset-y-0 xl:right-0 xl:w-[280px] xl:flex-col bg-cream-dark/50 border-l border-brown/6 z-40 px-6 py-10">
-        <div className="flex-1 flex flex-col">
-          {/* Daily Word */}
-          <div className="mb-8">
-            <p className="text-[10px] uppercase tracking-[0.2em] text-muted font-medium mb-4">Daily Word</p>
-            <div className="border-l-2 border-accent-gold/25 pl-4 py-1">
-              <p className="text-dark/70 text-sm italic leading-relaxed">
-                &ldquo;{todayVerse.text}&rdquo;
-              </p>
-              <p className="text-muted text-xs mt-2">&mdash; {todayVerse.ref}</p>
+        {(() => {
+          const pageContext = (() => {
+            if (pathname.startsWith("/journal")) return {
+              label: "As You Journal",
+              verse: { text: "Be still, and know that I am God.", ref: "Psalm 46:10" },
+              prompt: "Let each section be a conversation with God, not just a task.",
+              footerLabel: "Journal with intention",
+            };
+            if (pathname.startsWith("/checkin")) return {
+              label: "Walking It Out",
+              verse: { text: "But be doers of the word, and not hearers only, deceiving yourselves.", ref: "James 1:22" },
+              prompt: "Honest reflection is where growth begins. God already knows your heart.",
+              footerLabel: "Grace upon grace",
+            };
+            if (pathname.startsWith("/insights")) return {
+              label: "Seeing the Pattern",
+              verse: { text: "And we know that in all things God works for the good of those who love him.", ref: "Romans 8:28" },
+              prompt: "Your entries reveal how God has been shaping your heart over time.",
+              footerLabel: "His faithfulness endures",
+            };
+            return {
+              label: "Daily Word",
+              verse: todayVerse,
+              prompt: todayPrompt,
+              footerLabel: "Walk in the light",
+            };
+          })();
+
+          return (
+            <div className="flex-1 flex flex-col">
+              {/* Contextual verse */}
+              <div className="mb-8">
+                <p className="text-[10px] uppercase tracking-[0.2em] text-muted font-medium mb-4">{pageContext.label}</p>
+                <div className="border-l-2 border-accent-gold/25 pl-4 py-1">
+                  <p className="text-dark/70 text-sm italic leading-relaxed">
+                    &ldquo;{pageContext.verse.text}&rdquo;
+                  </p>
+                  <p className="text-muted text-xs mt-2">&mdash; {pageContext.verse.ref}</p>
+                </div>
+              </div>
+
+              {/* Divider */}
+              <div className="section-divider mb-8" />
+
+              {/* Contextual prompt */}
+              <div className="mb-8">
+                <p className="text-[10px] uppercase tracking-[0.2em] text-muted font-medium mb-4">Reflection</p>
+                <p className="text-dark/60 text-sm leading-relaxed font-serif italic">
+                  {pageContext.prompt}
+                </p>
+              </div>
+
+              {/* Olive branch accent at bottom */}
+              <div className="mt-auto flex flex-col items-center gap-4">
+                <OliveBranch className="opacity-40" />
+                <p className="text-muted/30 text-[10px] tracking-[0.15em] uppercase">
+                  {pageContext.footerLabel}
+                </p>
+              </div>
             </div>
-          </div>
-
-          {/* Divider */}
-          <div className="section-divider mb-8" />
-
-          {/* Reflection prompt */}
-          <div className="mb-8">
-            <p className="text-[10px] uppercase tracking-[0.2em] text-muted font-medium mb-4">Reflection</p>
-            <p className="text-dark/60 text-sm leading-relaxed font-serif italic">
-              {todayPrompt}
-            </p>
-          </div>
-
-          {/* Olive branch accent at bottom */}
-          <div className="mt-auto flex flex-col items-center gap-4">
-            <OliveBranch className="opacity-40" />
-            <p className="text-muted/30 text-[10px] tracking-[0.15em] uppercase">
-              Walk in the light
-            </p>
-          </div>
-        </div>
+          );
+        })()}
       </aside>
 
       {/* Bottom nav — mobile only */}

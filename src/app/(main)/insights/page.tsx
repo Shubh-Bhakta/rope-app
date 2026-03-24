@@ -8,6 +8,8 @@ import {
   getBookFrequency,
   getExecutionRate,
   getMostCommonBook,
+  getRopeBalance,
+  getThemes,
   type RopeEntry,
   type User,
 } from "@/lib/store";
@@ -20,6 +22,8 @@ export default function InsightsPage() {
   const [bookFreq, setBookFreq] = useState<{ book: string; count: number }[]>([]);
   const [execRate, setExecRate] = useState(0);
   const [topBook, setTopBook] = useState<string | null>(null);
+  const [ropeBalance, setRopeBalance] = useState({ r: 0, o: 0, p: 0, e: 0 });
+  const [themes, setThemes] = useState<string[]>([]);
 
   useEffect(() => {
     const u = getOrCreateUser();
@@ -29,6 +33,8 @@ export default function InsightsPage() {
     setBookFreq(getBookFrequency(u.id));
     setExecRate(getExecutionRate(u.id));
     setTopBook(getMostCommonBook(u.id));
+    setRopeBalance(getRopeBalance(u.id));
+    setThemes(getThemes(u.id));
   }, []);
 
   if (!user) {
@@ -189,6 +195,44 @@ export default function InsightsPage() {
           )}
         </section>
       </div>
+
+      {/* ROPE Balance */}
+      <section className="card-surface rounded-2xl p-5 mb-6">
+        <h2 className="font-serif text-lg text-dark mb-4">ROPE Balance</h2>
+        <p className="text-muted text-xs mb-4">How your reflection time is distributed</p>
+        <div className="space-y-3">
+          {[
+            { letter: "R", label: "Revelation", value: ropeBalance.r, color: "bg-brown" },
+            { letter: "O", label: "Observation", value: ropeBalance.o, color: "bg-brown/70" },
+            { letter: "P", label: "Prayer", value: ropeBalance.p, color: "bg-accent-olive" },
+            { letter: "E", label: "Execution", value: ropeBalance.e, color: "bg-accent-gold" },
+          ].map(({ letter, label, value, color }) => (
+            <div key={letter} className="flex items-center gap-3">
+              <span className="w-6 h-6 rounded-full bg-brown/8 flex items-center justify-center text-xs font-serif font-bold text-brown/60 shrink-0">{letter}</span>
+              <span className="text-sm text-dark w-24 shrink-0">{label}</span>
+              <div className="flex-1 bg-ivory rounded-full h-3 overflow-hidden">
+                <div className={`h-full ${color} rounded-full transition-all duration-700`} style={{ width: `${Math.max(value, 3)}%` }} />
+              </div>
+              <span className="text-xs text-muted w-8 text-right">{value}%</span>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      {/* Spiritual Themes */}
+      {themes.length > 0 && (
+        <section className="card-surface rounded-2xl p-5 mb-6">
+          <h2 className="font-serif text-lg text-dark mb-2">Emerging Themes</h2>
+          <p className="text-muted text-xs mb-4">Patterns God may be weaving through your reflections</p>
+          <div className="flex flex-wrap gap-2">
+            {themes.map((theme) => (
+              <span key={theme} className="px-3 py-1.5 bg-brown/6 text-brown text-sm rounded-full border border-brown/8">
+                {theme}
+              </span>
+            ))}
+          </div>
+        </section>
+      )}
 
       {/* Theme Timeline */}
       <section className="card-surface rounded-2xl p-5 mb-6">
