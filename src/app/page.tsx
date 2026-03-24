@@ -31,9 +31,10 @@ function useScrollReveal(threshold = 0.15) {
 /* ─── Main Page ─── */
 export default function SplashPage() {
   const router = useRouter();
-  const [phase, setPhase] = useState(0); // 0=dark, 1=bloom, 2=R, 3=O, 4=P, 5=E, 6=subtitle, 7=copy, 8=cta, 9=ready
+  const [phase, setPhase] = useState(0);
   const [hoveredIdx, setHoveredIdx] = useState<number | null>(null);
   const [exiting, setExiting] = useState(false);
+  const [videoLoaded, setVideoLoaded] = useState(false);
 
   /* Orchestrated entrance sequence */
   useEffect(() => {
@@ -53,26 +54,44 @@ export default function SplashPage() {
   const s3 = useScrollReveal(0.2);
   const s4 = useScrollReveal(0.2);
   const sCta = useScrollReveal(0.3);
+  const sVerse = useScrollReveal(0.3);
 
   const scrollSections = [s1, s2, s3, s4];
 
   return (
     <div className="relative">
       {/* ═══════════════════════════════════════════
-          HERO — Full viewport
+          HERO — Full viewport with video background
           ═══════════════════════════════════════════ */}
       <section
         className="relative min-h-screen flex flex-col items-center justify-center overflow-hidden"
-        style={{ background: "#0d0906" }}
+        style={{ background: "#0a0804" }}
       >
-        {/* ─── Light bloom from above (Threshold element) ─── */}
+        {/* ─── Video background — Bible pages turning at night ─── */}
+        <video
+          autoPlay
+          muted
+          loop
+          playsInline
+          onLoadedData={() => setVideoLoaded(true)}
+          className="absolute inset-0 w-full h-full object-cover transition-opacity duration-[3000ms] ease-out"
+          style={{ opacity: videoLoaded && phase >= 1 ? 0.25 : 0 }}
+        >
+          <source src="https://assets.mixkit.co/videos/17384/17384-720.mp4" type="video/mp4" />
+        </video>
+
+        {/* ─── Dark overlays for depth + readability ─── */}
+        <div className="absolute inset-0 bg-gradient-to-b from-[#0a0804]/60 via-[#0a0804]/30 to-[#0a0804]/70 pointer-events-none" />
+        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,transparent_30%,rgba(10,8,4,0.7)_100%)] pointer-events-none" />
+
+        {/* ─── Sacred light bloom from above ─── */}
         <div
           className="absolute inset-0 transition-opacity duration-[2000ms] ease-out pointer-events-none"
           style={{
             opacity: phase >= 1 ? 1 : 0,
             background: `
-              radial-gradient(ellipse 60% 40% at 50% 0%, rgba(196, 162, 101, 0.08) 0%, transparent 70%),
-              radial-gradient(ellipse 80% 50% at 50% 10%, rgba(245, 239, 227, 0.04) 0%, transparent 60%)
+              radial-gradient(ellipse 50% 35% at 50% 0%, rgba(196, 162, 101, 0.12) 0%, transparent 70%),
+              radial-gradient(ellipse 70% 45% at 50% 5%, rgba(245, 239, 227, 0.06) 0%, transparent 60%)
             `,
           }}
         />
@@ -82,13 +101,13 @@ export default function SplashPage() {
           className="absolute inset-0 transition-opacity duration-[2500ms] ease-out pointer-events-none"
           style={{
             opacity: phase >= 2 ? 1 : 0,
-            background: `radial-gradient(ellipse 50% 50% at 50% 45%, rgba(196, 162, 101, 0.03) 0%, transparent 70%)`,
+            background: `radial-gradient(ellipse 45% 45% at 50% 42%, rgba(196, 162, 101, 0.04) 0%, transparent 70%)`,
           }}
         />
 
         {/* ─── Subtle grain texture ─── */}
         <div
-          className="absolute inset-0 pointer-events-none opacity-[0.03]"
+          className="absolute inset-0 pointer-events-none opacity-[0.04]"
           style={{
             backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.5'/%3E%3C/svg%3E")`,
             backgroundSize: "128px 128px",
@@ -109,6 +128,20 @@ export default function SplashPage() {
         {/* ─── Content ─── */}
         <div className="relative z-10 flex flex-col items-center px-6 w-full">
 
+          {/* ═══ Small cross icon above ROPE ═══ */}
+          <div
+            className="mb-5 transition-all duration-700 ease-out"
+            style={{
+              opacity: phase >= 1 ? 1 : 0,
+              transform: phase >= 1 ? "translateY(0)" : "translateY(12px)",
+            }}
+          >
+            <svg width="20" height="28" viewBox="0 0 20 28" fill="none" className="mx-auto">
+              <rect x="8" y="0" width="4" height="28" rx="1" fill="rgba(196, 162, 101, 0.25)" />
+              <rect x="0" y="6" width="20" height="4" rx="1" fill="rgba(196, 162, 101, 0.25)" />
+            </svg>
+          </div>
+
           {/* ═══ ROPE — Giant typography hero ═══ */}
           <div className="flex items-center justify-center mb-6 md:mb-8 select-none">
             {LETTERS.map(({ letter, word, prompt }, i) => {
@@ -124,7 +157,6 @@ export default function SplashPage() {
                   onMouseLeave={() => setHoveredIdx(null)}
                   onClick={() => setHoveredIdx(hoveredIdx === i ? null : i)}
                 >
-                  {/* The letter itself */}
                   <span
                     className="font-serif font-bold inline-block transition-all duration-500 ease-out"
                     style={{
@@ -135,19 +167,17 @@ export default function SplashPage() {
                         ? isHovered
                           ? "rgba(245, 239, 227, 1)"
                           : othersHovered
-                            ? "rgba(245, 239, 227, 0.35)"
-                            : "rgba(245, 239, 227, 0.88)"
+                            ? "rgba(245, 239, 227, 0.3)"
+                            : "rgba(245, 239, 227, 0.9)"
                         : "transparent",
                       textShadow: isRevealed
                         ? isHovered
-                          ? "0 0 40px rgba(196, 162, 101, 0.25), 0 0 80px rgba(196, 162, 101, 0.08)"
-                          : "0 0 20px rgba(196, 162, 101, 0.06)"
+                          ? "0 0 40px rgba(196, 162, 101, 0.3), 0 0 80px rgba(196, 162, 101, 0.1), 0 2px 4px rgba(0,0,0,0.3)"
+                          : "0 0 20px rgba(196, 162, 101, 0.06), 0 2px 4px rgba(0,0,0,0.2)"
                         : "none",
                       opacity: isRevealed ? 1 : 0,
                       transform: isRevealed
-                        ? isHovered
-                          ? "translateY(-4px)"
-                          : "translateY(0)"
+                        ? isHovered ? "translateY(-4px)" : "translateY(0)"
                         : "translateY(20px)",
                     }}
                   >
@@ -160,9 +190,7 @@ export default function SplashPage() {
                     style={{
                       top: "calc(100% + 12px)",
                       opacity: isHovered && isRevealed ? 1 : 0,
-                      transform: isHovered && isRevealed
-                        ? "translateY(0)"
-                        : "translateY(6px)",
+                      transform: isHovered && isRevealed ? "translateY(0)" : "translateY(6px)",
                     }}
                   >
                     <span className="font-serif text-sm md:text-base text-ivory/70 tracking-[0.2em] uppercase">
@@ -177,12 +205,12 @@ export default function SplashPage() {
             })}
           </div>
 
-          {/* ═══ Decorative line ═══ */}
+          {/* ═══ Decorative gold line ═══ */}
           <div
             className="h-px mb-6 md:mb-8 transition-all duration-700 ease-out"
             style={{
               width: phase >= 6 ? "6rem" : "0rem",
-              background: "linear-gradient(90deg, transparent, rgba(196, 162, 101, 0.3), transparent)",
+              background: "linear-gradient(90deg, transparent, rgba(196, 162, 101, 0.35), transparent)",
             }}
           />
 
@@ -212,7 +240,7 @@ export default function SplashPage() {
           <button
             onClick={handleEnter}
             disabled={exiting || phase < 8}
-            className="group relative px-10 py-4 text-ivory/90 font-medium text-base md:text-lg rounded-xl border border-ivory/12 bg-ivory/[0.04] backdrop-blur-sm transition-all duration-300 ease-out disabled:opacity-0 disabled:pointer-events-none hover:bg-ivory/[0.1] hover:border-ivory/25 hover:shadow-[0_0_30px_rgba(196,162,101,0.08)] active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ivory/20"
+            className="group relative px-10 py-4 text-ivory/90 font-medium text-base md:text-lg rounded-xl border border-ivory/12 bg-ivory/[0.04] backdrop-blur-sm transition-all duration-300 ease-out disabled:opacity-0 disabled:pointer-events-none hover:bg-ivory/[0.1] hover:border-ivory/25 hover:shadow-[0_0_30px_rgba(196,162,101,0.1)] active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ivory/20"
             style={{
               opacity: phase >= 8 ? 1 : 0,
               transform: phase >= 8 ? "translateY(0)" : "translateY(12px)",
@@ -220,16 +248,13 @@ export default function SplashPage() {
             }}
           >
             <span className="relative z-10 tracking-wide">Begin today&#39;s journal</span>
-            {/* Subtle inner glow on hover */}
-            <div className="absolute inset-0 rounded-xl opacity-0 group-hover:opacity-100 transition-opacity duration-500 bg-[radial-gradient(ellipse_at_center,rgba(196,162,101,0.06),transparent_70%)]" />
+            <div className="absolute inset-0 rounded-xl opacity-0 group-hover:opacity-100 transition-opacity duration-500 bg-[radial-gradient(ellipse_at_center,rgba(196,162,101,0.08),transparent_70%)]" />
           </button>
 
-          {/* ═══ Scripture — editorial credit placement ═══ */}
+          {/* ═══ Scripture — editorial credit ═══ */}
           <p
-            className="text-ivory/18 text-xs italic mt-16 md:mt-20 text-center transition-all duration-600 ease-out tracking-wide"
-            style={{
-              opacity: phase >= 9 ? 1 : 0,
-            }}
+            className="text-ivory/20 text-xs italic mt-16 md:mt-20 text-center transition-all duration-600 ease-out tracking-wide"
+            style={{ opacity: phase >= 9 ? 1 : 0 }}
           >
             &ldquo;Your word is a lamp to my feet and a light to my path.&rdquo;
             <span className="not-italic block mt-1 text-ivory/12 text-[10px] tracking-[0.2em] uppercase">
@@ -257,13 +282,13 @@ export default function SplashPage() {
           ═══════════════════════════════════════════ */}
       <section
         className="relative py-24 md:py-32 overflow-hidden"
-        style={{ background: "linear-gradient(180deg, #0d0906 0%, #13100a 50%, #0d0906 100%)" }}
+        style={{ background: "linear-gradient(180deg, #0a0804 0%, #12100a 50%, #0a0804 100%)" }}
       >
         {/* Subtle top light bleed */}
         <div
           className="absolute top-0 left-0 right-0 h-32 pointer-events-none"
           style={{
-            background: "linear-gradient(180deg, rgba(196, 162, 101, 0.02) 0%, transparent 100%)",
+            background: "linear-gradient(180deg, rgba(196, 162, 101, 0.03) 0%, transparent 100%)",
           }}
         />
 
@@ -292,14 +317,11 @@ export default function SplashPage() {
                   transitionDelay: `${i * 80}ms`,
                 }}
               >
-                {/* Letter badge */}
                 <div className="flex-shrink-0 w-12 h-12 md:w-14 md:h-14 rounded-full border border-ivory/10 flex items-center justify-center">
                   <span className="font-serif text-xl md:text-2xl font-bold text-ivory/60">
                     {letter}
                   </span>
                 </div>
-
-                {/* Content */}
                 <div className="pt-1">
                   <h3 className="font-serif text-ivory/70 text-lg md:text-xl font-semibold mb-2 tracking-wide">
                     {word}
@@ -313,16 +335,39 @@ export default function SplashPage() {
           })}
         </div>
 
+        {/* ═══ Scripture interlude ═══ */}
+        <div
+          ref={sVerse.ref}
+          className="max-w-xl mx-auto px-6 mt-20 md:mt-28 text-center transition-all duration-700 ease-out"
+          style={{
+            opacity: sVerse.visible ? 1 : 0,
+            transform: sVerse.visible ? "translateY(0)" : "translateY(16px)",
+          }}
+        >
+          <div className="border-t border-b border-ivory/6 py-8 md:py-10">
+            {/* Small cross */}
+            <svg width="14" height="20" viewBox="0 0 14 20" fill="none" className="mx-auto mb-5 opacity-20">
+              <rect x="5.5" y="0" width="3" height="20" rx="0.5" fill="rgba(245,239,227,1)" />
+              <rect x="0" y="4.5" width="14" height="3" rx="0.5" fill="rgba(245,239,227,1)" />
+            </svg>
+            <p className="text-ivory/30 text-sm md:text-base italic leading-relaxed max-w-sm mx-auto">
+              &ldquo;All Scripture is God-breathed and is useful for teaching, rebuking, correcting and training in righteousness.&rdquo;
+            </p>
+            <p className="text-ivory/15 text-xs mt-3 tracking-[0.15em] uppercase">
+              2 Timothy 3:16
+            </p>
+          </div>
+        </div>
+
         {/* Closing CTA */}
         <div
           ref={sCta.ref}
-          className="flex flex-col items-center mt-20 md:mt-28 transition-all duration-700 ease-out"
+          className="flex flex-col items-center mt-16 md:mt-20 transition-all duration-700 ease-out"
           style={{
             opacity: sCta.visible ? 1 : 0,
             transform: sCta.visible ? "translateY(0)" : "translateY(16px)",
           }}
         >
-          {/* Decorative line */}
           <div
             className="w-12 h-px mb-10"
             style={{ background: "linear-gradient(90deg, transparent, rgba(196, 162, 101, 0.2), transparent)" }}
