@@ -143,18 +143,23 @@ export default function MePage() {
                   }`}
                 >
                   <div className="px-4 pb-4 space-y-3 border-t border-brown/8 pt-3">
-                    {entry.revelationText && (
+                    {(entry.revelationText || entry.revelationReflection) && (
                       <div>
                         <p className="text-xs text-muted uppercase tracking-wide mb-1">
                           Revelation
                         </p>
-                        <p className="text-dark text-sm italic leading-relaxed">
-                          &ldquo;{entry.revelationText}&rdquo;
-                        </p>
-                        {(entry.revelationReflection || "") && (
-                          <p className="text-dark text-sm leading-relaxed mt-2 border-l-2 border-brown/15 pl-3">
-                            {entry.revelationReflection}
+                        {entry.revelationText && (
+                          <p className="text-dark text-sm italic leading-relaxed">
+                            &ldquo;{entry.revelationText}&rdquo;
                           </p>
+                        )}
+                        {entry.revelationReflection && (
+                          <div className="mt-2 pt-2 border-t border-brown/6">
+                            <p className="text-[10px] text-muted uppercase tracking-wider mb-1">My Reflection</p>
+                            <p className="text-dark text-sm leading-relaxed border-l-2 border-accent-gold/20 pl-3">
+                              {entry.revelationReflection}
+                            </p>
+                          </div>
                         )}
                       </div>
                     )}

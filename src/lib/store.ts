@@ -366,18 +366,22 @@ export function getUniqueBooksCount(userId: string): number {
 // ─── Bible Translations ─────────────────────────────────────────────────────
 
 const TRANSLATIONS = [
-  { id: "web", label: "WEB" },
-  { id: "kjv", label: "KJV" },
-  { id: "bbe", label: "BBE" },
-  { id: "oeb-us", label: "OEB" },
-  { id: "webbe", label: "WEB (BE)" },
-  { id: "clementine", label: "Clementine" },
-  { id: "almeida", label: "Almeida" },
+  { id: "kjv", label: "KJV", gateway: "KJV" },
+  { id: "web", label: "WEB", gateway: "WEB" },
+  { id: "bbe", label: "BBE", gateway: "BBE" },
 ];
 
 export function getTranslation(): string {
-  if (typeof window === "undefined") return "web";
-  return localStorage.getItem("rope_translation") || "web";
+  if (typeof window === "undefined") return "kjv";
+  const saved = localStorage.getItem("rope_translation") || "kjv";
+  // Migrate old invalid translations to KJV
+  if (!TRANSLATIONS.some(t => t.id === saved)) return "kjv";
+  return saved;
+}
+
+export function getGatewayVersion(translationId: string): string {
+  const t = TRANSLATIONS.find(t => t.id === translationId);
+  return t?.gateway || "KJV";
 }
 
 export function setTranslation(t: string): void {

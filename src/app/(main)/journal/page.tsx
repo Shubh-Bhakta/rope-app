@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef, useCallback } from "react";
-import { getOrCreateUser, addRopeEntry, suggestBooks, getStreak, getTranslation, setTranslation, TRANSLATIONS } from "@/lib/store";
+import { getOrCreateUser, addRopeEntry, suggestBooks, getStreak, getTranslation, setTranslation, getGatewayVersion, TRANSLATIONS } from "@/lib/store";
 import { OliveBranch } from "@/components/Accents";
 
 const steps = [
@@ -249,7 +249,7 @@ export default function JournalPage() {
   const [showSuggestions, setShowSuggestions] = useState(false);
   const suggestionsRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
-  const [translation, setTranslationState] = useState("web");
+  const [translation, setTranslationState] = useState("kjv");
 
   // AI suggestion state
   const [prayerSuggestion, setPrayerSuggestion] = useState<string | null>(null);
@@ -264,10 +264,33 @@ export default function JournalPage() {
     day: "numeric",
   });
 
+  // Refs for keyboard navigation
+  const observationRef = useRef<HTMLTextAreaElement>(null);
+  const prayerRef = useRef<HTMLTextAreaElement>(null);
+  const executionRef = useRef<HTMLTextAreaElement>(null);
+
   // Load translation on mount
   useEffect(() => {
     setTranslationState(getTranslation());
   }, []);
+
+  // Keyboard shortcuts: Cmd+Enter to save, Cmd+L to focus verse lookup
+  const canSave = !!(verseRef.trim() && observation.trim() && prayer.trim() && execution.trim());
+  useEffect(() => {
+    function handleKeyDown(e: KeyboardEvent) {
+      if ((e.metaKey || e.ctrlKey) && e.key === "Enter") {
+        e.preventDefault();
+        const btn = document.querySelector("[data-save-btn]") as HTMLButtonElement;
+        if (btn && !btn.disabled) btn.click();
+      }
+      if ((e.metaKey || e.ctrlKey) && e.key === "l") {
+        e.preventDefault();
+        inputRef.current?.focus();
+      }
+    }
+    document.addEventListener("keydown", handleKeyDown);
+    return () => document.removeEventListener("keydown", handleKeyDown);
+  }, [canSave]);
 
   // Close suggestions on outside click
   useEffect(() => {
@@ -538,7 +561,7 @@ export default function JournalPage() {
                 <div className="flex items-center justify-between mt-3">
                   <p className="text-muted text-xs">&mdash; {verseRef}</p>
                   <a
-                    href={`https://www.biblegateway.com/passage/?search=${encodeURIComponent(verseRef.trim())}&version=WEB`}
+                    href={`https://www.biblegateway.com/passage/?search=${encodeURIComponent(verseRef.trim())}&version=${getGatewayVersion(translation)}`}
                     target="_blank"
                     rel="noopener noreferrer"
                     className="text-[10px] text-accent-olive/60 uppercase tracking-wider hover:text-accent-olive transition-colors"
@@ -688,6 +711,7 @@ export default function JournalPage() {
       {/* Save area */}
       <div className="mt-8 pt-6 border-t border-brown/8">
         <button
+          data-save-btn
           onClick={handleSave}
           disabled={!allFilled}
           className={`w-full py-3.5 btn-primary text-center text-base ${allFilled ? "animate-breathe" : ""}`}
