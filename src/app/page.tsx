@@ -73,12 +73,14 @@ export default function SplashPage() {
           muted
           loop
           playsInline
+          preload="auto"
           onLoadedData={() => setVideoLoaded(true)}
-          className="absolute inset-0 w-full h-full object-cover transition-opacity duration-[3000ms] ease-out"
-          style={{ opacity: videoLoaded && phase >= 1 ? 0.25 : 0 }}
-        >
-          <source src="https://assets.mixkit.co/videos/17384/17384-720.mp4" type="video/mp4" />
-        </video>
+          onCanPlay={() => setVideoLoaded(true)}
+          onPlaying={() => setVideoLoaded(true)}
+          className="absolute inset-0 w-full h-full object-cover transition-opacity duration-[2000ms] ease-out"
+          style={{ opacity: phase >= 1 ? 0.35 : 0 }}
+          src="https://assets.mixkit.co/videos/17384/17384-720.mp4"
+        />
 
         {/* ─── Dark overlays for depth + readability ─── */}
         <div className="absolute inset-0 bg-gradient-to-b from-[#0a0804]/60 via-[#0a0804]/30 to-[#0a0804]/70 pointer-events-none" />
