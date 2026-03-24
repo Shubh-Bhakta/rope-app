@@ -1,7 +1,7 @@
 "use client";
 
-import { useState } from "react";
-import { getUser, addRopeEntry } from "@/lib/store";
+import { useState, useEffect, useRef, useCallback } from "react";
+import { getUser, addRopeEntry, suggestBooks } from "@/lib/store";
 
 const steps = [
   { letter: "R", word: "Revelation", placeholder: "" },
@@ -9,6 +9,127 @@ const steps = [
   { letter: "P", word: "Prayer", placeholder: "Write your prayer about this passage." },
   { letter: "E", word: "Execution", placeholder: "How will you live this out tomorrow?" },
 ];
+
+// ─── Voice Input Hook ────────────────────────────────────────────────────────
+
+function useSpeechRecognition() {
+  const [supported, setSupported] = useState(false);
+
+  useEffect(() => {
+    const w = window as unknown as Record<string, unknown>;
+    setSupported(!!(w.SpeechRecognition || w.webkitSpeechRecognition));
+  }, []);
+
+  const startListening = useCallback(
+    (onResult: (text: string) => void, onEnd: () => void) => {
+      const w = window as unknown as Record<string, unknown>;
+      const SpeechRecognition = (w.SpeechRecognition || w.webkitSpeechRecognition) as {
+        new (): {
+          continuous: boolean;
+          interimResults: boolean;
+          lang: string;
+          onresult: ((e: { results: { item: (i: number) => { item: (i: number) => { transcript: string } }; length: number }; resultIndex: number }) => void) | null;
+          onend: (() => void) | null;
+          onerror: (() => void) | null;
+          start: () => void;
+          stop: () => void;
+        };
+      };
+
+      if (!SpeechRecognition) return null;
+
+      const recognition = new SpeechRecognition();
+      recognition.continuous = true;
+      recognition.interimResults = false;
+      recognition.lang = "en-US";
+
+      recognition.onresult = (e) => {
+        let transcript = "";
+        for (let i = e.resultIndex; i < e.results.length; i++) {
+          transcript += e.results.item(i).item(0).transcript;
+        }
+        if (transcript.trim()) onResult(transcript.trim());
+      };
+
+      recognition.onend = onEnd;
+      recognition.onerror = onEnd;
+
+      recognition.start();
+      return recognition;
+    },
+    []
+  );
+
+  return { supported, startListening };
+}
+
+// ─── Mic Button Component ────────────────────────────────────────────────────
+
+function MicButton({
+  onTranscript,
+  supported,
+  startListening,
+}: {
+  onTranscript: (text: string) => void;
+  supported: boolean;
+  startListening: (
+    onResult: (text: string) => void,
+    onEnd: () => void
+  ) => { stop: () => void } | null;
+}) {
+  const [listening, setListening] = useState(false);
+  const recognitionRef = useRef<{ stop: () => void } | null>(null);
+
+  if (!supported) return null;
+
+  function toggle() {
+    if (listening) {
+      recognitionRef.current?.stop();
+      recognitionRef.current = null;
+      setListening(false);
+    } else {
+      setListening(true);
+      recognitionRef.current = startListening(
+        (text) => onTranscript(text),
+        () => {
+          setListening(false);
+          recognitionRef.current = null;
+        }
+      );
+    }
+  }
+
+  return (
+    <button
+      type="button"
+      onClick={toggle}
+      className={`absolute bottom-2 right-2 w-8 h-8 rounded-full flex items-center justify-center transition-all ${
+        listening
+          ? "bg-struggle text-white animate-pulse"
+          : "bg-brown/10 text-brown hover:bg-brown/20"
+      }`}
+      title={listening ? "Stop listening" : "Voice input"}
+    >
+      <svg
+        width="16"
+        height="16"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      >
+        <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z" />
+        <path d="M19 10v2a7 7 0 0 1-14 0v-2" />
+        <line x1="12" y1="19" x2="12" y2="23" />
+        <line x1="8" y1="23" x2="16" y2="23" />
+      </svg>
+    </button>
+  );
+}
+
+// ─── Journal Page ────────────────────────────────────────────────────────────
 
 export default function JournalPage() {
   const [verseRef, setVerseRef] = useState("");
@@ -20,6 +141,12 @@ export default function JournalPage() {
   const [prayer, setPrayer] = useState("");
   const [execution, setExecution] = useState("");
   const [saved, setSaved] = useState(false);
+  const [suggestions, setSuggestions] = useState<string[]>([]);
+  const [showSuggestions, setShowSuggestions] = useState(false);
+  const suggestionsRef = useRef<HTMLDivElement>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  const { supported: speechSupported, startListening } = useSpeechRecognition();
 
   const today = new Date().toLocaleDateString("en-US", {
     weekday: "long",
@@ -27,6 +154,38 @@ export default function JournalPage() {
     month: "long",
     day: "numeric",
   });
+
+  // Close suggestions on outside click
+  useEffect(() => {
+    function handleClick(e: MouseEvent) {
+      if (
+        suggestionsRef.current &&
+        !suggestionsRef.current.contains(e.target as Node) &&
+        inputRef.current &&
+        !inputRef.current.contains(e.target as Node)
+      ) {
+        setShowSuggestions(false);
+      }
+    }
+    document.addEventListener("mousedown", handleClick);
+    return () => document.removeEventListener("mousedown", handleClick);
+  }, []);
+
+  function handleVerseInput(value: string) {
+    setVerseRef(value);
+    setVerseLookedUp(false);
+    setLookupError("");
+    const results = suggestBooks(value);
+    setSuggestions(results);
+    setShowSuggestions(results.length > 0);
+  }
+
+  function selectSuggestion(book: string) {
+    setVerseRef(book + " ");
+    setShowSuggestions(false);
+    setSuggestions([]);
+    inputRef.current?.focus();
+  }
 
   async function lookupVerse() {
     if (!verseRef.trim()) return;
@@ -126,25 +285,45 @@ export default function JournalPage() {
             </div>
             <h2 className="font-serif text-lg text-dark">Revelation</h2>
           </div>
-          <div className="flex gap-2 mb-3">
-            <input
-              type="text"
-              value={verseRef}
-              onChange={(e) => {
-                setVerseRef(e.target.value);
-                setVerseLookedUp(false);
-                setLookupError("");
-              }}
-              placeholder="e.g. Romans 8:28"
-              className="flex-1 px-4 py-2.5 bg-ivory border border-brown/15 rounded-xl text-dark placeholder:text-muted/50 focus:outline-none focus:ring-2 focus:ring-brown/20 text-sm"
-            />
-            <button
-              onClick={lookupVerse}
-              disabled={lookingUp || !verseRef.trim()}
-              className="px-4 py-2.5 bg-brown text-ivory rounded-xl text-sm font-medium hover:bg-brown/90 disabled:opacity-40 transition shrink-0"
-            >
-              {lookingUp ? "..." : "Look up"}
-            </button>
+          <div className="relative">
+            <div className="flex gap-2 mb-3">
+              <input
+                ref={inputRef}
+                type="text"
+                value={verseRef}
+                onChange={(e) => handleVerseInput(e.target.value)}
+                onFocus={() => {
+                  if (suggestions.length > 0) setShowSuggestions(true);
+                }}
+                placeholder="e.g. Romans 8:28"
+                className="flex-1 px-4 py-2.5 bg-ivory border border-brown/15 rounded-xl text-dark placeholder:text-muted/50 focus:outline-none focus:ring-2 focus:ring-brown/20 text-sm"
+              />
+              <button
+                onClick={lookupVerse}
+                disabled={lookingUp || !verseRef.trim()}
+                className="px-4 py-2.5 bg-brown text-ivory rounded-xl text-sm font-medium hover:bg-brown/90 disabled:opacity-40 transition shrink-0"
+              >
+                {lookingUp ? "..." : "Look up"}
+              </button>
+            </div>
+
+            {/* Autocomplete dropdown */}
+            {showSuggestions && suggestions.length > 0 && (
+              <div
+                ref={suggestionsRef}
+                className="absolute left-0 right-16 top-12 z-20 bg-cream border border-brown/15 rounded-xl shadow-lg overflow-hidden"
+              >
+                {suggestions.map((book) => (
+                  <button
+                    key={book}
+                    onClick={() => selectSuggestion(book)}
+                    className="w-full text-left px-4 py-2.5 text-sm text-brown hover:bg-ivory transition"
+                  >
+                    {book}
+                  </button>
+                ))}
+              </div>
+            )}
           </div>
           {lookupError && (
             <p className="text-struggle text-xs">{lookupError}</p>
@@ -167,13 +346,22 @@ export default function JournalPage() {
             </div>
             <h2 className="font-serif text-lg text-dark">Observation</h2>
           </div>
-          <textarea
-            value={observation}
-            onChange={(e) => setObservation(e.target.value)}
-            placeholder={steps[1].placeholder}
-            rows={4}
-            className="w-full px-4 py-3 bg-ivory border border-brown/15 rounded-xl text-dark placeholder:text-muted/50 focus:outline-none focus:ring-2 focus:ring-brown/20 text-sm leading-relaxed resize-none"
-          />
+          <div className="relative">
+            <textarea
+              value={observation}
+              onChange={(e) => setObservation(e.target.value)}
+              placeholder={steps[1].placeholder}
+              rows={4}
+              className="w-full px-4 py-3 bg-ivory border border-brown/15 rounded-xl text-dark placeholder:text-muted/50 focus:outline-none focus:ring-2 focus:ring-brown/20 text-sm leading-relaxed resize-none"
+            />
+            <MicButton
+              supported={speechSupported}
+              startListening={startListening}
+              onTranscript={(text) =>
+                setObservation((prev) => (prev ? prev + " " + text : text))
+              }
+            />
+          </div>
         </section>
 
         {/* Step 3: Prayer */}
@@ -184,13 +372,22 @@ export default function JournalPage() {
             </div>
             <h2 className="font-serif text-lg text-dark">Prayer</h2>
           </div>
-          <textarea
-            value={prayer}
-            onChange={(e) => setPrayer(e.target.value)}
-            placeholder={steps[2].placeholder}
-            rows={4}
-            className="w-full px-4 py-3 bg-ivory border border-brown/15 rounded-xl text-dark placeholder:text-muted/50 focus:outline-none focus:ring-2 focus:ring-brown/20 text-sm leading-relaxed resize-none"
-          />
+          <div className="relative">
+            <textarea
+              value={prayer}
+              onChange={(e) => setPrayer(e.target.value)}
+              placeholder={steps[2].placeholder}
+              rows={4}
+              className="w-full px-4 py-3 bg-ivory border border-brown/15 rounded-xl text-dark placeholder:text-muted/50 focus:outline-none focus:ring-2 focus:ring-brown/20 text-sm leading-relaxed resize-none"
+            />
+            <MicButton
+              supported={speechSupported}
+              startListening={startListening}
+              onTranscript={(text) =>
+                setPrayer((prev) => (prev ? prev + " " + text : text))
+              }
+            />
+          </div>
         </section>
 
         {/* Step 4: Execution */}
@@ -201,13 +398,22 @@ export default function JournalPage() {
             </div>
             <h2 className="font-serif text-lg text-dark">Execution</h2>
           </div>
-          <textarea
-            value={execution}
-            onChange={(e) => setExecution(e.target.value)}
-            placeholder={steps[3].placeholder}
-            rows={4}
-            className="w-full px-4 py-3 bg-ivory border border-brown/15 rounded-xl text-dark placeholder:text-muted/50 focus:outline-none focus:ring-2 focus:ring-brown/20 text-sm leading-relaxed resize-none"
-          />
+          <div className="relative">
+            <textarea
+              value={execution}
+              onChange={(e) => setExecution(e.target.value)}
+              placeholder={steps[3].placeholder}
+              rows={4}
+              className="w-full px-4 py-3 bg-ivory border border-brown/15 rounded-xl text-dark placeholder:text-muted/50 focus:outline-none focus:ring-2 focus:ring-brown/20 text-sm leading-relaxed resize-none"
+            />
+            <MicButton
+              supported={speechSupported}
+              startListening={startListening}
+              onTranscript={(text) =>
+                setExecution((prev) => (prev ? prev + " " + text : text))
+              }
+            />
+          </div>
         </section>
       </div>
 

@@ -22,22 +22,104 @@ export interface RopeEntry {
   executionReflection: string;
 }
 
-export type CircleTag = "struggle" | "prayer_request" | "praise";
+// ─── Bible Books ─────────────────────────────────────────────────────────────
 
-export interface Reaction {
-  userId: string;
-  type: "prayed" | "encouraged";
-}
+export const BIBLE_BOOKS = [
+  { name: "Genesis", abbrevs: ["gen", "ge", "gn"] },
+  { name: "Exodus", abbrevs: ["exod", "exo", "ex"] },
+  { name: "Leviticus", abbrevs: ["lev", "le", "lv"] },
+  { name: "Numbers", abbrevs: ["num", "nu", "nm"] },
+  { name: "Deuteronomy", abbrevs: ["deut", "de", "dt"] },
+  { name: "Joshua", abbrevs: ["josh", "jos", "jsh"] },
+  { name: "Judges", abbrevs: ["judg", "jdg", "jg"] },
+  { name: "Ruth", abbrevs: ["ruth", "ru", "rth"] },
+  { name: "1 Samuel", abbrevs: ["1sam", "1sa", "1 sam"] },
+  { name: "2 Samuel", abbrevs: ["2sam", "2sa", "2 sam"] },
+  { name: "1 Kings", abbrevs: ["1kgs", "1ki", "1 kings"] },
+  { name: "2 Kings", abbrevs: ["2kgs", "2ki", "2 kings"] },
+  { name: "1 Chronicles", abbrevs: ["1chr", "1ch", "1 chron"] },
+  { name: "2 Chronicles", abbrevs: ["2chr", "2ch", "2 chron"] },
+  { name: "Ezra", abbrevs: ["ezra", "ezr"] },
+  { name: "Nehemiah", abbrevs: ["neh", "ne"] },
+  { name: "Esther", abbrevs: ["esth", "est", "es"] },
+  { name: "Job", abbrevs: ["job", "jb"] },
+  { name: "Psalms", abbrevs: ["ps", "psa", "psalm"] },
+  { name: "Proverbs", abbrevs: ["prov", "pro", "pr"] },
+  { name: "Ecclesiastes", abbrevs: ["eccl", "ecc", "ec"] },
+  { name: "Song of Solomon", abbrevs: ["song", "sos", "sg"] },
+  { name: "Isaiah", abbrevs: ["isa", "is"] },
+  { name: "Jeremiah", abbrevs: ["jer", "je"] },
+  { name: "Lamentations", abbrevs: ["lam", "la"] },
+  { name: "Ezekiel", abbrevs: ["ezek", "eze", "ezk"] },
+  { name: "Daniel", abbrevs: ["dan", "da", "dn"] },
+  { name: "Hosea", abbrevs: ["hos", "ho"] },
+  { name: "Joel", abbrevs: ["joel", "jl"] },
+  { name: "Amos", abbrevs: ["amos", "am"] },
+  { name: "Obadiah", abbrevs: ["obad", "ob"] },
+  { name: "Jonah", abbrevs: ["jonah", "jon"] },
+  { name: "Micah", abbrevs: ["mic", "mc"] },
+  { name: "Nahum", abbrevs: ["nah", "na"] },
+  { name: "Habakkuk", abbrevs: ["hab"] },
+  { name: "Zephaniah", abbrevs: ["zeph", "zep"] },
+  { name: "Haggai", abbrevs: ["hag", "hg"] },
+  { name: "Zechariah", abbrevs: ["zech", "zec"] },
+  { name: "Malachi", abbrevs: ["mal", "ml"] },
+  { name: "Matthew", abbrevs: ["matt", "mat", "mt"] },
+  { name: "Mark", abbrevs: ["mark", "mrk", "mk"] },
+  { name: "Luke", abbrevs: ["luke", "luk", "lk"] },
+  { name: "John", abbrevs: ["john", "jhn", "jn"] },
+  { name: "Acts", abbrevs: ["acts", "act", "ac"] },
+  { name: "Romans", abbrevs: ["rom", "ro", "rm"] },
+  { name: "1 Corinthians", abbrevs: ["1cor", "1co", "1 cor"] },
+  { name: "2 Corinthians", abbrevs: ["2cor", "2co", "2 cor"] },
+  { name: "Galatians", abbrevs: ["gal", "ga"] },
+  { name: "Ephesians", abbrevs: ["eph", "ep"] },
+  { name: "Philippians", abbrevs: ["phil", "php"] },
+  { name: "Colossians", abbrevs: ["col", "co"] },
+  { name: "1 Thessalonians", abbrevs: ["1thess", "1th", "1 thes"] },
+  { name: "2 Thessalonians", abbrevs: ["2thess", "2th", "2 thes"] },
+  { name: "1 Timothy", abbrevs: ["1tim", "1ti", "1 tim"] },
+  { name: "2 Timothy", abbrevs: ["2tim", "2ti", "2 tim"] },
+  { name: "Titus", abbrevs: ["titus", "tit"] },
+  { name: "Philemon", abbrevs: ["phlm", "phm"] },
+  { name: "Hebrews", abbrevs: ["heb"] },
+  { name: "James", abbrevs: ["jas", "jm"] },
+  { name: "1 Peter", abbrevs: ["1pet", "1pe", "1 pet"] },
+  { name: "2 Peter", abbrevs: ["2pet", "2pe", "2 pet"] },
+  { name: "1 John", abbrevs: ["1john", "1jn", "1 john"] },
+  { name: "2 John", abbrevs: ["2john", "2jn", "2 john"] },
+  { name: "3 John", abbrevs: ["3john", "3jn", "3 john"] },
+  { name: "Jude", abbrevs: ["jude", "jud"] },
+  { name: "Revelation", abbrevs: ["rev", "re"] },
+];
 
-export interface CirclePost {
-  id: string;
-  userId: string;
-  userName: string;
-  isAnonymous: boolean;
-  tag: CircleTag;
-  content: string;
-  createdAt: string;
-  reactions: Reaction[];
+export function suggestBooks(input: string): string[] {
+  if (!input.trim()) return [];
+  const lower = input.trim().toLowerCase();
+
+  // If input contains a space or number after what could be a book name, don't suggest
+  // Check if there's a digit in the input that's not at the very start (book prefix like "1 John")
+  const withoutLeadingNum = lower.replace(/^[123]\s*/, "");
+  if (/\s/.test(withoutLeadingNum) || /\d/.test(withoutLeadingNum)) return [];
+
+  const matches: string[] = [];
+
+  for (const book of BIBLE_BOOKS) {
+    if (matches.length >= 5) break;
+    const nameLower = book.name.toLowerCase();
+    if (nameLower.startsWith(lower) || nameLower.replace(/\s/g, "").startsWith(lower)) {
+      matches.push(book.name);
+      continue;
+    }
+    for (const abbr of book.abbrevs) {
+      if (abbr.startsWith(lower) || lower.startsWith(abbr)) {
+        matches.push(book.name);
+        break;
+      }
+    }
+  }
+
+  return matches;
 }
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
@@ -158,48 +240,69 @@ export function hasPendingCheckin(userId: string): boolean {
   return entry.executionStatus === null;
 }
 
-// ─── Circle Posts ────────────────────────────────────────────────────────────
+// ─── Analytics Helpers ───────────────────────────────────────────────────────
 
-export function getCirclePosts(): CirclePost[] {
-  if (typeof window === "undefined") return [];
-  const raw = localStorage.getItem("rope_circle");
-  if (!raw) return [];
-  try {
-    return JSON.parse(raw) as CirclePost[];
-  } catch {
-    return [];
-  }
-}
+export function getStreak(userId: string): number {
+  const entries = getRopeEntries(userId);
+  if (entries.length === 0) return 0;
 
-export function addCirclePost(
-  post: Omit<CirclePost, "id" | "createdAt" | "reactions">
-): CirclePost {
-  const newPost: CirclePost = {
-    ...post,
-    id: generateId(),
-    createdAt: new Date().toISOString(),
-    reactions: [],
-  };
-  const posts = getCirclePosts();
-  posts.unshift(newPost);
-  localStorage.setItem("rope_circle", JSON.stringify(posts));
-  return newPost;
-}
+  // Get unique dates (sorted descending)
+  const dates = Array.from(
+    new Set(entries.map((e) => new Date(e.createdAt).toISOString().split("T")[0]))
+  ).sort((a, b) => b.localeCompare(a));
 
-export function addReaction(postId: string, userId: string, type: "prayed" | "encouraged"): void {
-  const posts = getCirclePosts();
-  const post = posts.find((p) => p.id === postId);
-  if (!post) return;
+  let streak = 0;
+  const today = new Date();
+  const checkDate = new Date(today.getFullYear(), today.getMonth(), today.getDate());
 
-  const existingIndex = post.reactions.findIndex(
-    (r) => r.userId === userId && r.type === type
-  );
+  for (const dateStr of dates) {
+    const entryDate = new Date(dateStr + "T00:00:00");
+    const diffDays = Math.round(
+      (checkDate.getTime() - entryDate.getTime()) / (1000 * 60 * 60 * 24)
+    );
 
-  if (existingIndex >= 0) {
-    post.reactions.splice(existingIndex, 1);
-  } else {
-    post.reactions.push({ userId, type });
+    if (diffDays === streak) {
+      streak++;
+    } else if (diffDays === streak + 1 && streak === 0) {
+      // Allow starting from yesterday if no entry today
+      streak = 1;
+      checkDate.setDate(checkDate.getDate() - 1);
+    } else {
+      break;
+    }
   }
 
-  localStorage.setItem("rope_circle", JSON.stringify(posts));
+  return streak;
+}
+
+export function getBookFrequency(userId: string): { book: string; count: number }[] {
+  const entries = getRopeEntries(userId);
+  const freq: Record<string, number> = {};
+
+  for (const entry of entries) {
+    const verse = entry.revelationVerse.trim();
+    // Extract book name: everything before the first digit that follows a space
+    const match = verse.match(/^(.+?)\s*\d/);
+    const book = match ? match[1].trim() : verse;
+    if (book) {
+      freq[book] = (freq[book] || 0) + 1;
+    }
+  }
+
+  return Object.entries(freq)
+    .map(([book, count]) => ({ book, count }))
+    .sort((a, b) => b.count - a.count);
+}
+
+export function getExecutionRate(userId: string): number {
+  const entries = getRopeEntries(userId);
+  const withStatus = entries.filter((e) => e.executionStatus !== null);
+  if (withStatus.length === 0) return 0;
+  const yesCount = withStatus.filter((e) => e.executionStatus === "yes").length;
+  return Math.round((yesCount / withStatus.length) * 100);
+}
+
+export function getMostCommonBook(userId: string): string | null {
+  const freq = getBookFrequency(userId);
+  return freq.length > 0 ? freq[0].book : null;
 }
