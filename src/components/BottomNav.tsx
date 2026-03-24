@@ -1,0 +1,140 @@
+"use client";
+
+import Link from "next/link";
+import { usePathname } from "next/navigation";
+import { useEffect, useState } from "react";
+import { getUser, hasPendingCheckin } from "@/lib/store";
+
+const tabs = [
+  {
+    label: "Journal",
+    href: "/journal",
+    icon: (active: boolean) => (
+      <svg
+        width="24"
+        height="24"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="1.8"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        className={active ? "text-brown" : "text-muted"}
+      >
+        <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20" />
+        <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z" />
+        <line x1="8" y1="7" x2="16" y2="7" />
+        <line x1="8" y1="11" x2="14" y2="11" />
+      </svg>
+    ),
+  },
+  {
+    label: "Check-in",
+    href: "/checkin",
+    icon: (active: boolean) => (
+      <svg
+        width="24"
+        height="24"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="1.8"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        className={active ? "text-brown" : "text-muted"}
+      >
+        <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" />
+        <polyline points="22 4 12 14.01 9 11.01" />
+      </svg>
+    ),
+  },
+  {
+    label: "Circle",
+    href: "/circle",
+    icon: (active: boolean) => (
+      <svg
+        width="24"
+        height="24"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="1.8"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        className={active ? "text-brown" : "text-muted"}
+      >
+        <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
+        <circle cx="9" cy="7" r="4" />
+        <path d="M23 21v-2a4 4 0 0 0-3-3.87" />
+        <path d="M16 3.13a4 4 0 0 1 0 7.75" />
+      </svg>
+    ),
+  },
+  {
+    label: "Me",
+    href: "/me",
+    icon: (active: boolean) => (
+      <svg
+        width="24"
+        height="24"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="1.8"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        className={active ? "text-brown" : "text-muted"}
+      >
+        <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
+        <circle cx="12" cy="7" r="4" />
+      </svg>
+    ),
+  },
+];
+
+export default function BottomNav() {
+  const pathname = usePathname();
+  const [showDot, setShowDot] = useState(false);
+
+  useEffect(() => {
+    const user = getUser();
+    if (user) {
+      setShowDot(hasPendingCheckin(user.id));
+    }
+  }, [pathname]);
+
+  return (
+    <nav className="fixed bottom-0 left-0 right-0 z-50 bg-cream border-t border-muted/20">
+      <div className="flex items-center justify-around pb-[env(safe-area-inset-bottom)] pt-2 pb-3 max-w-lg mx-auto">
+        {tabs.map((tab) => {
+          const isActive =
+            pathname === tab.href || pathname.startsWith(tab.href + "/");
+
+          return (
+            <Link
+              key={tab.href}
+              href={tab.href}
+              className="flex flex-col items-center gap-0.5 relative"
+            >
+              <div className="relative">
+                {tab.icon(isActive)}
+                {tab.label === "Check-in" && showDot && (
+                  <span className="absolute -top-0.5 -right-0.5 w-2.5 h-2.5 bg-brown rounded-full" />
+                )}
+              </div>
+              <span
+                className={`text-[10px] leading-tight ${
+                  isActive
+                    ? "text-brown font-semibold"
+                    : "text-muted"
+                }`}
+              >
+                {tab.label}
+              </span>
+            </Link>
+          );
+        })}
+      </div>
+    </nav>
+  );
+}
