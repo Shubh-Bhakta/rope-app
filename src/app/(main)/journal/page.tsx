@@ -282,6 +282,39 @@ export default function JournalPage() {
     setTranslationState(getTranslation());
   }, []);
 
+  // ─── Draft persistence ─────────────────────────────────────────────────────
+  const todayKey = `rope_draft_${new Date().toISOString().split("T")[0]}`;
+
+  // Restore draft on mount
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem(todayKey);
+      if (raw) {
+        const d = JSON.parse(raw);
+        if (d.verseRef) setVerseRef(d.verseRef);
+        if (d.verseText) { setVerseText(d.verseText); setVerseLookedUp(true); }
+        if (d.revelationReflection) setRevelationReflection(d.revelationReflection);
+        if (d.observation) setObservation(d.observation);
+        if (d.prayer) setPrayer(d.prayer);
+        if (d.execution) setExecution(d.execution);
+      }
+    } catch { /* ignore */ }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Auto-save draft on field changes (debounced)
+  useEffect(() => {
+    if (saved) return; // don't save after explicit save
+    const timer = setTimeout(() => {
+      const draft = { verseRef, verseText, revelationReflection, observation, prayer, execution };
+      // Only save if there's actual content
+      if (verseRef || observation || prayer || execution) {
+        localStorage.setItem(todayKey, JSON.stringify(draft));
+      }
+    }, 500);
+    return () => clearTimeout(timer);
+  }, [verseRef, verseText, revelationReflection, observation, prayer, execution, todayKey, saved]);
+
   // Keyboard shortcuts: Cmd+Enter to save, Cmd+L to focus verse lookup
   const canSave = !!(verseRef.trim() && observation.trim() && prayer.trim() && execution.trim());
   useEffect(() => {
@@ -384,6 +417,9 @@ export default function JournalPage() {
     if (milestone) {
       setMilestoneReached(milestone);
     }
+
+    // Clear draft after successful save
+    localStorage.removeItem(todayKey);
 
     setSavedCount((c) => c + 1);
     setSaved(true);
@@ -610,10 +646,22 @@ export default function JournalPage() {
                 {lookingUp ? "..." : "Look up"}
               </button>
               <button
-                onClick={() => {
+                onClick={async () => {
                   const verse = getTodaysVerse();
                   setVerseRef(verse);
                   setShowSuggestions(false);
+                  // Auto-fetch the verse
+                  setLookingUp(true);
+                  setLookupError("");
+                  setVerseText("");
+                  try {
+                    const res = await fetch(`https://bible-api.com/${encodeURIComponent(verse)}?translation=${translation}`);
+                    if (!res.ok) throw new Error("Verse not found");
+                    const data = await res.json();
+                    if (data.text) { setVerseText(data.text.trim()); setVerseLookedUp(true); }
+                    else throw new Error("No text");
+                  } catch { setLookupError("Could not fetch today's verse. Try clicking Look up."); }
+                  finally { setLookingUp(false); }
                 }}
                 className="px-3 py-2.5 text-accent-olive text-xs font-medium border border-accent-olive/20 rounded-xl hover:bg-accent-olive/5 transition shrink-0 whitespace-nowrap"
                 title="Get today's suggested verse"
@@ -667,7 +715,7 @@ export default function JournalPage() {
                       {isMemoryVerse ? "Saved" : "Memorize"}
                     </button>
                     <a
-                      href={`https://www.biblegateway.com/passage/?search=${encodeURIComponent(verseRef.trim())}&version=${getGatewayVersion(translation)}`}
+                      href={`https://www.biblegateway.com/passage/?search=${encodeURIComponent(verseRef.trim().replace(/:\d+[-–]?\d*$/, ""))}&version=${getGatewayVersion(translation)}`}
                       target="_blank"
                       rel="noopener noreferrer"
                       className="text-[10px] text-accent-olive/60 uppercase tracking-wider hover:text-accent-olive transition-colors"
@@ -812,6 +860,9 @@ export default function JournalPage() {
               onDismiss={() => setExecutionSuggestion(null)}
             />
           )}
+          <p className="text-muted/50 text-xs italic mt-3 px-1">
+            Tomorrow, you&apos;ll check in on this commitment.
+          </p>
         </section>
       </div>
 
