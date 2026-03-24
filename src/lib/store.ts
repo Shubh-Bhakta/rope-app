@@ -565,6 +565,7 @@ export interface PrayerItem {
   verse: string;
   createdAt: string;
   answeredAt: string | null;
+  answeredNote: string;
 }
 
 export function getPrayers(): PrayerItem[] {
@@ -575,18 +576,19 @@ export function getPrayers(): PrayerItem[] {
 }
 
 export function addPrayer(text: string, verse: string): PrayerItem {
-  const prayer: PrayerItem = { id: generateId(), text, verse, createdAt: new Date().toISOString(), answeredAt: null };
+  const prayer: PrayerItem = { id: generateId(), text, verse, createdAt: new Date().toISOString(), answeredAt: null, answeredNote: "" };
   const prayers = getPrayers();
   prayers.unshift(prayer);
   localStorage.setItem("rope_prayers", JSON.stringify(prayers));
   return prayer;
 }
 
-export function markPrayerAnswered(id: string): void {
+export function markPrayerAnswered(id: string, note?: string): void {
   const prayers = getPrayers();
   const idx = prayers.findIndex(p => p.id === id);
   if (idx !== -1) {
     prayers[idx].answeredAt = new Date().toISOString();
+    if (note !== undefined) prayers[idx].answeredNote = note;
     localStorage.setItem("rope_prayers", JSON.stringify(prayers));
   }
 }

@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { getOrCreateUser, getRopeEntries, getPrayers, markPrayerAnswered, type PrayerItem } from "@/lib/store";
+import { getOrCreateUser, getRopeEntries, getPrayers, addPrayer, markPrayerAnswered, type PrayerItem } from "@/lib/store";
 import { LampIcon, OliveBranch } from "@/components/Accents";
 
 export default function PrayersPage() {
@@ -9,6 +9,8 @@ export default function PrayersPage() {
   const [journalPrayers, setJournalPrayers] = useState<{ text: string; verse: string; date: string }[]>([]);
   const [loaded, setLoaded] = useState(false);
   const [tab, setTab] = useState<"active" | "answered">("active");
+  const [answeringId, setAnsweringId] = useState<string | null>(null);
+  const [answerNote, setAnswerNote] = useState("");
 
   useEffect(() => {
     const u = getOrCreateUser();
@@ -24,7 +26,20 @@ export default function PrayersPage() {
   }, []);
 
   function handleMarkAnswered(id: string) {
-    markPrayerAnswered(id);
+    if (answeringId === id) {
+      markPrayerAnswered(id, answerNote.trim());
+      setPrayers(getPrayers());
+      setAnsweringId(null);
+      setAnswerNote("");
+    } else {
+      setAnsweringId(id);
+      setAnswerNote("");
+    }
+  }
+
+  function handleJournalPrayerAnswered(text: string, verse: string, note: string) {
+    const prayer = addPrayer(text, verse);
+    markPrayerAnswered(prayer.id, note);
     setPrayers(getPrayers());
   }
 
@@ -60,7 +75,33 @@ export default function PrayersPage() {
                 <p className="text-dark text-sm leading-relaxed italic">{p.text.length > 200 ? p.text.slice(0, 200) + "..." : p.text}</p>
                 <div className="flex items-center justify-between mt-3">
                   <p className="text-muted text-xs">{p.verse} &middot; {new Date(p.date).toLocaleDateString("en-US", { month: "short", day: "numeric" })}</p>
+                  <button
+                    onClick={() => setAnsweringId(`journal-${i}`)}
+                    className="text-[10px] text-prayer hover:text-prayer/80 transition"
+                  >
+                    Mark answered
+                  </button>
                 </div>
+                {answeringId === `journal-${i}` && (
+                  <div className="mt-3 pt-3 border-t border-brown/6">
+                    <textarea
+                      value={answerNote}
+                      onChange={(e) => setAnswerNote(e.target.value)}
+                      placeholder="How did God answer this prayer?"
+                      rows={2}
+                      className="w-full px-3 py-2 bg-ivory border border-brown/10 rounded-xl text-dark text-sm resize-none focus:outline-none mb-2"
+                    />
+                    <div className="flex gap-2 justify-end">
+                      <button onClick={() => { setAnsweringId(null); setAnswerNote(""); }} className="text-xs text-muted">Cancel</button>
+                      <button
+                        onClick={() => { handleJournalPrayerAnswered(p.text, p.verse, answerNote); setAnsweringId(null); setAnswerNote(""); }}
+                        className="text-xs bg-prayer/10 text-prayer px-3 py-1 rounded-lg font-medium"
+                      >
+                        Save
+                      </button>
+                    </div>
+                  </div>
+                )}
               </div>
             ))
           )}
@@ -77,6 +118,11 @@ export default function PrayersPage() {
             answeredPrayers.map((p) => (
               <div key={p.id} className="card-surface rounded-2xl p-4 border-l-2 border-l-prayer/30">
                 <p className="text-dark text-sm leading-relaxed">{p.text}</p>
+                {(p.answeredNote || "") && (
+                  <p className="text-dark/70 text-sm mt-2 italic border-l-2 border-accent-gold/20 pl-3">
+                    {p.answeredNote}
+                  </p>
+                )}
                 <p className="text-prayer text-xs mt-2">Answered {new Date(p.answeredAt!).toLocaleDateString("en-US", { month: "short", day: "numeric" })}</p>
               </div>
             ))

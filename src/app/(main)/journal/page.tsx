@@ -669,6 +669,7 @@ export default function JournalPage() {
                 Today&apos;s verse
               </button>
             </div>
+            <p className="text-[10px] text-muted/40 mt-1 text-right">NIV, ESV, NLT &mdash; coming soon</p>
 
             {/* Autocomplete dropdown */}
             {showSuggestions && suggestions.length > 0 && (

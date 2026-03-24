@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { getOrCreateUser, getRopeEntries, getStreak, getUniqueBooksCount, getMostCommonBook, getThemes, getBookFrequency, deleteRopeEntry, getDarkMode, setDarkMode, getMemoryVerses, removeMemoryVerse, type User, type RopeEntry } from "@/lib/store";
+import { getOrCreateUser, getRopeEntries, getStreak, getUniqueBooksCount, getMostCommonBook, getThemes, getBookFrequency, deleteRopeEntry, updateRopeEntry, getDarkMode, setDarkMode, getMemoryVerses, removeMemoryVerse, type User, type RopeEntry } from "@/lib/store";
 import { LampIcon, OliveBranch } from "@/components/Accents";
 
 export default function MePage() {
@@ -17,6 +17,8 @@ export default function MePage() {
   const [bookFilter, setBookFilter] = useState("");
   const [memoryVerses, setMemoryVerses] = useState<{ verse: string; text: string; addedAt: string }[]>([]);
   const [bookFreq, setBookFreq] = useState<{ book: string; count: number }[]>([]);
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editFields, setEditFields] = useState({ observation: "", prayer: "", execution: "" });
 
   useEffect(() => {
     const u = getOrCreateUser();
@@ -41,6 +43,31 @@ export default function MePage() {
       hour: "numeric",
       minute: "2-digit",
     });
+  }
+
+  function startEdit(entry: RopeEntry) {
+    setEditingId(entry.id);
+    setEditFields({
+      observation: entry.observation,
+      prayer: entry.prayer,
+      execution: entry.execution,
+    });
+  }
+
+  function cancelEdit() {
+    setEditingId(null);
+    setEditFields({ observation: "", prayer: "", execution: "" });
+  }
+
+  function saveEdit(id: string) {
+    updateRopeEntry(id, {
+      observation: editFields.observation.trim(),
+      prayer: editFields.prayer.trim(),
+      execution: editFields.execution.trim(),
+    });
+    const u = getOrCreateUser();
+    setEntries(getRopeEntries(u.id));
+    setEditingId(null);
   }
 
   function handleDelete(id: string) {
@@ -226,90 +253,153 @@ export default function MePage() {
                     expandedId === entry.id ? "max-h-[800px] opacity-100" : "max-h-0 opacity-0"
                   }`}
                 >
-                  <div className="px-4 pb-4 space-y-3 border-t border-brown/8 pt-3">
-                    {(entry.revelationText || entry.revelationReflection) && (
+                  {editingId === entry.id ? (
+                    <div className="px-4 pb-4 space-y-3 border-t border-brown/8 pt-3">
+                      {/* Revelation stays read-only */}
+                      {(entry.revelationText || entry.revelationReflection) && (
+                        <div>
+                          <p className="text-xs text-muted uppercase tracking-wide mb-1">Revelation</p>
+                          {entry.revelationText && (
+                            <p className="text-dark text-sm italic leading-relaxed">&ldquo;{entry.revelationText}&rdquo;</p>
+                          )}
+                        </div>
+                      )}
+
                       <div>
-                        <p className="text-xs text-muted uppercase tracking-wide mb-1">
-                          Revelation
-                        </p>
-                        {entry.revelationText && (
-                          <p className="text-dark text-sm italic leading-relaxed">
-                            &ldquo;{entry.revelationText}&rdquo;
+                        <p className="text-xs text-muted uppercase tracking-wide mb-1">Observation</p>
+                        <textarea
+                          value={editFields.observation}
+                          onChange={(e) => setEditFields(f => ({ ...f, observation: e.target.value }))}
+                          rows={3}
+                          className="w-full px-3 py-2 bg-ivory border border-brown/10 rounded-xl text-dark text-sm leading-relaxed resize-none focus:outline-none"
+                        />
+                      </div>
+
+                      <div>
+                        <p className="text-xs text-muted uppercase tracking-wide mb-1">Prayer</p>
+                        <textarea
+                          value={editFields.prayer}
+                          onChange={(e) => setEditFields(f => ({ ...f, prayer: e.target.value }))}
+                          rows={3}
+                          className="w-full px-3 py-2 bg-ivory border border-brown/10 rounded-xl text-dark text-sm leading-relaxed resize-none focus:outline-none"
+                        />
+                      </div>
+
+                      <div>
+                        <p className="text-xs text-muted uppercase tracking-wide mb-1">Execution</p>
+                        <textarea
+                          value={editFields.execution}
+                          onChange={(e) => setEditFields(f => ({ ...f, execution: e.target.value }))}
+                          rows={3}
+                          className="w-full px-3 py-2 bg-ivory border border-brown/10 rounded-xl text-dark text-sm leading-relaxed resize-none focus:outline-none"
+                        />
+                      </div>
+
+                      {/* Edit action buttons */}
+                      <div className="flex justify-end gap-2 pt-3 border-t border-brown/6">
+                        <button onClick={cancelEdit} className="px-3 py-1.5 text-xs text-muted hover:bg-brown/5 rounded-lg transition">
+                          Cancel
+                        </button>
+                        <button
+                          onClick={() => saveEdit(entry.id)}
+                          className="px-4 py-1.5 text-xs bg-brown text-ivory rounded-lg hover:bg-brown-light transition font-medium"
+                        >
+                          Save Changes
+                        </button>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="px-4 pb-4 space-y-3 border-t border-brown/8 pt-3">
+                      {(entry.revelationText || entry.revelationReflection) && (
+                        <div>
+                          <p className="text-xs text-muted uppercase tracking-wide mb-1">
+                            Revelation
                           </p>
-                        )}
-                        {entry.revelationReflection && (
-                          <div className="mt-2 pt-2 border-t border-brown/6">
-                            <p className="text-[10px] text-muted uppercase tracking-wider mb-1">My Reflection</p>
-                            <p className="text-dark text-sm leading-relaxed border-l-2 border-accent-gold/20 pl-3">
-                              {entry.revelationReflection}
+                          {entry.revelationText && (
+                            <p className="text-dark text-sm italic leading-relaxed">
+                              &ldquo;{entry.revelationText}&rdquo;
                             </p>
-                          </div>
-                        )}
-                      </div>
-                    )}
-                    <div>
-                      <p className="text-xs text-muted uppercase tracking-wide mb-1">
-                        Observation
-                      </p>
-                      <p className="text-dark text-sm leading-relaxed">
-                        {entry.observation}
-                      </p>
-                    </div>
-                    <div>
-                      <p className="text-xs text-muted uppercase tracking-wide mb-1">
-                        Prayer
-                      </p>
-                      <p className="text-dark text-sm leading-relaxed">
-                        {entry.prayer}
-                      </p>
-                    </div>
-                    <div>
-                      <p className="text-xs text-muted uppercase tracking-wide mb-1">
-                        Execution
-                      </p>
-                      <p className="text-dark text-sm leading-relaxed">
-                        {entry.execution}
-                      </p>
-                    </div>
-                    {entry.executionStatus && (
+                          )}
+                          {entry.revelationReflection && (
+                            <div className="mt-2 pt-2 border-t border-brown/6">
+                              <p className="text-[10px] text-muted uppercase tracking-wider mb-1">My Reflection</p>
+                              <p className="text-dark text-sm leading-relaxed border-l-2 border-accent-gold/20 pl-3">
+                                {entry.revelationReflection}
+                              </p>
+                            </div>
+                          )}
+                        </div>
+                      )}
                       <div>
                         <p className="text-xs text-muted uppercase tracking-wide mb-1">
-                          Check-in
+                          Observation
                         </p>
-                        <p className="text-dark text-sm">
-                          <span
-                            className={`inline-block px-2 py-0.5 rounded-full text-xs font-medium mr-2 ${
-                              entry.executionStatus === "yes"
-                                ? "bg-prayer/15 text-prayer"
-                                : entry.executionStatus === "partly"
-                                ? "bg-praise/15 text-praise"
-                                : "bg-struggle/15 text-struggle"
-                            }`}
-                          >
-                            {entry.executionStatus === "yes"
-                              ? "Yes"
-                              : entry.executionStatus === "partly"
-                              ? "Partly"
-                              : "Not Yet"}
-                          </span>
+                        <p className="text-dark text-sm leading-relaxed">
+                          {entry.observation}
                         </p>
-                        {entry.executionReflection && (
-                          <p className="text-dark text-sm leading-relaxed mt-1">
-                            {entry.executionReflection}
-                          </p>
-                        )}
                       </div>
-                    )}
-                    {/* Delete button */}
-                    <div className="flex justify-end gap-2 pt-3 border-t border-brown/6">
-                      <button
-                        onClick={(e) => { e.stopPropagation(); handleDelete(entry.id); }}
-                        className="px-3 py-1.5 text-xs text-struggle hover:bg-struggle/10 rounded-lg transition"
-                      >
-                        Delete
-                      </button>
+                      <div>
+                        <p className="text-xs text-muted uppercase tracking-wide mb-1">
+                          Prayer
+                        </p>
+                        <p className="text-dark text-sm leading-relaxed">
+                          {entry.prayer}
+                        </p>
+                      </div>
+                      <div>
+                        <p className="text-xs text-muted uppercase tracking-wide mb-1">
+                          Execution
+                        </p>
+                        <p className="text-dark text-sm leading-relaxed">
+                          {entry.execution}
+                        </p>
+                      </div>
+                      {entry.executionStatus && (
+                        <div>
+                          <p className="text-xs text-muted uppercase tracking-wide mb-1">
+                            Check-in
+                          </p>
+                          <p className="text-dark text-sm">
+                            <span
+                              className={`inline-block px-2 py-0.5 rounded-full text-xs font-medium mr-2 ${
+                                entry.executionStatus === "yes"
+                                  ? "bg-prayer/15 text-prayer"
+                                  : entry.executionStatus === "partly"
+                                  ? "bg-praise/15 text-praise"
+                                  : "bg-struggle/15 text-struggle"
+                              }`}
+                            >
+                              {entry.executionStatus === "yes"
+                                ? "Yes"
+                                : entry.executionStatus === "partly"
+                                ? "Partly"
+                                : "Not Yet"}
+                            </span>
+                          </p>
+                          {entry.executionReflection && (
+                            <p className="text-dark text-sm leading-relaxed mt-1">
+                              {entry.executionReflection}
+                            </p>
+                          )}
+                        </div>
+                      )}
+                      {/* Action buttons */}
+                      <div className="flex justify-end gap-2 pt-3 border-t border-brown/6">
+                        <button
+                          onClick={(e) => { e.stopPropagation(); startEdit(entry); }}
+                          className="px-3 py-1.5 text-xs text-brown hover:bg-brown/5 rounded-lg transition"
+                        >
+                          Edit
+                        </button>
+                        <button
+                          onClick={(e) => { e.stopPropagation(); handleDelete(entry.id); }}
+                          className="px-3 py-1.5 text-xs text-struggle hover:bg-struggle/10 rounded-lg transition"
+                        >
+                          Delete
+                        </button>
+                      </div>
                     </div>
-                  </div>
+                  )}
                 </div>
               </div>
             ))}
