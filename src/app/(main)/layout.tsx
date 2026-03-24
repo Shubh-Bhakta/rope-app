@@ -43,6 +43,28 @@ const navItems = [
     ),
   },
   {
+    label: "Plans",
+    href: "/plans",
+    icon: (active: boolean) => (
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={active ? "2.2" : "1.8"} strokeLinecap="round" strokeLinejoin="round">
+        <path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z" />
+        <path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z" />
+      </svg>
+    ),
+  },
+  {
+    label: "Prayers",
+    href: "/prayers",
+    icon: (active: boolean) => (
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={active ? "2.2" : "1.8"} strokeLinecap="round" strokeLinejoin="round">
+        <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
+        <circle cx="9" cy="7" r="4" />
+        <path d="M23 21v-2a4 4 0 0 0-3-3.87" />
+        <path d="M16 3.13a4 4 0 0 1 0 7.75" />
+      </svg>
+    ),
+  },
+  {
     label: "Me",
     href: "/me",
     icon: (active: boolean) => (
@@ -206,6 +228,18 @@ export default function MainLayout({ children }: { children: React.ReactNode }) 
               verse: { text: "But be doers of the word, and not hearers only, deceiving yourselves.", ref: "James 1:22" },
               prompt: "Honest reflection is where growth begins. God already knows your heart.",
               footerLabel: "Grace upon grace",
+            };
+            if (pathname.startsWith("/plans")) return {
+              label: "Guided Journey",
+              verse: { text: "Thy word is a lamp unto my feet, and a light unto my path.", ref: "Psalm 119:105" },
+              prompt: "A reading plan gives structure to your devotion. Trust the journey.",
+              footerLabel: "One step at a time",
+            };
+            if (pathname.startsWith("/prayers")) return {
+              label: "The Prayer Closet",
+              verse: { text: "The prayer of a righteous person is powerful and effective.", ref: "James 5:16" },
+              prompt: "Pour out your heart to Him. He is always listening.",
+              footerLabel: "He hears you",
             };
             if (pathname.startsWith("/insights")) return {
               label: "Seeing the Pattern",

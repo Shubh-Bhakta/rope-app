@@ -419,6 +419,228 @@ export function resetOnboarding(): void {
   localStorage.removeItem("rope_onboarding_done");
 }
 
+// ─── Reading Plans ──────────────────────────────────────────────────────────
+
+export interface ReadingPlan {
+  id: string;
+  title: string;
+  description: string;
+  days: number;
+  verses: string[];
+}
+
+export const READING_PLANS: ReadingPlan[] = [
+  {
+    id: "faith-7",
+    title: "7 Days on Faith",
+    description: "Strengthen your foundation of belief",
+    days: 7,
+    verses: ["Hebrews 11:1", "Romans 10:17", "James 2:17", "Mark 11:22-24", "2 Corinthians 5:7", "Ephesians 2:8-9", "Hebrews 11:6"],
+  },
+  {
+    id: "peace-21",
+    title: "21 Days: Anxiety to Peace",
+    description: "Replace worry with God's peace",
+    days: 21,
+    verses: [
+      "Philippians 4:6-7", "Isaiah 41:10", "Psalm 23:1-4", "Matthew 6:25-27", "John 14:27",
+      "Psalm 46:10", "Isaiah 26:3", "Romans 8:28", "1 Peter 5:7", "Psalm 55:22",
+      "Matthew 11:28-30", "Psalm 94:19", "2 Timothy 1:7", "Psalm 27:1", "Isaiah 43:1-2",
+      "Psalm 34:4", "Proverbs 3:5-6", "Jeremiah 29:11", "Romans 15:13", "Psalm 121:1-2",
+      "Lamentations 3:22-23",
+    ],
+  },
+  {
+    id: "proverbs-30",
+    title: "30 Days in Proverbs",
+    description: "One chapter of wisdom per day",
+    days: 30,
+    verses: Array.from({ length: 30 }, (_, i) => `Proverbs ${i + 1}`),
+  },
+  {
+    id: "john-14",
+    title: "The Gospel of John in 14 Days",
+    description: "Walk through Jesus' story",
+    days: 14,
+    verses: [
+      "John 1:1-18", "John 2:1-25", "John 3:1-21", "John 4:1-42", "John 5:1-30",
+      "John 6:1-40", "John 8:1-32", "John 9:1-41", "John 10:1-30", "John 11:1-44",
+      "John 13:1-17", "John 14:1-27", "John 15:1-17", "John 17:1-26",
+    ],
+  },
+];
+
+export interface PlanProgress {
+  planId: string;
+  currentDay: number;
+  startedAt: string;
+  completedDays: number[];
+  paused: boolean;
+}
+
+export function getActivePlan(): PlanProgress | null {
+  if (typeof window === "undefined") return null;
+  const raw = localStorage.getItem("rope_active_plan");
+  if (!raw) return null;
+  try { return JSON.parse(raw); } catch { return null; }
+}
+
+export function startPlan(planId: string): PlanProgress {
+  const progress: PlanProgress = {
+    planId,
+    currentDay: 0,
+    startedAt: new Date().toISOString(),
+    completedDays: [],
+    paused: false,
+  };
+  localStorage.setItem("rope_active_plan", JSON.stringify(progress));
+  return progress;
+}
+
+export function advancePlan(): PlanProgress | null {
+  const progress = getActivePlan();
+  if (!progress) return null;
+  const plan = READING_PLANS.find(p => p.id === progress.planId);
+  if (!plan) return null;
+  if (!progress.completedDays.includes(progress.currentDay)) {
+    progress.completedDays.push(progress.currentDay);
+  }
+  if (progress.currentDay < plan.days - 1) {
+    progress.currentDay++;
+  }
+  localStorage.setItem("rope_active_plan", JSON.stringify(progress));
+  return progress;
+}
+
+export function pausePlan(): void {
+  const progress = getActivePlan();
+  if (!progress) return;
+  progress.paused = !progress.paused;
+  localStorage.setItem("rope_active_plan", JSON.stringify(progress));
+}
+
+export function quitPlan(): void {
+  localStorage.removeItem("rope_active_plan");
+}
+
+export function getPlanSuggestedVerse(): string | null {
+  const progress = getActivePlan();
+  if (!progress || progress.paused) return null;
+  const plan = READING_PLANS.find(p => p.id === progress.planId);
+  if (!plan) return null;
+  return plan.verses[progress.currentDay] || null;
+}
+
+// ─── Milestones ─────────────────────────────────────────────────────────────
+
+const MILESTONES = [
+  { days: 3, title: "First Steps", verse: "The journey of faith begins with a single step.", ref: "Proverbs 4:12" },
+  { days: 7, title: "One Week Strong", verse: "Be steadfast, immovable, always abounding in the work of the Lord.", ref: "1 Corinthians 15:58" },
+  { days: 14, title: "Two Weeks of Faithfulness", verse: "His mercies are new every morning; great is your faithfulness.", ref: "Lamentations 3:23" },
+  { days: 21, title: "Habit Formed", verse: "Let us not become weary in doing good, for at the proper time we will reap a harvest.", ref: "Galatians 6:9" },
+  { days: 30, title: "One Month of Walking", verse: "Blessed is the one who perseveres under trial.", ref: "James 1:12" },
+  { days: 60, title: "Two Months Deep", verse: "I press on toward the goal to win the prize.", ref: "Philippians 3:14" },
+  { days: 100, title: "Century of Faith", verse: "Well done, good and faithful servant.", ref: "Matthew 25:21" },
+];
+
+export { MILESTONES };
+
+export function getNextMilestone(streak: number): typeof MILESTONES[0] | null {
+  return MILESTONES.find(m => m.days > streak) || null;
+}
+
+export function getReachedMilestone(streak: number): typeof MILESTONES[0] | null {
+  return MILESTONES.filter(m => m.days === streak)[0] || null;
+}
+
+export function getAllReachedMilestones(streak: number): typeof MILESTONES {
+  return MILESTONES.filter(m => m.days <= streak);
+}
+
+// ─── Prayer Wall ────────────────────────────────────────────────────────────
+
+export interface PrayerItem {
+  id: string;
+  text: string;
+  verse: string;
+  createdAt: string;
+  answeredAt: string | null;
+}
+
+export function getPrayers(): PrayerItem[] {
+  if (typeof window === "undefined") return [];
+  const raw = localStorage.getItem("rope_prayers");
+  if (!raw) return [];
+  try { return JSON.parse(raw) as PrayerItem[]; } catch { return []; }
+}
+
+export function addPrayer(text: string, verse: string): PrayerItem {
+  const prayer: PrayerItem = { id: generateId(), text, verse, createdAt: new Date().toISOString(), answeredAt: null };
+  const prayers = getPrayers();
+  prayers.unshift(prayer);
+  localStorage.setItem("rope_prayers", JSON.stringify(prayers));
+  return prayer;
+}
+
+export function markPrayerAnswered(id: string): void {
+  const prayers = getPrayers();
+  const idx = prayers.findIndex(p => p.id === id);
+  if (idx !== -1) {
+    prayers[idx].answeredAt = new Date().toISOString();
+    localStorage.setItem("rope_prayers", JSON.stringify(prayers));
+  }
+}
+
+export function deletePrayer(id: string): void {
+  const prayers = getPrayers().filter(p => p.id !== id);
+  localStorage.setItem("rope_prayers", JSON.stringify(prayers));
+}
+
+// ─── Memory Verses ──────────────────────────────────────────────────────────
+
+export function getMemoryVerses(): { verse: string; text: string; addedAt: string }[] {
+  if (typeof window === "undefined") return [];
+  const raw = localStorage.getItem("rope_memory_verses");
+  if (!raw) return [];
+  try { return JSON.parse(raw); } catch { return []; }
+}
+
+export function addMemoryVerse(verse: string, text: string): void {
+  const verses = getMemoryVerses();
+  if (verses.some(v => v.verse === verse)) return;
+  verses.unshift({ verse, text, addedAt: new Date().toISOString() });
+  localStorage.setItem("rope_memory_verses", JSON.stringify(verses));
+}
+
+export function removeMemoryVerse(verse: string): void {
+  const verses = getMemoryVerses().filter(v => v.verse !== verse);
+  localStorage.setItem("rope_memory_verses", JSON.stringify(verses));
+}
+
+// ─── Verse Recommendations ──────────────────────────────────────────────────
+
+const THEME_VERSES: Record<string, string[]> = {
+  "Trust": ["Proverbs 3:5-6", "Isaiah 26:3", "Psalm 37:5", "Jeremiah 17:7", "Nahum 1:7"],
+  "Peace": ["John 14:27", "Isaiah 26:3", "Philippians 4:6-7", "Psalm 29:11", "Romans 15:13"],
+  "Love": ["1 John 4:19", "Romans 5:8", "1 Corinthians 13:4-7", "Ephesians 3:17-19", "John 15:12"],
+  "Obedience": ["John 14:15", "Deuteronomy 5:33", "1 Samuel 15:22", "James 1:22", "Luke 11:28"],
+  "Courage": ["Deuteronomy 31:6", "Isaiah 41:10", "Joshua 1:9", "2 Timothy 1:7", "Psalm 31:24"],
+  "Gratitude": ["1 Thessalonians 5:18", "Psalm 100:4", "Colossians 3:17", "Psalm 107:1", "James 1:17"],
+  "Patience": ["James 5:7-8", "Romans 12:12", "Psalm 27:14", "Isaiah 40:31", "Hebrews 10:36"],
+  "Forgiveness": ["Colossians 3:13", "Ephesians 4:32", "Matthew 6:14", "Mark 11:25", "Luke 6:37"],
+  "Purpose": ["Jeremiah 29:11", "Romans 8:28", "Proverbs 19:21", "Ephesians 2:10", "Psalm 138:8"],
+  "Growth": ["2 Peter 3:18", "Philippians 1:6", "Colossians 1:10", "Hebrews 6:1", "Ephesians 4:15"],
+};
+
+export function getRecommendedVerses(userId: string): { theme: string; verses: string[] }[] {
+  const themes = getThemes(userId);
+  if (themes.length === 0) return [];
+  return themes.slice(0, 3).map(theme => ({
+    theme,
+    verses: (THEME_VERSES[theme] || []).slice(0, 3),
+  }));
+}
+
 /** Extract common spiritual themes from observations */
 export function getThemes(userId: string): string[] {
   const entries = getRopeEntries(userId);

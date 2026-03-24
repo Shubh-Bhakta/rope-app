@@ -10,6 +10,9 @@ import {
   getMostCommonBook,
   getRopeBalance,
   getThemes,
+  getNextMilestone,
+  getAllReachedMilestones,
+  getRecommendedVerses,
   type RopeEntry,
   type User,
 } from "@/lib/store";
@@ -24,6 +27,9 @@ export default function InsightsPage() {
   const [topBook, setTopBook] = useState<string | null>(null);
   const [ropeBalance, setRopeBalance] = useState({ r: 0, o: 0, p: 0, e: 0 });
   const [themes, setThemes] = useState<string[]>([]);
+  const [nextMilestone, setNextMilestone] = useState<{ days: number; title: string; verse: string; ref: string } | null>(null);
+  const [reachedMilestones, setReachedMilestones] = useState<{ days: number; title: string }[]>([]);
+  const [recommendations, setRecommendations] = useState<{ theme: string; verses: string[] }[]>([]);
 
   useEffect(() => {
     const u = getOrCreateUser();
@@ -35,6 +41,10 @@ export default function InsightsPage() {
     setTopBook(getMostCommonBook(u.id));
     setRopeBalance(getRopeBalance(u.id));
     setThemes(getThemes(u.id));
+    const s = getStreak(u.id);
+    setNextMilestone(getNextMilestone(s));
+    setReachedMilestones(getAllReachedMilestones(s));
+    setRecommendations(getRecommendedVerses(u.id));
   }, []);
 
   if (!user) {
@@ -265,6 +275,55 @@ export default function InsightsPage() {
           ))}
         </div>
       </section>
+
+      {/* Next Milestone */}
+      {nextMilestone && (
+        <section className="card-surface rounded-2xl p-5 mb-6">
+          <h2 className="font-serif text-lg text-dark mb-3">Next Milestone</h2>
+          <div className="flex items-center gap-4">
+            <div className="w-14 h-14 rounded-full bg-accent-gold/10 border border-accent-gold/20 flex items-center justify-center shrink-0">
+              <span className="font-serif text-lg text-accent-gold font-bold">{nextMilestone.days}</span>
+            </div>
+            <div>
+              <p className="text-dark text-sm font-medium">{nextMilestone.title}</p>
+              <p className="text-muted text-xs mt-0.5">{nextMilestone.days - streak} days to go</p>
+              <div className="w-full h-1.5 bg-brown/8 rounded-full overflow-hidden mt-2" style={{ width: "120px" }}>
+                <div className="h-full bg-accent-gold rounded-full transition-all duration-500" style={{ width: `${Math.min((streak / nextMilestone.days) * 100, 100)}%` }} />
+              </div>
+            </div>
+          </div>
+          {reachedMilestones.length > 0 && (
+            <div className="mt-4 pt-3 border-t border-brown/8">
+              <p className="text-xs text-muted mb-2">Milestones reached</p>
+              <div className="flex flex-wrap gap-1.5">
+                {reachedMilestones.map(m => (
+                  <span key={m.days} className="px-2 py-1 bg-accent-gold/8 text-accent-gold text-xs rounded-full">{m.title}</span>
+                ))}
+              </div>
+            </div>
+          )}
+        </section>
+      )}
+
+      {/* Verse Recommendations */}
+      {recommendations.length > 0 && (
+        <section className="card-surface rounded-2xl p-5 mb-6">
+          <h2 className="font-serif text-lg text-dark mb-2">Recommended Verses</h2>
+          <p className="text-muted text-xs mb-4">Based on themes in your reflections</p>
+          <div className="space-y-4">
+            {recommendations.map(({ theme, verses }) => (
+              <div key={theme}>
+                <p className="text-xs text-accent-gold uppercase tracking-wider font-medium mb-2">{theme}</p>
+                <div className="flex flex-wrap gap-2">
+                  {verses.map(v => (
+                    <span key={v} className="px-3 py-1.5 bg-brown/[0.04] text-dark text-xs rounded-full border border-brown/8">{v}</span>
+                  ))}
+                </div>
+              </div>
+            ))}
+          </div>
+        </section>
+      )}
 
       {/* Reflection Prompt */}
       {topBook && (

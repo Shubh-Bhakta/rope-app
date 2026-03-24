@@ -1,8 +1,10 @@
 "use client";
 
 import { useState, useEffect, useRef, useCallback } from "react";
-import { getOrCreateUser, addRopeEntry, suggestBooks, getStreak, getTranslation, setTranslation, getGatewayVersion, TRANSLATIONS } from "@/lib/store";
+import { getOrCreateUser, addRopeEntry, suggestBooks, getStreak, getTranslation, setTranslation, getGatewayVersion, TRANSLATIONS, getPlanSuggestedVerse, advancePlan, getActivePlan, getReachedMilestone, getNextMilestone, addMemoryVerse, getMemoryVerses } from "@/lib/store";
 import { OliveBranch } from "@/components/Accents";
+import ShareCard from "@/components/ShareCard";
+import Breathing from "@/components/Breathing";
 
 const steps = [
   { letter: "R", word: "Revelation", placeholder: "" },
@@ -255,6 +257,12 @@ export default function JournalPage() {
   const [prayerSuggestion, setPrayerSuggestion] = useState<string | null>(null);
   const [executionSuggestion, setExecutionSuggestion] = useState<string | null>(null);
 
+  // New feature state
+  const [showShare, setShowShare] = useState(false);
+  const [showBreathing, setShowBreathing] = useState(false);
+  const [milestoneReached, setMilestoneReached] = useState<{ title: string; verse: string; ref: string } | null>(null);
+  const [isMemoryVerse, setIsMemoryVerse] = useState(false);
+
   const { supported: speechSupported, startListening } = useSpeechRecognition();
 
   const today = new Date().toLocaleDateString("en-US", {
@@ -338,6 +346,9 @@ export default function JournalPage() {
       if (data.text) {
         setVerseText(data.text.trim());
         setVerseLookedUp(true);
+        // Check if already a memory verse
+        const memVerses = getMemoryVerses();
+        setIsMemoryVerse(memVerses.some(v => v.verse === verseRef.trim()));
       } else {
         throw new Error("No text returned");
       }
@@ -362,6 +373,18 @@ export default function JournalPage() {
       execution: execution.trim(),
     });
 
+    // Advance reading plan if active
+    if (getActivePlan()) {
+      advancePlan();
+    }
+
+    // Check for milestone
+    const currentStreak = getStreak(user.id);
+    const milestone = getReachedMilestone(currentStreak);
+    if (milestone) {
+      setMilestoneReached(milestone);
+    }
+
     setSavedCount((c) => c + 1);
     setSaved(true);
   }
@@ -377,6 +400,16 @@ export default function JournalPage() {
         className="min-h-[80vh] flex flex-col items-center justify-center px-6 text-center"
         style={{ animation: "fadeIn 0.4s ease-out both" }}
       >
+        {/* Milestone celebration */}
+        {milestoneReached && (
+          <div className="mb-6 p-5 bg-accent-gold/10 border border-accent-gold/20 rounded-2xl max-w-xs w-full" style={{ animation: "fadeInUp 0.5s ease-out both" }}>
+            <p className="text-accent-gold text-xs uppercase tracking-wider font-medium mb-2">Milestone Reached!</p>
+            <h3 className="font-serif text-lg text-dark mb-2">{milestoneReached.title}</h3>
+            <p className="text-dark text-sm italic mb-1">&ldquo;{milestoneReached.verse}&rdquo;</p>
+            <p className="text-muted text-xs">&mdash; {milestoneReached.ref}</p>
+          </div>
+        )}
+
         <div
           className="w-16 h-16 bg-brown/10 rounded-full flex items-center justify-center mb-5"
           style={{
@@ -415,6 +448,21 @@ export default function JournalPage() {
         <p className="text-muted text-sm max-w-xs">
           Come back tomorrow to check in on your execution.
         </p>
+
+        {/* Share button */}
+        {verseText && (
+          <button
+            onClick={() => setShowShare(true)}
+            className="mt-4 px-5 py-2 text-accent-gold border border-accent-gold/20 rounded-xl text-sm font-medium hover:bg-accent-gold/5 transition flex items-center gap-2 mx-auto"
+          >
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <circle cx="18" cy="5" r="3" /><circle cx="6" cy="12" r="3" /><circle cx="18" cy="19" r="3" />
+              <line x1="8.59" y1="13.51" x2="15.42" y2="17.49" /><line x1="15.41" y1="6.51" x2="8.59" y2="10.49" />
+            </svg>
+            Share Verse Card
+          </button>
+        )}
+
         <button
           onClick={() => {
             setSaved(false);
@@ -427,11 +475,22 @@ export default function JournalPage() {
             setExecution("");
             setPrayerSuggestion(null);
             setExecutionSuggestion(null);
+            setMilestoneReached(null);
+            setIsMemoryVerse(false);
           }}
-          className="mt-8 px-6 py-2.5 text-brown border border-brown/30 rounded-xl text-sm font-medium hover:bg-brown/5 transition"
+          className="mt-4 px-6 py-2.5 text-brown border border-brown/30 rounded-xl text-sm font-medium hover:bg-brown/5 transition"
         >
           Write Another Entry
         </button>
+
+        {showShare && (
+          <ShareCard
+            verse={verseText}
+            reference={verseRef}
+            reflection={revelationReflection || undefined}
+            onClose={() => setShowShare(false)}
+          />
+        )}
       </div>
     );
   }
@@ -446,6 +505,19 @@ export default function JournalPage() {
       <div className="flex justify-start mb-5">
         <OliveBranch className="opacity-50" />
       </div>
+
+      {/* Be still button */}
+      {!showBreathing && (
+        <button
+          onClick={() => setShowBreathing(true)}
+          className="flex items-center gap-2 px-3 py-2 text-xs text-muted hover:text-brown bg-brown/[0.03] hover:bg-brown/[0.06] rounded-lg transition mb-4"
+        >
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><circle cx="12" cy="12" r="10"/><path d="M12 8v4l2 2"/></svg>
+          Be still before journaling
+        </button>
+      )}
+
+      {showBreathing && <Breathing onComplete={() => setShowBreathing(false)} />}
 
       {/* ROPE Progress */}
       <div className="flex items-center gap-1.5 mb-6">
@@ -487,6 +559,27 @@ export default function JournalPage() {
             <div className="step-badge">R</div>
             <h2 className="font-serif text-lg text-dark">Revelation</h2>
           </div>
+
+          {/* Reading plan suggestion */}
+          {(() => {
+            const planVerse = getPlanSuggestedVerse();
+            if (!planVerse) return null;
+            return (
+              <div className="mb-3 p-3 bg-accent-gold/5 border border-accent-gold/10 rounded-xl flex items-center justify-between">
+                <div>
+                  <p className="text-[10px] text-accent-gold uppercase tracking-wider font-medium">Reading Plan</p>
+                  <p className="text-dark text-sm">{planVerse}</p>
+                </div>
+                <button
+                  onClick={() => { setVerseRef(planVerse); setShowSuggestions(false); }}
+                  className="px-3 py-1.5 text-xs text-accent-gold border border-accent-gold/20 rounded-lg hover:bg-accent-gold/5 transition shrink-0"
+                >
+                  Use this
+                </button>
+              </div>
+            );
+          })()}
+
           <div className="relative">
             <div className="flex gap-2 mb-3">
               <input
@@ -560,14 +653,28 @@ export default function JournalPage() {
                 </p>
                 <div className="flex items-center justify-between mt-3">
                   <p className="text-muted text-xs">&mdash; {verseRef}</p>
-                  <a
-                    href={`https://www.biblegateway.com/passage/?search=${encodeURIComponent(verseRef.trim())}&version=${getGatewayVersion(translation)}`}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-[10px] text-accent-olive/60 uppercase tracking-wider hover:text-accent-olive transition-colors"
-                  >
-                    Read full chapter &rarr;
-                  </a>
+                  <div className="flex items-center gap-3">
+                    <button
+                      onClick={() => {
+                        if (isMemoryVerse) return;
+                        addMemoryVerse(verseRef.trim(), verseText);
+                        setIsMemoryVerse(true);
+                      }}
+                      className={`text-[10px] uppercase tracking-wider transition-colors flex items-center gap-1 ${isMemoryVerse ? "text-accent-gold" : "text-muted/50 hover:text-accent-gold"}`}
+                      title={isMemoryVerse ? "Saved to memory verses" : "Save as memory verse"}
+                    >
+                      <svg width="12" height="12" viewBox="0 0 24 24" fill={isMemoryVerse ? "currentColor" : "none"} stroke="currentColor" strokeWidth="2"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" /></svg>
+                      {isMemoryVerse ? "Saved" : "Memorize"}
+                    </button>
+                    <a
+                      href={`https://www.biblegateway.com/passage/?search=${encodeURIComponent(verseRef.trim())}&version=${getGatewayVersion(translation)}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-[10px] text-accent-olive/60 uppercase tracking-wider hover:text-accent-olive transition-colors"
+                    >
+                      Read full chapter &rarr;
+                    </a>
+                  </div>
                 </div>
               </div>
               {/* Revelation reflection */}

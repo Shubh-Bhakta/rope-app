@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { getOrCreateUser, getRopeEntries, getStreak, getUniqueBooksCount, getMostCommonBook, getThemes, deleteRopeEntry, getDarkMode, setDarkMode, type User, type RopeEntry } from "@/lib/store";
+import { getOrCreateUser, getRopeEntries, getStreak, getUniqueBooksCount, getMostCommonBook, getThemes, getBookFrequency, deleteRopeEntry, getDarkMode, setDarkMode, getMemoryVerses, removeMemoryVerse, type User, type RopeEntry } from "@/lib/store";
 import { LampIcon, OliveBranch } from "@/components/Accents";
 
 export default function MePage() {
@@ -13,6 +13,10 @@ export default function MePage() {
   const [topBook, setTopBook] = useState<string | null>(null);
   const [themes, setThemes] = useState<string[]>([]);
   const [isDark, setIsDark] = useState(false);
+  const [search, setSearch] = useState("");
+  const [bookFilter, setBookFilter] = useState("");
+  const [memoryVerses, setMemoryVerses] = useState<{ verse: string; text: string; addedAt: string }[]>([]);
+  const [bookFreq, setBookFreq] = useState<{ book: string; count: number }[]>([]);
 
   useEffect(() => {
     const u = getOrCreateUser();
@@ -23,6 +27,8 @@ export default function MePage() {
     setTopBook(getMostCommonBook(u.id));
     setThemes(getThemes(u.id));
     setIsDark(getDarkMode());
+    setMemoryVerses(getMemoryVerses());
+    setBookFreq(getBookFrequency(u.id));
   }, []);
 
   function formatDate(dateStr: string): string {
@@ -111,8 +117,54 @@ export default function MePage() {
         </div>
       )}
 
+      {/* Memory Verses */}
+      {memoryVerses.length > 0 && (
+        <div className="mb-8">
+          <h2 className="font-serif text-lg text-brown mb-3">Memory Verses</h2>
+          <div className="space-y-2">
+            {memoryVerses.map((mv, i) => (
+              <div key={mv.verse} className="card-surface rounded-2xl p-4 flex items-start justify-between" style={{ animation: "fadeInUp 0.3s ease-out both", animationDelay: `${i * 0.05}s` }}>
+                <div className="min-w-0 flex-1">
+                  <p className="text-dark text-sm font-medium">{mv.verse}</p>
+                  <p className="text-dark/70 text-xs italic mt-1 leading-relaxed line-clamp-2">&ldquo;{mv.text}&rdquo;</p>
+                </div>
+                <button
+                  onClick={() => { removeMemoryVerse(mv.verse); setMemoryVerses(getMemoryVerses()); }}
+                  className="text-muted hover:text-struggle text-xs ml-3 shrink-0"
+                >
+                  &times;
+                </button>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
       <div className="mb-8">
         <h2 className="font-serif text-lg text-brown mb-3">Your ROPE Entries</h2>
+
+        {/* Search and filter */}
+        {entries.length > 0 && (
+          <div className="flex gap-2 mb-4">
+            <input
+              type="text"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder="Search entries..."
+              className="flex-1 px-3 py-2 bg-ivory border border-brown/10 rounded-xl text-dark placeholder:text-muted/50 focus:outline-none text-sm"
+            />
+            <select
+              value={bookFilter}
+              onChange={(e) => setBookFilter(e.target.value)}
+              className="px-2 py-2 bg-ivory border border-brown/10 rounded-xl text-dark text-xs focus:outline-none shrink-0"
+            >
+              <option value="">All books</option>
+              {bookFreq.map(({ book }) => (
+                <option key={book} value={book}>{book}</option>
+              ))}
+            </select>
+          </div>
+        )}
 
         {entries.length === 0 ? (
           <div className="flex flex-col items-center py-10">
@@ -123,7 +175,16 @@ export default function MePage() {
           </div>
         ) : (
           <div className="space-y-2 md:grid md:grid-cols-1 md:gap-3 md:space-y-0">
-            {entries.map((entry, i) => (
+            {entries.filter(e => {
+              const matchesSearch = !search ||
+                e.revelationVerse.toLowerCase().includes(search.toLowerCase()) ||
+                e.observation.toLowerCase().includes(search.toLowerCase()) ||
+                e.prayer.toLowerCase().includes(search.toLowerCase()) ||
+                e.execution.toLowerCase().includes(search.toLowerCase()) ||
+                (e.revelationText || "").toLowerCase().includes(search.toLowerCase());
+              const matchesBook = !bookFilter || e.revelationVerse.toLowerCase().startsWith(bookFilter.toLowerCase());
+              return matchesSearch && matchesBook;
+            }).map((entry, i) => (
               <div
                 key={entry.id}
                 className="card-surface rounded-2xl overflow-hidden"
