@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { getOrCreateUser, getYesterdayEntry, updateRopeEntry, type RopeEntry, type ExecutionStatus } from "@/lib/store";
+import { LampIcon, OliveBranch, VerseBlock } from "@/components/Accents";
 
 export default function CheckinPage() {
   const [entry, setEntry] = useState<RopeEntry | null>(null);
@@ -65,38 +66,61 @@ export default function CheckinPage() {
     );
   }
 
+  // ─── Empty state: no pending entry ────────────────────────────────────────
   if (!entry) {
     return (
       <div
         className="min-h-[80vh] flex flex-col items-center justify-center px-6 text-center"
-        style={{ animation: "fadeIn 0.4s ease-out both" }}
+        style={{ animation: "fadeIn 0.5s ease-out both" }}
       >
-        <p className="text-4xl mb-5">&#x1F54A;</p>
-        <h2 className="font-serif text-xl text-brown mb-2">
-          You&apos;re all caught up!
+        {/* Lamp illustration */}
+        <div className="mb-6" style={{ animation: "fadeInUp 0.6s ease-out 0.1s both" }}>
+          <LampIcon className="w-14 h-[74px] mx-auto" />
+        </div>
+
+        <h2
+          className="font-serif text-xl text-brown mb-3 font-medium"
+          style={{ animation: "fadeInUp 0.5s ease-out 0.2s both" }}
+        >
+          You&apos;re all caught up
         </h2>
-        <p className="text-muted text-sm max-w-xs">
-          Come back tomorrow after journaling to check in on your execution.
+
+        <p
+          className="text-muted text-sm max-w-xs leading-relaxed mb-8"
+          style={{ animation: "fadeInUp 0.5s ease-out 0.3s both" }}
+        >
+          Rest in His peace. Come back tomorrow after journaling to reflect on how you lived out His word.
         </p>
-        <p className="text-muted/40 text-xs italic mt-12">
-          Be doers of the word &mdash; James 1:22
-        </p>
+
+        {/* Verse block */}
+        <div style={{ animation: "fadeInUp 0.5s ease-out 0.4s both" }} className="max-w-xs w-full">
+          <VerseBlock
+            verse="Do not merely listen to the word, and so deceive yourselves. Do what it says."
+            reference="James 1:22"
+          />
+        </div>
+
+        {/* Olive branch divider */}
+        <div className="mt-8" style={{ animation: "fadeIn 0.5s ease-out 0.6s both" }}>
+          <OliveBranch className="mx-auto opacity-40" />
+        </div>
       </div>
     );
   }
 
+  // ─── Active check-in state ────────────────────────────────────────────────
   const options: {
     value: ExecutionStatus;
     label: string;
-    bg: string;
-    border: string;
+    color: string;
+    borderColor: string;
     icon: React.ReactNode;
   }[] = [
     {
       value: "yes",
       label: "Yes",
-      bg: "bg-prayer/10",
-      border: "border-prayer/40",
+      color: "text-prayer",
+      borderColor: "border-l-prayer",
       icon: (
         <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-prayer">
           <polyline points="20 6 9 17 4 12" />
@@ -106,8 +130,8 @@ export default function CheckinPage() {
     {
       value: "partly",
       label: "Partly",
-      bg: "bg-praise/10",
-      border: "border-praise/40",
+      color: "text-praise",
+      borderColor: "border-l-praise",
       icon: (
         <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-praise">
           <path d="M12 2a10 10 0 1 0 0 20" />
@@ -118,8 +142,8 @@ export default function CheckinPage() {
     {
       value: "not_yet",
       label: "Not Yet",
-      bg: "bg-struggle/10",
-      border: "border-struggle/40",
+      color: "text-struggle",
+      borderColor: "border-l-struggle",
       icon: (
         <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-struggle">
           <line x1="18" y1="6" x2="6" y2="18" />
@@ -134,7 +158,7 @@ export default function CheckinPage() {
       <h1 className="font-serif text-2xl text-brown mb-1">Execution Check-in</h1>
       <p className="text-muted text-sm mb-6">Reflect on yesterday&apos;s commitment</p>
 
-      <div className="bg-cream rounded-2xl p-5 shadow-sm mb-6">
+      <div className="card-surface rounded-2xl p-5 mb-6">
         <p className="text-xs text-muted uppercase tracking-wide mb-2">
           Your commitment
         </p>
@@ -146,7 +170,6 @@ export default function CheckinPage() {
 
       <p className="font-serif text-lg text-dark mb-3">Did you live it out?</p>
 
-      {/* Desktop: row, Mobile: row (grid-cols-3 already) */}
       <div className="grid grid-cols-3 gap-3 mb-6">
         {options.map((opt, i) => (
           <button
@@ -154,8 +177,8 @@ export default function CheckinPage() {
             onClick={() => setStatus(opt.value)}
             className={`flex flex-col items-center gap-2 p-4 md:p-6 rounded-2xl border-2 transition-all ${
               status === opt.value
-                ? `${opt.bg} ${opt.border} scale-[1.02]`
-                : "bg-cream border-transparent"
+                ? `bg-ivory ${opt.borderColor} border-l-3 border-t-transparent border-r-transparent border-b-transparent scale-[1.02] shadow-sm`
+                : "bg-ivory/80 border-transparent hover:shadow-sm hover:-translate-y-0.5"
             }`}
             style={{ animation: "fadeInUp 0.4s ease-out both", animationDelay: `${i * 0.1}s` }}
           >
@@ -185,22 +208,22 @@ export default function CheckinPage() {
           value={reflection}
           onChange={(e) => setReflection(e.target.value)}
           placeholder="Write your reflection..."
-          rows={4}
-          className="w-full px-4 py-3 bg-cream border border-brown/15 rounded-xl text-dark placeholder:text-muted/50 focus:outline-none focus:ring-2 focus:ring-brown/20 text-sm leading-relaxed resize-none"
+          rows={5}
+          className="w-full px-4 py-3.5 bg-ivory border border-brown/10 rounded-xl text-dark placeholder:text-muted/50 focus:outline-none text-sm leading-relaxed resize-none min-h-[140px]"
         />
       </div>
 
       <button
         onClick={handleSave}
         disabled={!status}
-        className="w-full py-3.5 bg-brown text-ivory font-semibold rounded-xl hover:bg-brown/90 active:scale-[0.98] disabled:opacity-40 transition-all"
+        className="w-full py-3.5 btn-primary text-center"
       >
         Save Check-in
       </button>
 
-      <p className="text-muted/40 text-xs italic text-center mt-8">
-        Be doers of the word &mdash; James 1:22
-      </p>
+      <div className="mt-8 flex justify-center">
+        <OliveBranch className="opacity-30" />
+      </div>
     </div>
   );
 }

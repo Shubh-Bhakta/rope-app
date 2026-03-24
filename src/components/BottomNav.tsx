@@ -14,17 +14,17 @@ const tabs = [
         width="24"
         height="24"
         viewBox="0 0 24 24"
-        fill="none"
+        fill={active ? "currentColor" : "none"}
         stroke="currentColor"
-        strokeWidth="1.8"
+        strokeWidth={active ? "1.5" : "2"}
         strokeLinecap="round"
         strokeLinejoin="round"
         className={active ? "text-brown" : "text-muted"}
       >
         <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20" />
         <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z" />
-        <line x1="8" y1="7" x2="16" y2="7" />
-        <line x1="8" y1="11" x2="14" y2="11" />
+        {!active && <line x1="8" y1="7" x2="16" y2="7" />}
+        {!active && <line x1="8" y1="11" x2="14" y2="11" />}
       </svg>
     ),
   },
@@ -38,7 +38,7 @@ const tabs = [
         viewBox="0 0 24 24"
         fill="none"
         stroke="currentColor"
-        strokeWidth="1.8"
+        strokeWidth={active ? "2.2" : "2"}
         strokeLinecap="round"
         strokeLinejoin="round"
         className={active ? "text-brown" : "text-muted"}
@@ -58,7 +58,7 @@ const tabs = [
         viewBox="0 0 24 24"
         fill="none"
         stroke="currentColor"
-        strokeWidth="1.8"
+        strokeWidth={active ? "2.2" : "2"}
         strokeLinecap="round"
         strokeLinejoin="round"
         className={active ? "text-brown" : "text-muted"}
@@ -77,9 +77,9 @@ const tabs = [
         width="24"
         height="24"
         viewBox="0 0 24 24"
-        fill="none"
+        fill={active ? "currentColor" : "none"}
         stroke="currentColor"
-        strokeWidth="1.8"
+        strokeWidth={active ? "1.5" : "2"}
         strokeLinecap="round"
         strokeLinejoin="round"
         className={active ? "text-brown" : "text-muted"}
@@ -103,8 +103,8 @@ export default function BottomNav() {
   }, [pathname]);
 
   return (
-    <nav className="fixed bottom-0 left-0 right-0 z-50 bg-cream border-t border-muted/20 md:hidden">
-      <div className="flex items-center justify-around pb-[env(safe-area-inset-bottom)] pt-2 pb-3 max-w-lg mx-auto">
+    <nav className="fixed bottom-0 left-0 right-0 z-50 md:hidden border-t border-brown/8 bg-cream/90 backdrop-blur-md">
+      <div className="flex items-center justify-around h-16 pb-[env(safe-area-inset-bottom)] max-w-lg mx-auto">
         {tabs.map((tab) => {
           const isActive =
             pathname === tab.href || pathname.startsWith(tab.href + "/");
@@ -113,7 +113,7 @@ export default function BottomNav() {
             <Link
               key={tab.href}
               href={tab.href}
-              className="flex flex-col items-center gap-0.5 relative"
+              className="flex flex-col items-center gap-1 relative pt-1"
             >
               <div className="relative">
                 {tab.icon(isActive)}
@@ -130,6 +130,10 @@ export default function BottomNav() {
               >
                 {tab.label}
               </span>
+              {/* Active indicator dot */}
+              {isActive && (
+                <span className="absolute -bottom-0.5 w-1 h-1 bg-brown rounded-full" />
+              )}
             </Link>
           );
         })}

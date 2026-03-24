@@ -11,6 +11,7 @@ import {
   type RopeEntry,
   type User,
 } from "@/lib/store";
+import { LampIcon, OliveBranch, VerseBlock } from "@/components/Accents";
 
 export default function InsightsPage() {
   const [user, setUserState] = useState<User | null>(null);
@@ -38,36 +39,41 @@ export default function InsightsPage() {
     );
   }
 
+  // ─── Empty state ──────────────────────────────────────────────────────────
   if (entries.length === 0) {
     return (
       <div
         className="min-h-[80vh] flex flex-col items-center justify-center px-6 text-center"
-        style={{ animation: "fadeIn 0.4s ease-out both" }}
+        style={{ animation: "fadeIn 0.5s ease-out both" }}
       >
-        <div className="w-16 h-16 bg-brown/10 rounded-full flex items-center justify-center mb-5">
-          <svg
-            width="28"
-            height="28"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="1.5"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            className="text-brown"
-          >
-            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
-            <polyline points="17 8 12 3 7 8" />
-            <line x1="12" y1="3" x2="12" y2="15" />
-          </svg>
+        <div className="mb-6" style={{ animation: "fadeInUp 0.6s ease-out 0.1s both" }}>
+          <LampIcon className="w-14 h-[74px] mx-auto" />
         </div>
-        <h2 className="font-serif text-xl text-brown mb-2">Start Your Journey</h2>
-        <p className="text-muted text-sm max-w-xs">
-          Start journaling to see your spiritual growth patterns here.
+
+        <h2
+          className="font-serif text-xl text-brown mb-3 font-medium"
+          style={{ animation: "fadeInUp 0.5s ease-out 0.2s both" }}
+        >
+          Start Your Journey
+        </h2>
+
+        <p
+          className="text-muted text-sm max-w-xs leading-relaxed mb-8"
+          style={{ animation: "fadeInUp 0.5s ease-out 0.3s both" }}
+        >
+          Begin journaling to see your spiritual growth patterns here. Every entry plants a seed.
         </p>
-        <p className="text-muted/40 text-xs italic mt-12">
-          For I know the plans I have for you &mdash; Jeremiah 29:11
-        </p>
+
+        <div style={{ animation: "fadeInUp 0.5s ease-out 0.4s both" }} className="max-w-xs w-full">
+          <VerseBlock
+            verse="For I know the plans I have for you, declares the Lord, plans to prosper you and not to harm you, plans to give you hope and a future."
+            reference="Jeremiah 29:11"
+          />
+        </div>
+
+        <div className="mt-8" style={{ animation: "fadeIn 0.5s ease-out 0.6s both" }}>
+          <OliveBranch className="mx-auto opacity-40" />
+        </div>
       </div>
     );
   }
@@ -82,6 +88,12 @@ export default function InsightsPage() {
   const ringCircumference = 2 * Math.PI * ringRadius;
   const ringOffset = ringCircumference - (execRate / 100) * ringCircumference;
 
+  const statAccentColors = [
+    "border-t-accent-gold",    // entries — gold
+    "border-t-accent-olive",   // streak — olive
+    "border-t-brown",          // top book — brown
+  ];
+
   return (
     <div className="px-5 pt-6 pb-8" style={{ animation: "fadeIn 0.4s ease-out both" }}>
       {/* Header */}
@@ -90,7 +102,7 @@ export default function InsightsPage() {
         <p className="text-muted text-sm">Patterns in your spiritual growth</p>
       </div>
 
-      {/* Stats Row — 3 cols on all sizes */}
+      {/* Stats Row */}
       <div className="grid grid-cols-3 gap-3 mb-8">
         {[
           { value: entries.length, label: "Total Entries" },
@@ -99,7 +111,7 @@ export default function InsightsPage() {
         ].map((stat, i) => (
           <div
             key={stat.label}
-            className="bg-cream rounded-2xl p-4 text-center shadow-sm"
+            className={`card-surface rounded-2xl p-4 text-center border-t-2 ${statAccentColors[i]}`}
             style={{ animation: "fadeIn 0.4s ease-out both", animationDelay: `${i * 0.1}s` }}
           >
             <p className={`font-serif text-2xl text-brown font-bold ${typeof stat.value === "string" ? "truncate text-lg" : ""}`}>
@@ -114,7 +126,7 @@ export default function InsightsPage() {
       <div className="md:grid md:grid-cols-2 md:gap-6 space-y-6 md:space-y-0 mb-6">
         {/* Book Frequency Chart */}
         {top5Books.length > 0 && (
-          <section className="bg-cream rounded-2xl p-5 shadow-sm">
+          <section className="card-surface rounded-2xl p-5">
             <h2 className="font-serif text-lg text-dark mb-4">Most Read Books</h2>
             <div className="space-y-3">
               {top5Books.map(({ book, count }) => (
@@ -123,7 +135,7 @@ export default function InsightsPage() {
                   <div className="flex-1 bg-ivory rounded-full h-5 overflow-hidden">
                     <div
                       className="h-full bg-brown/70 rounded-full transition-all duration-500"
-                      style={{ width: `${Math.max((count / maxCount) * 100, 8)}%` }}
+                      style={{ width: `${Math.max((count / maxCount) * 100, 8)}%`, borderRadius: "9999px" }}
                     />
                   </div>
                   <span className="text-xs text-muted w-6 text-right">{count}</span>
@@ -134,7 +146,7 @@ export default function InsightsPage() {
         )}
 
         {/* Execution Score */}
-        <section className="bg-cream rounded-2xl p-5 shadow-sm">
+        <section className="card-surface rounded-2xl p-5">
           <h2 className="font-serif text-lg text-dark mb-4">Execution Score</h2>
           {hasExecData ? (
             <div className="flex flex-col items-center">
@@ -146,7 +158,7 @@ export default function InsightsPage() {
                     r={ringRadius}
                     fill="none"
                     stroke="currentColor"
-                    strokeWidth="8"
+                    strokeWidth="10"
                     className="text-ivory"
                   />
                   <circle
@@ -155,11 +167,11 @@ export default function InsightsPage() {
                     r={ringRadius}
                     fill="none"
                     stroke="currentColor"
-                    strokeWidth="8"
+                    strokeWidth="10"
                     strokeLinecap="round"
                     strokeDasharray={ringCircumference}
                     strokeDashoffset={ringOffset}
-                    className="text-brown transition-all duration-700"
+                    className="text-accent-gold transition-all duration-700"
                   />
                 </svg>
                 <div className="absolute inset-0 flex items-center justify-center">
@@ -178,8 +190,8 @@ export default function InsightsPage() {
         </section>
       </div>
 
-      {/* Theme Timeline — full width */}
-      <section className="bg-cream rounded-2xl p-5 shadow-sm mb-6">
+      {/* Theme Timeline */}
+      <section className="card-surface rounded-2xl p-5 mb-6">
         <h2 className="font-serif text-lg text-dark mb-4">Recent Reflections</h2>
         <div className="space-y-0">
           {recentEntries.map((entry, i) => (
@@ -193,7 +205,7 @@ export default function InsightsPage() {
               </div>
 
               {/* Content */}
-              <div className="pb-4 min-w-0">
+              <div className="pb-4 min-w-0 border-l-2 border-transparent pl-2">
                 <p className="text-sm font-medium text-dark">{entry.revelationVerse}</p>
                 <p className="text-xs text-muted mt-0.5 line-clamp-1">
                   {entry.observation}
@@ -212,7 +224,9 @@ export default function InsightsPage() {
 
       {/* Reflection Prompt */}
       {topBook && (
-        <section className="bg-cream rounded-2xl p-5 shadow-sm mb-4">
+        <section className="card-surface rounded-2xl p-5 mb-4 border-l-3 border-l-accent-gold/25"
+          style={{ background: "linear-gradient(135deg, var(--color-cream) 0%, rgba(196,162,101,0.06) 50%, var(--color-cream) 100%)" }}
+        >
           <p className="text-dark text-sm leading-relaxed italic">
             &ldquo;Based on your entries, you&apos;ve been drawn to{" "}
             <span className="font-medium not-italic text-brown">{topBook}</span> lately.
@@ -222,9 +236,12 @@ export default function InsightsPage() {
       )}
 
       {/* Scripture Watermark */}
-      <p className="text-muted/40 text-xs italic text-center mt-6">
-        For I know the plans I have for you &mdash; Jeremiah 29:11
-      </p>
+      <div className="mt-6 flex flex-col items-center gap-3">
+        <OliveBranch className="opacity-30" />
+        <p className="text-muted/40 text-xs italic text-center">
+          For I know the plans I have for you &mdash; Jeremiah 29:11
+        </p>
+      </div>
     </div>
   );
 }

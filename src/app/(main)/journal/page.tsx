@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef, useCallback } from "react";
 import { getOrCreateUser, addRopeEntry, suggestBooks } from "@/lib/store";
+import { OliveBranch } from "@/components/Accents";
 
 const steps = [
   { letter: "R", word: "Revelation", placeholder: "" },
@@ -123,10 +124,10 @@ function MicButton({
     <button
       type="button"
       onClick={toggle}
-      className={`absolute bottom-2 right-2 w-8 h-8 rounded-full flex items-center justify-center transition-all ${
+      className={`absolute bottom-2.5 right-2.5 w-9 h-9 rounded-full flex items-center justify-center transition-all ${
         listening
           ? "bg-struggle text-white animate-pulse"
-          : "bg-brown/10 text-brown hover:bg-brown/20"
+          : "bg-brown/8 text-brown hover:bg-brown/15"
       }`}
       title={listening ? "Stop listening" : "Voice input"}
     >
@@ -162,14 +163,14 @@ function SuggestionCard({
 }) {
   return (
     <div
-      className="mt-3 bg-cream border border-brown/15 rounded-xl p-4"
+      className="mt-3 card-surface rounded-xl p-4 border-l-3 border-l-accent-gold/30"
       style={{ animation: "fadeInUp 0.3s ease-out both" }}
     >
       <p className="text-dark text-sm leading-relaxed italic mb-3">{suggestion}</p>
       <div className="flex gap-2">
         <button
           onClick={onUse}
-          className="px-3 py-1.5 bg-brown text-ivory text-xs font-medium rounded-lg hover:bg-brown/90 transition"
+          className="px-3 py-1.5 bg-brown text-ivory text-xs font-medium rounded-lg hover:bg-brown-light transition"
         >
           Use this
         </button>
@@ -292,7 +293,14 @@ export default function JournalPage() {
         className="min-h-[80vh] flex flex-col items-center justify-center px-6 text-center"
         style={{ animation: "fadeIn 0.4s ease-out both" }}
       >
-        <div className="w-16 h-16 bg-brown/10 rounded-full flex items-center justify-center mb-5">
+        <div
+          className="w-16 h-16 bg-brown/10 rounded-full flex items-center justify-center mb-5"
+          style={{
+            backgroundImage: "linear-gradient(135deg, rgba(196,162,101,0.1), rgba(92,67,39,0.1))",
+            animation: "shimmer 2s ease-in-out infinite",
+            backgroundSize: "200% auto",
+          }}
+        >
           <svg
             width="32"
             height="32"
@@ -336,19 +344,26 @@ export default function JournalPage() {
 
   return (
     <div className="px-5 pt-6 pb-8">
+      {/* Date + Title with olive branch */}
       <p className="text-muted text-sm mb-1">{today}</p>
-      <h1 className="font-serif text-2xl text-brown mb-6">Daily ROPE</h1>
+      <div className="flex items-center gap-3 mb-2">
+        <h1 className="font-serif text-2xl text-brown">Daily ROPE</h1>
+      </div>
+      <div className="flex justify-start mb-5">
+        <OliveBranch className="opacity-50" />
+      </div>
 
-      <div className="space-y-6">
+      {/* Section divider */}
+      <div className="section-divider mb-5" />
+
+      <div className="space-y-5">
         {/* Step 1: Revelation */}
         <section
-          className="bg-cream rounded-2xl p-5 shadow-sm"
+          className="card-surface rounded-2xl p-5"
           style={{ animation: "fadeInUp 0.5s ease-out both", animationDelay: "0s" }}
         >
           <div className="flex items-center gap-3 mb-4">
-            <div className="w-9 h-9 bg-brown text-ivory rounded-full flex items-center justify-center font-serif font-bold text-sm shrink-0">
-              R
-            </div>
+            <div className="step-badge">R</div>
             <h2 className="font-serif text-lg text-dark">Revelation</h2>
           </div>
           <div className="relative">
@@ -362,12 +377,12 @@ export default function JournalPage() {
                   if (suggestions.length > 0) setShowSuggestions(true);
                 }}
                 placeholder="e.g. Romans 8:28"
-                className="flex-1 px-4 py-2.5 bg-ivory border border-brown/15 rounded-xl text-dark placeholder:text-muted/50 focus:outline-none focus:ring-2 focus:ring-brown/20 text-sm"
+                className="flex-1 px-4 py-2.5 bg-ivory border border-brown/10 rounded-xl text-dark placeholder:text-muted/50 focus:outline-none text-sm"
               />
               <button
                 onClick={lookupVerse}
                 disabled={lookingUp || !verseRef.trim()}
-                className="px-4 py-2.5 bg-brown text-ivory rounded-xl text-sm font-medium hover:bg-brown/90 disabled:opacity-40 transition shrink-0"
+                className="px-4 py-2.5 bg-brown text-ivory rounded-xl text-sm font-medium hover:bg-brown-light disabled:opacity-40 transition shrink-0"
               >
                 {lookingUp ? "..." : "Look up"}
               </button>
@@ -377,14 +392,14 @@ export default function JournalPage() {
             {showSuggestions && suggestions.length > 0 && (
               <div
                 ref={suggestionsRef}
-                className="absolute left-0 right-16 top-12 z-20 bg-cream border border-brown/15 rounded-xl shadow-lg overflow-hidden"
-                style={{ animation: "fadeIn 0.15s ease-out both" }}
+                className="absolute left-0 right-16 top-12 z-20 bg-ivory border border-brown/10 rounded-xl overflow-hidden max-h-48 overflow-y-auto"
+                style={{ animation: "fadeIn 0.15s ease-out both", boxShadow: "var(--shadow-elevated)" }}
               >
                 {suggestions.map((book) => (
                   <button
                     key={book}
                     onClick={() => selectSuggestion(book)}
-                    className="w-full text-left px-4 py-2.5 text-sm text-brown hover:bg-ivory transition"
+                    className="w-full text-left px-4 py-2.5 text-sm text-brown hover:bg-cream transition"
                   >
                     {book}
                   </button>
@@ -396,7 +411,7 @@ export default function JournalPage() {
             <p className="text-struggle text-xs">{lookupError}</p>
           )}
           {verseLookedUp && verseText && (
-            <div className="bg-ivory/70 rounded-xl p-4 border border-brown/10">
+            <div className="bg-ivory/70 rounded-xl p-4 border-l-2 border-brown/20">
               <p className="text-dark text-sm leading-relaxed italic">
                 &ldquo;{verseText}&rdquo;
               </p>
@@ -407,13 +422,11 @@ export default function JournalPage() {
 
         {/* Step 2: Observation */}
         <section
-          className="bg-cream rounded-2xl p-5 shadow-sm"
+          className="card-surface rounded-2xl p-5"
           style={{ animation: "fadeInUp 0.5s ease-out both", animationDelay: "0.1s" }}
         >
           <div className="flex items-center gap-3 mb-4">
-            <div className="w-9 h-9 bg-brown text-ivory rounded-full flex items-center justify-center font-serif font-bold text-sm shrink-0">
-              O
-            </div>
+            <div className="step-badge">O</div>
             <h2 className="font-serif text-lg text-dark">Observation</h2>
           </div>
           <div className="relative">
@@ -422,7 +435,7 @@ export default function JournalPage() {
               onChange={(e) => setObservation(e.target.value)}
               placeholder={steps[1].placeholder}
               rows={4}
-              className="w-full px-4 py-3 bg-ivory border border-brown/15 rounded-xl text-dark placeholder:text-muted/50 focus:outline-none focus:ring-2 focus:ring-brown/20 text-sm leading-relaxed resize-none"
+              className="w-full px-4 py-3 bg-ivory border border-brown/10 rounded-xl text-dark placeholder:text-muted/50 focus:outline-none text-sm leading-relaxed resize-none min-h-[120px]"
             />
             <MicButton
               supported={speechSupported}
@@ -436,13 +449,11 @@ export default function JournalPage() {
 
         {/* Step 3: Prayer */}
         <section
-          className="bg-cream rounded-2xl p-5 shadow-sm"
+          className="card-surface rounded-2xl p-5"
           style={{ animation: "fadeInUp 0.5s ease-out both", animationDelay: "0.2s" }}
         >
           <div className="flex items-center gap-3 mb-4">
-            <div className="w-9 h-9 bg-brown text-ivory rounded-full flex items-center justify-center font-serif font-bold text-sm shrink-0">
-              P
-            </div>
+            <div className="step-badge">P</div>
             <div className="flex items-center gap-2 flex-1">
               <h2 className="font-serif text-lg text-dark">Prayer</h2>
               <button
@@ -462,7 +473,7 @@ export default function JournalPage() {
               onChange={(e) => setPrayer(e.target.value)}
               placeholder={steps[2].placeholder}
               rows={4}
-              className="w-full px-4 py-3 bg-ivory border border-brown/15 rounded-xl text-dark placeholder:text-muted/50 focus:outline-none focus:ring-2 focus:ring-brown/20 text-sm leading-relaxed resize-none"
+              className="w-full px-4 py-3 bg-ivory border border-brown/10 rounded-xl text-dark placeholder:text-muted/50 focus:outline-none text-sm leading-relaxed resize-none min-h-[120px]"
             />
             <MicButton
               supported={speechSupported}
@@ -486,13 +497,11 @@ export default function JournalPage() {
 
         {/* Step 4: Execution */}
         <section
-          className="bg-cream rounded-2xl p-5 shadow-sm"
+          className="card-surface rounded-2xl p-5"
           style={{ animation: "fadeInUp 0.5s ease-out both", animationDelay: "0.3s" }}
         >
           <div className="flex items-center gap-3 mb-4">
-            <div className="w-9 h-9 bg-brown text-ivory rounded-full flex items-center justify-center font-serif font-bold text-sm shrink-0">
-              E
-            </div>
+            <div className="step-badge">E</div>
             <div className="flex items-center gap-2 flex-1">
               <h2 className="font-serif text-lg text-dark">Execution</h2>
               <button
@@ -512,7 +521,7 @@ export default function JournalPage() {
               onChange={(e) => setExecution(e.target.value)}
               placeholder={steps[3].placeholder}
               rows={4}
-              className="w-full px-4 py-3 bg-ivory border border-brown/15 rounded-xl text-dark placeholder:text-muted/50 focus:outline-none focus:ring-2 focus:ring-brown/20 text-sm leading-relaxed resize-none"
+              className="w-full px-4 py-3 bg-ivory border border-brown/10 rounded-xl text-dark placeholder:text-muted/50 focus:outline-none text-sm leading-relaxed resize-none min-h-[120px]"
             />
             <MicButton
               supported={speechSupported}
@@ -543,7 +552,7 @@ export default function JournalPage() {
           !prayer.trim() ||
           !execution.trim()
         }
-        className="w-full mt-6 py-3.5 bg-brown text-ivory font-semibold rounded-xl hover:bg-brown/90 active:scale-[0.98] disabled:opacity-40 transition-all"
+        className="w-full mt-6 py-3.5 btn-primary text-center"
       >
         Save Entry
       </button>

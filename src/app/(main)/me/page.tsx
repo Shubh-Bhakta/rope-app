@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { getOrCreateUser, getRopeEntries, type User, type RopeEntry } from "@/lib/store";
+import { LampIcon, OliveBranch } from "@/components/Accents";
 
 export default function MePage() {
   const [user, setUserState] = useState<User | null>(null);
@@ -33,7 +34,7 @@ export default function MePage() {
   return (
     <div className="px-5 pt-6 pb-8" style={{ animation: "fadeIn 0.4s ease-out both" }}>
       <div className="text-center mb-8">
-        <div className="w-20 h-20 bg-brown/10 rounded-full flex items-center justify-center mx-auto mb-4">
+        <div className="w-20 h-20 bg-brown/10 rounded-full flex items-center justify-center mx-auto mb-4 ring-2 ring-brown/10 ring-offset-2 ring-offset-ivory">
           <span className="font-serif text-2xl text-brown font-bold">
             {user.name.charAt(0).toUpperCase()}
           </span>
@@ -47,9 +48,10 @@ export default function MePage() {
         <h2 className="font-serif text-lg text-brown mb-3">Your ROPE Entries</h2>
 
         {entries.length === 0 ? (
-          <div className="bg-cream rounded-2xl p-6 text-center">
-            <p className="text-muted text-sm">
-              No entries yet. Start your first ROPE journal entry today.
+          <div className="flex flex-col items-center py-10">
+            <LampIcon className="w-10 h-[52px] mb-4" />
+            <p className="text-muted text-sm text-center max-w-xs">
+              No entries yet. Start your first ROPE journal entry today and begin tracking your spiritual growth.
             </p>
           </div>
         ) : (
@@ -57,7 +59,7 @@ export default function MePage() {
             {entries.map((entry, i) => (
               <div
                 key={entry.id}
-                className="bg-cream rounded-2xl shadow-sm overflow-hidden"
+                className="card-surface rounded-2xl overflow-hidden"
                 style={{ animation: "fadeInUp 0.4s ease-out both", animationDelay: `${Math.min(i * 0.05, 0.5)}s` }}
               >
                 <button
@@ -83,7 +85,7 @@ export default function MePage() {
                     strokeWidth="2"
                     strokeLinecap="round"
                     strokeLinejoin="round"
-                    className={`text-muted transition-transform ${
+                    className={`text-muted transition-transform duration-200 ${
                       expandedId === entry.id ? "rotate-180" : ""
                     }`}
                   >
@@ -91,8 +93,12 @@ export default function MePage() {
                   </svg>
                 </button>
 
-                {expandedId === entry.id && (
-                  <div className="px-4 pb-4 space-y-3 border-t border-muted/15 pt-3">
+                <div
+                  className={`overflow-hidden transition-all duration-300 ease-in-out ${
+                    expandedId === entry.id ? "max-h-[600px] opacity-100" : "max-h-0 opacity-0"
+                  }`}
+                >
+                  <div className="px-4 pb-4 space-y-3 border-t border-brown/8 pt-3">
                     {entry.revelationText && (
                       <div>
                         <p className="text-xs text-muted uppercase tracking-wide mb-1">
@@ -157,11 +163,15 @@ export default function MePage() {
                       </div>
                     )}
                   </div>
-                )}
+                </div>
               </div>
             ))}
           </div>
         )}
+      </div>
+
+      <div className="flex justify-center">
+        <OliveBranch className="opacity-30" />
       </div>
     </div>
   );
