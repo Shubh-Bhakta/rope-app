@@ -390,6 +390,35 @@ export function setTranslation(t: string): void {
 
 export { TRANSLATIONS };
 
+// ─── Dark Mode ──────────────────────────────────────────────────────────────
+
+export function getDarkMode(): boolean {
+  if (typeof window === "undefined") return false;
+  const saved = localStorage.getItem("rope_dark_mode");
+  if (saved !== null) return saved === "true";
+  // Auto-detect system preference
+  return window.matchMedia?.("(prefers-color-scheme: dark)").matches ?? false;
+}
+
+export function setDarkMode(dark: boolean): void {
+  localStorage.setItem("rope_dark_mode", dark ? "true" : "false");
+}
+
+// ─── Onboarding ─────────────────────────────────────────────────────────────
+
+export function hasCompletedOnboarding(): boolean {
+  if (typeof window === "undefined") return true;
+  return localStorage.getItem("rope_onboarding_done") === "true";
+}
+
+export function completeOnboarding(): void {
+  localStorage.setItem("rope_onboarding_done", "true");
+}
+
+export function resetOnboarding(): void {
+  localStorage.removeItem("rope_onboarding_done");
+}
+
 /** Extract common spiritual themes from observations */
 export function getThemes(userId: string): string[] {
   const entries = getRopeEntries(userId);

@@ -3,8 +3,9 @@
 import { useEffect, useState } from "react";
 import { usePathname } from "next/navigation";
 import Link from "next/link";
-import { getOrCreateUser } from "@/lib/store";
+import { getOrCreateUser, getDarkMode, setDarkMode, hasCompletedOnboarding, resetOnboarding } from "@/lib/store";
 import BottomNav from "@/components/BottomNav";
+import Onboarding from "@/components/Onboarding";
 import { OliveBranch } from "@/components/Accents";
 
 const navItems = [
@@ -76,11 +77,21 @@ const reflectionPrompts = [
 export default function MainLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const [ready, setReady] = useState(false);
+  const [darkMode, setDarkModeState] = useState(false);
+  const [showOnboarding, setShowOnboarding] = useState(false);
 
   useEffect(() => {
     getOrCreateUser();
+    setDarkModeState(getDarkMode());
+    if (!hasCompletedOnboarding()) setShowOnboarding(true);
     setReady(true);
   }, []);
+
+  function toggleDarkMode() {
+    const next = !darkMode;
+    setDarkModeState(next);
+    setDarkMode(next);
+  }
 
   if (!ready) {
     return (
@@ -95,11 +106,11 @@ export default function MainLayout({ children }: { children: React.ReactNode }) 
   const todayPrompt = reflectionPrompts[dayIndex];
 
   return (
-    <div className="min-h-screen bg-ivory">
+    <div className={`min-h-screen bg-ivory ${darkMode ? "dark" : ""}`}>
       {/* Desktop sidebar */}
       <aside className="hidden md:flex md:fixed md:inset-y-0 md:left-0 md:w-64 md:flex-col bg-sidebar border-r border-brown/8 z-40">
         {/* Brand area */}
-        <div className="px-6 py-8">
+        <div className="px-6 py-8 relative">
           <div className="flex items-center gap-2.5">
             <svg width="18" height="26" viewBox="0 0 18 26" fill="none" className="text-brown/60 shrink-0">
               <rect x="7" y="0" width="4" height="26" rx="1" fill="currentColor" />
@@ -108,6 +119,13 @@ export default function MainLayout({ children }: { children: React.ReactNode }) 
             <h1 className="font-serif text-3xl font-bold text-brown tracking-wide">ROPE</h1>
           </div>
           <p className="text-muted text-[10px] mt-1.5 tracking-[0.2em] uppercase ml-[30px]">Bible Journaling</p>
+          <button
+            onClick={() => { resetOnboarding(); setShowOnboarding(true); }}
+            className="absolute top-8 right-6 w-6 h-6 rounded-full bg-brown/8 flex items-center justify-center text-muted hover:text-brown hover:bg-brown/15 transition text-xs"
+            title="Show walkthrough"
+          >
+            ?
+          </button>
         </div>
 
         {/* Navigation */}
@@ -133,6 +151,29 @@ export default function MainLayout({ children }: { children: React.ReactNode }) 
             );
           })}
         </nav>
+
+        {/* Dark mode toggle */}
+        <div className="px-6 py-3">
+          <button
+            onClick={toggleDarkMode}
+            className="flex items-center gap-2 w-full px-3 py-2 rounded-lg text-xs text-muted hover:text-brown hover:bg-cream/50 transition"
+          >
+            {darkMode ? (
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                <circle cx="12" cy="12" r="5" />
+                <line x1="12" y1="1" x2="12" y2="3" /><line x1="12" y1="21" x2="12" y2="23" />
+                <line x1="4.22" y1="4.22" x2="5.64" y2="5.64" /><line x1="18.36" y1="18.36" x2="19.78" y2="19.78" />
+                <line x1="1" y1="12" x2="3" y2="12" /><line x1="21" y1="12" x2="23" y2="12" />
+                <line x1="4.22" y1="19.78" x2="5.64" y2="18.36" /><line x1="18.36" y1="5.64" x2="19.78" y2="4.22" />
+              </svg>
+            ) : (
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" />
+              </svg>
+            )}
+            {darkMode ? "Light mode" : "Dark mode"}
+          </button>
+        </div>
 
         {/* Bottom section with olive branch and scripture */}
         <div className="px-6 py-6 space-y-3">
@@ -218,6 +259,8 @@ export default function MainLayout({ children }: { children: React.ReactNode }) 
 
       {/* Bottom nav — mobile only */}
       <BottomNav />
+
+      {showOnboarding && <Onboarding onComplete={() => setShowOnboarding(false)} />}
     </div>
   );
 }

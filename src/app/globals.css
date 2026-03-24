@@ -193,3 +193,74 @@ textarea:focus, input:focus {
   0%, 100% { opacity: 0.4; transform: translateY(0); }
   50% { opacity: 1; transform: translateY(6px); }
 }
+
+/* Dark mode */
+.dark {
+  --color-ivory: #1a1714;
+  --color-cream: #231f1a;
+  --color-cream-dark: #2a2520;
+  --color-brown: #c4a265;
+  --color-brown-light: #d4b87a;
+  --color-dark: #e8e0d4;
+  --color-muted: #8a7e6a;
+  --color-muted-light: #6b6050;
+  --color-sidebar: #1e1b16;
+  --color-accent-gold: #c4a265;
+  --color-accent-olive: #8a9c7a;
+}
+
+.dark body,
+.dark {
+  background-color: #1a1714;
+  color: #e8e0d4;
+}
+
+.dark .card-surface {
+  background: linear-gradient(135deg, #231f1a 0%, #282420 50%, #231f1a 100%);
+  border-color: rgba(196, 162, 101, 0.1);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2), 0 1px 2px rgba(0, 0, 0, 0.15);
+}
+
+.dark .card-surface:hover {
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25), 0 2px 4px rgba(0, 0, 0, 0.15);
+}
+
+.dark .btn-primary {
+  background: #c4a265;
+  color: #1a1714;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+}
+
+.dark .btn-primary:hover {
+  background: #d4b87a;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.35);
+}
+
+.dark .step-badge {
+  background: #c4a265;
+  color: #1a1714;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
+}
+
+.dark .section-divider {
+  background: linear-gradient(90deg, transparent, rgba(196, 162, 101, 0.15) 20%, rgba(196, 162, 101, 0.15) 80%, transparent);
+}
+
+.dark textarea,
+.dark input[type="text"],
+.dark select {
+  background-color: #1a1714 !important;
+  border-color: rgba(196, 162, 101, 0.12) !important;
+  color: #e8e0d4 !important;
+}
+
+.dark textarea::placeholder,
+.dark input::placeholder {
+  color: rgba(138, 126, 106, 0.6) !important;
+}
+
+.dark textarea:focus,
+.dark input:focus {
+  border-color: #c4a265 !important;
+  box-shadow: 0 0 0 3px rgba(196, 162, 101, 0.1) !important;
+}

@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { getOrCreateUser, getRopeEntries, getStreak, getUniqueBooksCount, getMostCommonBook, getThemes, deleteRopeEntry, type User, type RopeEntry } from "@/lib/store";
+import { getOrCreateUser, getRopeEntries, getStreak, getUniqueBooksCount, getMostCommonBook, getThemes, deleteRopeEntry, getDarkMode, setDarkMode, type User, type RopeEntry } from "@/lib/store";
 import { LampIcon, OliveBranch } from "@/components/Accents";
 
 export default function MePage() {
@@ -12,6 +12,7 @@ export default function MePage() {
   const [uniqueBooks, setUniqueBooks] = useState(0);
   const [topBook, setTopBook] = useState<string | null>(null);
   const [themes, setThemes] = useState<string[]>([]);
+  const [isDark, setIsDark] = useState(false);
 
   useEffect(() => {
     const u = getOrCreateUser();
@@ -21,6 +22,7 @@ export default function MePage() {
     setUniqueBooks(getUniqueBooksCount(u.id));
     setTopBook(getMostCommonBook(u.id));
     setThemes(getThemes(u.id));
+    setIsDark(getDarkMode());
   }, []);
 
   function formatDate(dateStr: string): string {
@@ -62,6 +64,27 @@ export default function MePage() {
         <h1 className="font-serif text-2xl text-dark">{user.name}</h1>
         {user.email && <p className="text-muted text-sm">{user.email}</p>}
         <p className="text-muted/60 text-xs mt-1">{user.anonymousAlias}</p>
+      </div>
+
+      {/* Settings */}
+      <div className="flex items-center justify-between p-3 bg-brown/[0.03] rounded-xl mb-4">
+        <span className="text-sm text-dark">Dark mode</span>
+        <button
+          onClick={() => {
+            const next = !isDark;
+            setIsDark(next);
+            setDarkMode(next);
+            // Toggle class on nearest .dark ancestor
+            const root = document.querySelector('[class*="min-h-screen"]');
+            if (root) {
+              if (next) root.classList.add("dark");
+              else root.classList.remove("dark");
+            }
+          }}
+          className={`relative w-11 h-6 rounded-full transition-colors ${isDark ? "bg-accent-gold" : "bg-brown/20"}`}
+        >
+          <div className={`absolute top-0.5 w-5 h-5 rounded-full bg-ivory shadow transition-transform ${isDark ? "translate-x-5.5 left-0" : "left-0.5"}`} />
+        </button>
       </div>
 
       {/* Walk Snapshot */}
