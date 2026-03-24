@@ -15,6 +15,7 @@ export interface RopeEntry {
   createdAt: string;
   revelationVerse: string;
   revelationText: string;
+  revelationReflection: string;
   observation: string;
   prayer: string;
   execution: string;
@@ -223,14 +224,23 @@ export function getYesterdayEntry(userId: string): RopeEntry | null {
   const entries = getRopeEntries(userId);
   const yesterday = new Date();
   yesterday.setDate(yesterday.getDate() - 1);
-  const yStr = yesterday.toISOString().split("T")[0];
+  const yStr = `${yesterday.getFullYear()}-${String(yesterday.getMonth() + 1).padStart(2, '0')}-${String(yesterday.getDate()).padStart(2, '0')}`;
 
   return (
     entries.find((e) => {
-      const eDate = new Date(e.createdAt).toISOString().split("T")[0];
-      return eDate === yStr;
+      const d = new Date(e.createdAt);
+      const eStr = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+      return eStr === yStr;
     }) ?? null
   );
+}
+
+export function deleteRopeEntry(id: string): boolean {
+  const entries = getRopeEntries();
+  const filtered = entries.filter((e) => e.id !== id);
+  if (filtered.length === entries.length) return false;
+  localStorage.setItem("rope_entries", JSON.stringify(filtered));
+  return true;
 }
 
 export function hasPendingCheckin(userId: string): boolean {
@@ -245,27 +255,40 @@ export function getStreak(userId: string): number {
   const entries = getRopeEntries(userId);
   if (entries.length === 0) return 0;
 
-  // Get unique dates (sorted descending)
+  // Get unique LOCAL dates (sorted descending)
   const dates = Array.from(
-    new Set(entries.map((e) => new Date(e.createdAt).toISOString().split("T")[0]))
+    new Set(entries.map((e) => {
+      const d = new Date(e.createdAt);
+      return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+    }))
   ).sort((a, b) => b.localeCompare(a));
 
   let streak = 0;
-  const today = new Date();
-  const checkDate = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+  const now = new Date();
+  let checkYear = now.getFullYear();
+  let checkMonth = now.getMonth();
+  let checkDay = now.getDate();
 
   for (const dateStr of dates) {
-    const entryDate = new Date(dateStr + "T00:00:00");
-    const diffDays = Math.round(
-      (checkDate.getTime() - entryDate.getTime()) / (1000 * 60 * 60 * 24)
-    );
+    const [y, m, d] = dateStr.split('-').map(Number);
+    const checkDateObj = new Date(checkYear, checkMonth, checkDay);
+    const entryDateObj = new Date(y, m - 1, d);
+    const diffDays = Math.round((checkDateObj.getTime() - entryDateObj.getTime()) / (1000 * 60 * 60 * 24));
 
-    if (diffDays === streak) {
+    if (diffDays === 0) {
       streak++;
-    } else if (diffDays === streak + 1 && streak === 0) {
-      // Allow starting from yesterday if no entry today
+      // Move check date to yesterday
+      const prev = new Date(checkYear, checkMonth, checkDay - 1);
+      checkYear = prev.getFullYear();
+      checkMonth = prev.getMonth();
+      checkDay = prev.getDate();
+    } else if (diffDays === 1 && streak === 0) {
+      // No entry today, but yesterday has one - start streak from yesterday
       streak = 1;
-      checkDate.setDate(checkDate.getDate() - 1);
+      const prev = new Date(y, m - 1, d - 1);
+      checkYear = prev.getFullYear();
+      checkMonth = prev.getMonth();
+      checkDay = prev.getDate();
     } else {
       break;
     }
@@ -339,6 +362,29 @@ export function getUniqueBooksCount(userId: string): number {
   const freq = getBookFrequency(userId);
   return freq.length;
 }
+
+// ─── Bible Translations ─────────────────────────────────────────────────────
+
+const TRANSLATIONS = [
+  { id: "web", label: "WEB" },
+  { id: "kjv", label: "KJV" },
+  { id: "bbe", label: "BBE" },
+  { id: "oeb-us", label: "OEB" },
+  { id: "webbe", label: "WEB (BE)" },
+  { id: "clementine", label: "Clementine" },
+  { id: "almeida", label: "Almeida" },
+];
+
+export function getTranslation(): string {
+  if (typeof window === "undefined") return "web";
+  return localStorage.getItem("rope_translation") || "web";
+}
+
+export function setTranslation(t: string): void {
+  localStorage.setItem("rope_translation", t);
+}
+
+export { TRANSLATIONS };
 
 /** Extract common spiritual themes from observations */
 export function getThemes(userId: string): string[] {

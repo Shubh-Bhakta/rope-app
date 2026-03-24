@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { getOrCreateUser, getRopeEntries, getStreak, getUniqueBooksCount, getMostCommonBook, getThemes, type User, type RopeEntry } from "@/lib/store";
+import { getOrCreateUser, getRopeEntries, getStreak, getUniqueBooksCount, getMostCommonBook, getThemes, deleteRopeEntry, type User, type RopeEntry } from "@/lib/store";
 import { LampIcon, OliveBranch } from "@/components/Accents";
 
 export default function MePage() {
@@ -24,11 +24,23 @@ export default function MePage() {
   }, []);
 
   function formatDate(dateStr: string): string {
-    return new Date(dateStr).toLocaleDateString("en-US", {
+    const d = new Date(dateStr);
+    return d.toLocaleDateString("en-US", {
       weekday: "short",
       month: "short",
       day: "numeric",
+    }) + " at " + d.toLocaleTimeString("en-US", {
+      hour: "numeric",
+      minute: "2-digit",
     });
+  }
+
+  function handleDelete(id: string) {
+    if (confirm("Are you sure you want to delete this entry? This cannot be undone.")) {
+      deleteRopeEntry(id);
+      setEntries(entries.filter(e => e.id !== id));
+      if (expandedId === id) setExpandedId(null);
+    }
   }
 
   if (!user) {
@@ -127,7 +139,7 @@ export default function MePage() {
 
                 <div
                   className={`overflow-hidden transition-all duration-300 ease-in-out ${
-                    expandedId === entry.id ? "max-h-[600px] opacity-100" : "max-h-0 opacity-0"
+                    expandedId === entry.id ? "max-h-[800px] opacity-100" : "max-h-0 opacity-0"
                   }`}
                 >
                   <div className="px-4 pb-4 space-y-3 border-t border-brown/8 pt-3">
@@ -139,6 +151,11 @@ export default function MePage() {
                         <p className="text-dark text-sm italic leading-relaxed">
                           &ldquo;{entry.revelationText}&rdquo;
                         </p>
+                        {(entry.revelationReflection || "") && (
+                          <p className="text-dark text-sm leading-relaxed mt-2 border-l-2 border-brown/15 pl-3">
+                            {entry.revelationReflection}
+                          </p>
+                        )}
                       </div>
                     )}
                     <div>
@@ -194,6 +211,15 @@ export default function MePage() {
                         )}
                       </div>
                     )}
+                    {/* Delete button */}
+                    <div className="flex justify-end gap-2 pt-3 border-t border-brown/6">
+                      <button
+                        onClick={(e) => { e.stopPropagation(); handleDelete(entry.id); }}
+                        className="px-3 py-1.5 text-xs text-struggle hover:bg-struggle/10 rounded-lg transition"
+                      >
+                        Delete
+                      </button>
+                    </div>
                   </div>
                 </div>
               </div>

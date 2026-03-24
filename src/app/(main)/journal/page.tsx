@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef, useCallback } from "react";
-import { getOrCreateUser, addRopeEntry, suggestBooks } from "@/lib/store";
+import { getOrCreateUser, addRopeEntry, suggestBooks, getStreak, getTranslation, setTranslation, TRANSLATIONS } from "@/lib/store";
 import { OliveBranch } from "@/components/Accents";
 
 const steps = [
@@ -11,24 +11,70 @@ const steps = [
   { letter: "E", word: "Execution", placeholder: "How will you live this out tomorrow?" },
 ];
 
-// ─── AI Suggestion Helpers ──────────────────────────────────────────────────
+// ─── Daily Verse ──────────────────────────────────────────────────────────────
 
-function generatePrayerSuggestion(verseRef: string, observation: string): string {
-  const ref = verseRef.trim() || "this passage";
-  if (!observation.trim()) {
-    return `Lord, speak to me through ${ref}. Help me hear Your voice and understand what You want me to learn today. Amen.`;
-  }
-  const theme = observation.trim().split(/[.!?]/)[0].trim().toLowerCase();
-  const shortTheme = theme.length > 60 ? theme.slice(0, 60) + "..." : theme;
-  return `Lord, as I reflect on ${ref}, I ask that You help me to understand that ${shortTheme}. Open my heart to what You're showing me through this passage. Help me to live this out in my daily walk. Amen.`;
+const DAILY_VERSES = [
+  "John 3:16", "Romans 8:28", "Philippians 4:13", "Jeremiah 29:11", "Proverbs 3:5-6",
+  "Isaiah 41:10", "Psalm 23:1-3", "Matthew 11:28-30", "Romans 12:2", "2 Timothy 1:7",
+  "Joshua 1:9", "Psalm 46:10", "Galatians 5:22-23", "Ephesians 2:8-9", "1 Corinthians 13:4-7",
+  "Psalm 119:105", "Hebrews 11:1", "James 1:2-4", "Micah 6:8", "Colossians 3:23-24",
+  "Matthew 6:33", "Romans 5:8", "Psalm 27:1", "Isaiah 40:31", "Philippians 4:6-7",
+  "Lamentations 3:22-23", "Proverbs 16:3", "2 Corinthians 5:17", "Psalm 37:4", "Romans 15:13",
+];
+
+function getTodaysVerse(): string {
+  const dayOfYear = Math.floor((Date.now() - new Date(new Date().getFullYear(), 0, 0).getTime()) / (1000 * 60 * 60 * 24));
+  return DAILY_VERSES[dayOfYear % DAILY_VERSES.length];
 }
 
-function generateExecutionSuggestion(verseRef: string, observation: string): string {
+// ─── Motivational Verses ──────────────────────────────────────────────────────
+
+const motivationalVerses = [
+  { text: "Well done, good and faithful servant.", ref: "Matthew 25:21" },
+  { text: "Let us not become weary in doing good.", ref: "Galatians 6:9" },
+  { text: "Your labor in the Lord is not in vain.", ref: "1 Corinthians 15:58" },
+  { text: "He who began a good work in you will carry it on to completion.", ref: "Philippians 1:6" },
+];
+
+// ─── AI Suggestion Helpers ──────────────────────────────────────────────────
+
+function generatePrayerSuggestion(verseRef: string, verseText: string, observation: string): string {
   const ref = verseRef.trim() || "this passage";
-  if (!observation.trim()) {
-    return `Tomorrow, I will set aside time to reflect on ${ref} and look for ways to apply its truth in my interactions.`;
+  const verseSnippet = verseText ? verseText.split(/[.!?]/)[0].trim() : "";
+
+  if (!observation.trim() && !verseSnippet) {
+    return `Lord, speak to me through ${ref}. Open my eyes to see what You want me to learn. Help me to be still and listen for Your voice. Amen.`;
   }
-  return `Tomorrow, I will intentionally look for a moment to apply the truth from ${ref}. When I face challenges, I will remember this passage and choose to respond with faith and obedience.`;
+
+  if (verseSnippet && !observation.trim()) {
+    return `Father, as I read "${verseSnippet}..." from ${ref}, I ask that You would illuminate the truth in these words. Reveal what You want me to carry from this passage into my life. I surrender my understanding to Yours. Amen.`;
+  }
+
+  const theme = observation.trim().split(/[.!?]/)[0].trim();
+  const shortTheme = theme.length > 80 ? theme.slice(0, 80) + "..." : theme;
+  return `Lord, as I meditate on ${ref}, I've noticed that ${shortTheme.toLowerCase()}. I ask You to deepen this revelation in my heart. Show me how this truth applies to my life right now, and give me the courage to live it out. Transform my thinking through Your word. Amen.`;
+}
+
+function generateExecutionSuggestion(verseRef: string, verseText: string, observation: string): string {
+  const ref = verseRef.trim() || "this passage";
+  void verseText; // used for future context
+
+  if (!observation.trim()) {
+    return `Tomorrow, I will set aside 5 minutes to re-read ${ref} and identify one specific way I can apply its truth in my interactions with others.`;
+  }
+
+  const theme = observation.trim().split(/[.!?]/)[0].trim().toLowerCase();
+  if (theme.includes("trust") || theme.includes("faith")) {
+    return `Tomorrow, when I face a moment of uncertainty, I will pause and remember ${ref}. Instead of relying on my own understanding, I will choose to trust God's plan and take one step of faith.`;
+  }
+  if (theme.includes("love") || theme.includes("kind") || theme.includes("compassion")) {
+    return `Tomorrow, I will intentionally show love to someone in my life — through a kind word, an act of service, or simply being fully present — as a reflection of what ${ref} teaches.`;
+  }
+  if (theme.includes("fear") || theme.includes("anxiety") || theme.includes("worry")) {
+    return `Tomorrow, when anxiety rises, I will stop and recall ${ref}. I will take a deep breath, release my worry to God, and choose peace over fear in that moment.`;
+  }
+
+  return `Tomorrow, I will carry the truth of ${ref} into my day. I will look for one specific moment to put this passage into practice — whether in my words, my choices, or my attitude toward others.`;
 }
 
 // ─── Voice Input Hook ────────────────────────────────────────────────────────
@@ -193,14 +239,17 @@ export default function JournalPage() {
   const [verseLookedUp, setVerseLookedUp] = useState(false);
   const [lookingUp, setLookingUp] = useState(false);
   const [lookupError, setLookupError] = useState("");
+  const [revelationReflection, setRevelationReflection] = useState("");
   const [observation, setObservation] = useState("");
   const [prayer, setPrayer] = useState("");
   const [execution, setExecution] = useState("");
   const [saved, setSaved] = useState(false);
+  const [savedCount, setSavedCount] = useState(0);
   const [suggestions, setSuggestions] = useState<string[]>([]);
   const [showSuggestions, setShowSuggestions] = useState(false);
   const suggestionsRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+  const [translation, setTranslationState] = useState("web");
 
   // AI suggestion state
   const [prayerSuggestion, setPrayerSuggestion] = useState<string | null>(null);
@@ -214,6 +263,11 @@ export default function JournalPage() {
     month: "long",
     day: "numeric",
   });
+
+  // Load translation on mount
+  useEffect(() => {
+    setTranslationState(getTranslation());
+  }, []);
 
   // Close suggestions on outside click
   useEffect(() => {
@@ -254,7 +308,7 @@ export default function JournalPage() {
     setVerseText("");
     try {
       const res = await fetch(
-        `https://bible-api.com/${encodeURIComponent(verseRef.trim())}`
+        `https://bible-api.com/${encodeURIComponent(verseRef.trim())}?translation=${translation}`
       );
       if (!res.ok) throw new Error("Verse not found");
       const data = await res.json();
@@ -279,15 +333,22 @@ export default function JournalPage() {
       userId: user.id,
       revelationVerse: verseRef.trim(),
       revelationText: verseText,
+      revelationReflection: revelationReflection.trim(),
       observation: observation.trim(),
       prayer: prayer.trim(),
       execution: execution.trim(),
     });
 
+    setSavedCount((c) => c + 1);
     setSaved(true);
   }
 
+  const allFilled = !!(verseRef.trim() && observation.trim() && prayer.trim() && execution.trim());
+
   if (saved) {
+    const currentStreak = getStreak(getOrCreateUser().id);
+    const saveVerse = motivationalVerses[(savedCount - 1) % motivationalVerses.length];
+
     return (
       <div
         className="min-h-[80vh] flex flex-col items-center justify-center px-6 text-center"
@@ -319,8 +380,17 @@ export default function JournalPage() {
           </svg>
         </div>
         <h2 className="font-serif text-2xl text-brown mb-2">Entry Saved</h2>
+        {currentStreak > 0 && (
+          <p className="text-accent-gold text-sm font-medium mb-4">
+            &#x2728; {currentStreak} day streak
+          </p>
+        )}
+        <p className="text-dark text-sm italic max-w-xs mb-1">
+          &ldquo;{saveVerse.text}&rdquo;
+        </p>
+        <p className="text-muted text-xs mb-4">&mdash; {saveVerse.ref}</p>
         <p className="text-muted text-sm max-w-xs">
-          Your ROPE entry has been saved. Come back tomorrow to check in on your execution.
+          Come back tomorrow to check in on your execution.
         </p>
         <button
           onClick={() => {
@@ -328,6 +398,7 @@ export default function JournalPage() {
             setVerseRef("");
             setVerseText("");
             setVerseLookedUp(false);
+            setRevelationReflection("");
             setObservation("");
             setPrayer("");
             setExecution("");
@@ -365,8 +436,8 @@ export default function JournalPage() {
             <div key={letter} className="flex items-center gap-1.5 flex-1">
               <div className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-serif font-bold transition-all duration-300 ${
                 filled
-                  ? "bg-brown text-ivory shadow-sm"
-                  : "bg-brown/8 text-brown/40"
+                  ? "bg-brown text-ivory shadow-sm scale-100"
+                  : "bg-brown/8 text-brown/40 scale-95"
               }`}>
                 {letter}
               </div>
@@ -406,12 +477,32 @@ export default function JournalPage() {
                 placeholder="e.g. Romans 8:28"
                 className="flex-1 px-4 py-2.5 bg-ivory border border-brown/10 rounded-xl text-dark placeholder:text-muted/50 focus:outline-none text-sm"
               />
+              <select
+                value={translation}
+                onChange={(e) => { setTranslationState(e.target.value); setTranslation(e.target.value); }}
+                className="px-2 py-2.5 bg-ivory border border-brown/10 rounded-xl text-dark text-xs focus:outline-none shrink-0"
+              >
+                {TRANSLATIONS.map(t => (
+                  <option key={t.id} value={t.id}>{t.label}</option>
+                ))}
+              </select>
               <button
                 onClick={lookupVerse}
                 disabled={lookingUp || !verseRef.trim()}
                 className="px-4 py-2.5 bg-brown text-ivory rounded-xl text-sm font-medium hover:bg-brown-light disabled:opacity-40 transition shrink-0"
               >
                 {lookingUp ? "..." : "Look up"}
+              </button>
+              <button
+                onClick={() => {
+                  const verse = getTodaysVerse();
+                  setVerseRef(verse);
+                  setShowSuggestions(false);
+                }}
+                className="px-3 py-2.5 text-accent-olive text-xs font-medium border border-accent-olive/20 rounded-xl hover:bg-accent-olive/5 transition shrink-0 whitespace-nowrap"
+                title="Get today's suggested verse"
+              >
+                Today&apos;s verse
               </button>
             </div>
 
@@ -446,14 +537,25 @@ export default function JournalPage() {
                 </p>
                 <div className="flex items-center justify-between mt-3">
                   <p className="text-muted text-xs">&mdash; {verseRef}</p>
-                  <span className="text-[10px] text-accent-olive/60 uppercase tracking-wider">Passage</span>
+                  <a
+                    href={`https://www.biblegateway.com/passage/?search=${encodeURIComponent(verseRef.trim())}&version=WEB`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-[10px] text-accent-olive/60 uppercase tracking-wider hover:text-accent-olive transition-colors"
+                  >
+                    Read full chapter &rarr;
+                  </a>
                 </div>
               </div>
-              {/* Subtle context hint */}
-              <div className="px-4 py-2.5 bg-brown/[0.03] border-t border-brown/5">
-                <p className="text-muted/60 text-xs italic">
-                  Sit with this verse. What is God highlighting for you?
-                </p>
+              {/* Revelation reflection */}
+              <div className="px-4 py-3 bg-brown/[0.03] border-t border-brown/5">
+                <textarea
+                  value={revelationReflection}
+                  onChange={(e) => setRevelationReflection(e.target.value)}
+                  placeholder="What is God highlighting for you in this verse?"
+                  rows={2}
+                  className="w-full bg-transparent text-dark text-sm placeholder:text-muted/40 focus:outline-none resize-none leading-relaxed italic"
+                />
               </div>
             </div>
           )}
@@ -497,7 +599,7 @@ export default function JournalPage() {
               <h2 className="font-serif text-lg text-dark">Prayer</h2>
               <button
                 onClick={() => {
-                  const suggestion = generatePrayerSuggestion(verseRef, observation);
+                  const suggestion = generatePrayerSuggestion(verseRef, verseText, observation);
                   setPrayerSuggestion(suggestion);
                 }}
                 className="px-2.5 py-1 text-xs text-muted hover:text-brown bg-brown/5 hover:bg-brown/10 rounded-full transition flex items-center gap-1"
@@ -545,7 +647,7 @@ export default function JournalPage() {
               <h2 className="font-serif text-lg text-dark">Execution</h2>
               <button
                 onClick={() => {
-                  const suggestion = generateExecutionSuggestion(verseRef, observation);
+                  const suggestion = generateExecutionSuggestion(verseRef, verseText, observation);
                   setExecutionSuggestion(suggestion);
                 }}
                 className="px-2.5 py-1 text-xs text-muted hover:text-brown bg-brown/5 hover:bg-brown/10 rounded-full transition flex items-center gap-1"
@@ -587,8 +689,8 @@ export default function JournalPage() {
       <div className="mt-8 pt-6 border-t border-brown/8">
         <button
           onClick={handleSave}
-          disabled={!verseRef.trim() || !observation.trim() || !prayer.trim() || !execution.trim()}
-          className="w-full py-3.5 btn-primary text-center text-base"
+          disabled={!allFilled}
+          className={`w-full py-3.5 btn-primary text-center text-base ${allFilled ? "animate-breathe" : ""}`}
         >
           Save Entry
         </button>
