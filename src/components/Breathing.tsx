@@ -16,6 +16,11 @@ import { useState, useEffect, useCallback, useRef } from "react";
  * Scripture phrases focus the mind, and silence prepares the heart to hear God.
  */
 
+/* Hard-coded light palette so dark-mode theme remapping can't wash it out */
+const IVORY = "#f5efe3";
+const GOLD = "#c4a265";
+const BG = "#1e1c16";
+
 const STILLNESS_PHASES = [
   { text: "Be still", subtext: "Psalm 46:10", duration: 5000 },
   { text: "and know", subtext: "", duration: 4000 },
@@ -78,43 +83,54 @@ export default function Breathing({ onComplete }: { onComplete: () => void }) {
     return () => clearTimeout(timer);
   }, [stage]);
 
+  const skipBtn = (
+    <button
+      onClick={() => onCompleteRef.current()}
+      className="absolute bottom-10 text-sm tracking-wide transition-opacity duration-300"
+      style={{ color: IVORY, opacity: 0.5 }}
+      onMouseEnter={e => (e.currentTarget.style.opacity = "0.8")}
+      onMouseLeave={e => (e.currentTarget.style.opacity = "0.5")}
+    >
+      Skip
+    </button>
+  );
+
   /* ─── Stillness stage ─── */
   if (stage === "stillness") {
-    // Build the cumulative text: "Be still" → "Be still and know" → "Be still and know that I am God"
     const accumulated = STILLNESS_PHASES.slice(0, stillnessIdx + 1).map(p => p.text).join(" ");
     const currentPhase = STILLNESS_PHASES[Math.min(stillnessIdx, STILLNESS_PHASES.length - 1)];
 
     return (
-      <div className="fixed inset-0 z-[80] flex flex-col items-center justify-center" style={{ background: "rgba(30,28,22,0.78)", backdropFilter: "blur(16px)" }}>
+      <div className="fixed inset-0 z-[80] flex flex-col items-center justify-center" style={{ background: BG }}>
         {/* Small cross */}
-        <svg width="16" height="24" viewBox="0 0 16 24" fill="none" className="mb-10 opacity-50">
-          <rect x="6" y="0" width="4" height="24" rx="1" fill="rgba(196, 162, 101, 1)" />
-          <rect x="0" y="5" width="16" height="4" rx="1" fill="rgba(196, 162, 101, 1)" />
+        <svg width="16" height="24" viewBox="0 0 16 24" fill="none" className="mb-10" style={{ opacity: 0.7 }}>
+          <rect x="6" y="0" width="4" height="24" rx="1" fill={GOLD} />
+          <rect x="0" y="5" width="16" height="4" rx="1" fill={GOLD} />
         </svg>
 
         <p
-          className="font-serif text-ivory text-2xl md:text-3xl text-center max-w-md px-6 leading-relaxed transition-all duration-1000 ease-out"
-          style={{ opacity: 1 }}
+          className="font-serif text-2xl md:text-3xl text-center max-w-md px-6 leading-relaxed transition-all duration-1000 ease-out"
+          style={{ color: IVORY }}
         >
           {accumulated}
         </p>
 
         {currentPhase.subtext && (
-          <p className="text-ivory/60 text-xs mt-4 tracking-[0.2em] uppercase transition-opacity duration-700" style={{ opacity: stillnessIdx === 0 ? 1 : 0 }}>
+          <p
+            className="text-xs mt-4 tracking-[0.2em] uppercase transition-opacity duration-700"
+            style={{ color: IVORY, opacity: stillnessIdx === 0 ? 0.5 : 0 }}
+          >
             {currentPhase.subtext}
           </p>
         )}
 
         {/* Subtle pulse ring */}
         <div
-          className="absolute w-64 h-64 rounded-full border border-ivory/[0.1]"
-          style={{ animation: "pulse 4s ease-in-out infinite" }}
+          className="absolute w-64 h-64 rounded-full"
+          style={{ border: `1px solid rgba(245, 239, 227, 0.1)`, animation: "pulse 4s ease-in-out infinite" }}
         />
 
-        {/* Skip */}
-        <button onClick={() => onCompleteRef.current()} className="absolute bottom-10 text-ivory/40 hover:text-ivory/70 text-sm tracking-wide transition-colors duration-300">
-          Skip
-        </button>
+        {skipBtn}
       </div>
     );
   }
@@ -122,23 +138,20 @@ export default function Breathing({ onComplete }: { onComplete: () => void }) {
   /* ─── Ready stage ─── */
   if (stage === "ready") {
     return (
-      <div className="fixed inset-0 z-[80] flex flex-col items-center justify-center" style={{ background: "rgba(30,28,22,0.75)", backdropFilter: "blur(12px)", animation: "fadeIn 0.5s ease-out both" }}>
-        <svg width="16" height="24" viewBox="0 0 16 24" fill="none" className="mb-6 opacity-50">
-          <rect x="6" y="0" width="4" height="24" rx="1" fill="rgba(196, 162, 101, 1)" />
-          <rect x="0" y="5" width="16" height="4" rx="1" fill="rgba(196, 162, 101, 1)" />
+      <div className="fixed inset-0 z-[80] flex flex-col items-center justify-center" style={{ background: BG, animation: "fadeIn 0.5s ease-out both" }}>
+        <svg width="16" height="24" viewBox="0 0 16 24" fill="none" className="mb-6" style={{ opacity: 0.7 }}>
+          <rect x="6" y="0" width="4" height="24" rx="1" fill={GOLD} />
+          <rect x="0" y="5" width="16" height="4" rx="1" fill={GOLD} />
         </svg>
         <div className="text-center" style={{ animation: "fadeInUp 0.6s ease-out both" }}>
-          <p className="font-serif text-2xl text-ivory mb-3">Your heart is ready</p>
-          <p className="text-ivory/70 text-sm italic max-w-xs mx-auto leading-relaxed">
+          <p className="font-serif text-2xl mb-3" style={{ color: IVORY }}>Your heart is ready</p>
+          <p className="text-sm italic max-w-xs mx-auto leading-relaxed" style={{ color: IVORY, opacity: 0.6 }}>
             &ldquo;The LORD is in his holy temple; let all the earth be silent before him.&rdquo;
           </p>
-          <p className="text-ivory/40 text-xs mt-2 tracking-[0.15em] uppercase">Habakkuk 2:20</p>
+          <p className="text-xs mt-2 tracking-[0.15em] uppercase" style={{ color: IVORY, opacity: 0.35 }}>Habakkuk 2:20</p>
         </div>
 
-        {/* Skip */}
-        <button onClick={() => onCompleteRef.current()} className="absolute bottom-10 text-ivory/40 hover:text-ivory/70 text-sm tracking-wide transition-colors duration-300">
-          Skip
-        </button>
+        {skipBtn}
       </div>
     );
   }
@@ -152,38 +165,42 @@ export default function Breathing({ onComplete }: { onComplete: () => void }) {
   const currentVerse = breathingVerses[Math.min(cycle, breathingVerses.length - 1)];
 
   return (
-    <div className="fixed inset-0 z-[80] flex flex-col items-center justify-center" style={{ background: "rgba(30,28,22,0.78)", backdropFilter: "blur(14px)" }}>
+    <div className="fixed inset-0 z-[80] flex flex-col items-center justify-center" style={{ background: BG }}>
       {/* Breathing circle */}
       <div
-        className="w-40 h-40 rounded-full border-2 border-accent-gold/40 flex items-center justify-center mb-8"
+        className="w-40 h-40 rounded-full flex items-center justify-center mb-8"
         style={{
+          border: `2px solid rgba(196, 162, 101, 0.5)`,
           transform: `scale(${scale})`,
           transition: "transform 4s ease-in-out",
           boxShadow: `0 0 ${scale > 1 ? 50 : 15}px rgba(196, 162, 101, ${scale > 1 ? 0.25 : 0.1})`,
         }}
       >
-        <span className="font-serif text-ivory text-lg">
+        <span className="font-serif text-lg" style={{ color: IVORY }}>
           {phase === "inhale" ? "Breathe in" : phase === "hold" ? "Hold" : "Release"}
         </span>
       </div>
 
       {/* Rotating verse per cycle */}
-      <p className="text-ivory/60 text-sm italic max-w-xs text-center mb-2 transition-opacity duration-500">
+      <p className="text-sm italic max-w-xs text-center mb-2 transition-opacity duration-500" style={{ color: IVORY, opacity: 0.5 }}>
         &ldquo;{currentVerse.text}&rdquo;
       </p>
-      <p className="text-ivory/35 text-xs">{currentVerse.ref}</p>
+      <p className="text-xs" style={{ color: IVORY, opacity: 0.3 }}>{currentVerse.ref}</p>
 
       {/* Progress dots */}
       <div className="flex gap-2 mt-8">
         {Array.from({ length: BREATHING_CYCLES }).map((_, i) => (
-          <div key={i} className={`w-2 h-2 rounded-full transition-colors duration-300 ${i < cycle ? "bg-accent-gold" : i === cycle ? "bg-accent-gold/50" : "bg-ivory/10"}`} />
+          <div
+            key={i}
+            className="w-2 h-2 rounded-full transition-colors duration-300"
+            style={{
+              backgroundColor: i < cycle ? GOLD : i === cycle ? `rgba(196, 162, 101, 0.5)` : `rgba(245, 239, 227, 0.15)`,
+            }}
+          />
         ))}
       </div>
 
-      {/* Skip */}
-      <button onClick={() => onCompleteRef.current()} className="absolute bottom-10 text-ivory/40 hover:text-ivory/70 text-sm tracking-wide transition-colors duration-300">
-        Skip
-      </button>
+      {skipBtn}
     </div>
   );
 }
