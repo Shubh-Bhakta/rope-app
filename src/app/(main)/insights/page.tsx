@@ -13,6 +13,7 @@ import {
   getNextMilestone,
   getAllReachedMilestones,
   getRecommendedVerses,
+  getPrayers,
   type RopeEntry,
   type User,
 } from "@/lib/store";
@@ -30,6 +31,7 @@ export default function InsightsPage() {
   const [nextMilestone, setNextMilestone] = useState<{ days: number; title: string; verse: string; ref: string } | null>(null);
   const [reachedMilestones, setReachedMilestones] = useState<{ days: number; title: string }[]>([]);
   const [recommendations, setRecommendations] = useState<{ theme: string; verses: string[] }[]>([]);
+  const [prayerStats, setPrayerStats] = useState({ total: 0, answered: 0, avgDays: 0 });
 
   useEffect(() => {
     const u = getOrCreateUser();
@@ -45,6 +47,18 @@ export default function InsightsPage() {
     setNextMilestone(getNextMilestone(s));
     setReachedMilestones(getAllReachedMilestones(s));
     setRecommendations(getRecommendedVerses(u.id));
+    // Prayer stats
+    const allPrayers = getPrayers();
+    const answered = allPrayers.filter(p => !!p.answeredAt);
+    let avgDays = 0;
+    if (answered.length > 0) {
+      const totalDays = answered.reduce((sum, p) => {
+        const days = Math.round((new Date(p.answeredAt!).getTime() - new Date(p.createdAt).getTime()) / (1000 * 60 * 60 * 24));
+        return sum + days;
+      }, 0);
+      avgDays = Math.round(totalDays / answered.length);
+    }
+    setPrayerStats({ total: allPrayers.length, answered: answered.length, avgDays });
   }, []);
 
   if (!user) {
@@ -137,6 +151,30 @@ export default function InsightsPage() {
           </div>
         ))}
       </div>
+
+      {/* Prayer Stats */}
+      {prayerStats.total > 0 && (
+        <div className="card-surface rounded-2xl p-4 mb-6 flex items-center gap-4 border-l-2 border-l-accent-gold/20"
+          style={{ animation: "fadeIn 0.4s ease-out 0.3s both" }}
+        >
+          <div className="w-12 h-12 rounded-full bg-accent-gold/10 flex items-center justify-center shrink-0">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" className="text-accent-gold">
+              <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
+              <circle cx="9" cy="7" r="4" />
+              <path d="M23 21v-2a4 4 0 0 0-3-3.87" />
+              <path d="M16 3.13a4 4 0 0 1 0 7.75" />
+            </svg>
+          </div>
+          <div className="flex-1">
+            <p className="font-serif text-lg text-brown font-bold">
+              {prayerStats.answered} of {prayerStats.total} Prayers Answered
+            </p>
+            {prayerStats.avgDays > 0 && (
+              <p className="text-muted text-xs mt-0.5">Average time to answer: {prayerStats.avgDays} day{prayerStats.avgDays !== 1 ? "s" : ""}</p>
+            )}
+          </div>
+        </div>
+      )}
 
       {/* Desktop: Book Frequency + Execution Score side by side */}
       <div className="md:grid md:grid-cols-2 md:gap-6 space-y-6 md:space-y-0 mb-6">

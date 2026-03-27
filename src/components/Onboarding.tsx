@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { completeOnboarding } from "@/lib/store";
 
 const STEPS = [
@@ -28,14 +28,33 @@ const STEPS = [
 
 export default function Onboarding({ onComplete }: { onComplete: () => void }) {
   const [step, setStep] = useState(0);
+  const [direction, setDirection] = useState<"forward" | "back">("forward");
+  const [animating, setAnimating] = useState(false);
+  const touchStartX = useRef(0);
+  const containerRef = useRef<HTMLDivElement>(null);
+
+  const goTo = useCallback((target: number) => {
+    if (target === step || animating) return;
+    if (target < 0 || target >= STEPS.length) return;
+    setDirection(target > step ? "forward" : "back");
+    setAnimating(true);
+    setTimeout(() => {
+      setStep(target);
+      setAnimating(false);
+    }, 200);
+  }, [step, animating]);
 
   function handleNext() {
     if (step < STEPS.length - 1) {
-      setStep(step + 1);
+      goTo(step + 1);
     } else {
       completeOnboarding();
       onComplete();
     }
+  }
+
+  function handlePrev() {
+    if (step > 0) goTo(step - 1);
   }
 
   function handleSkip() {
@@ -43,16 +62,59 @@ export default function Onboarding({ onComplete }: { onComplete: () => void }) {
     onComplete();
   }
 
+  // Keyboard navigation
+  useEffect(() => {
+    function handleKey(e: KeyboardEvent) {
+      if (e.key === "ArrowRight" || e.key === "ArrowDown") {
+        e.preventDefault();
+        handleNext();
+      } else if (e.key === "ArrowLeft" || e.key === "ArrowUp") {
+        e.preventDefault();
+        handlePrev();
+      }
+    }
+    window.addEventListener("keydown", handleKey);
+    return () => window.removeEventListener("keydown", handleKey);
+  });
+
+  // Touch swipe
+  function onTouchStart(e: React.TouchEvent) {
+    touchStartX.current = e.touches[0].clientX;
+  }
+
+  function onTouchEnd(e: React.TouchEvent) {
+    const delta = touchStartX.current - e.changedTouches[0].clientX;
+    if (Math.abs(delta) > 50) {
+      if (delta > 0) handleNext();
+      else handlePrev();
+    }
+  }
+
   const current = STEPS[step];
+
+  const contentStyle: React.CSSProperties = animating
+    ? {
+        opacity: 0,
+        transform: direction === "forward" ? "translateX(20px)" : "translateX(-20px)",
+        transition: "opacity 0.2s ease-out, transform 0.2s ease-out",
+      }
+    : {
+        opacity: 1,
+        transform: "translateX(0)",
+        transition: "opacity 0.2s ease-out, transform 0.2s ease-out",
+      };
 
   return (
     <div
+      ref={containerRef}
       className="fixed inset-0 z-[100] flex items-center justify-center px-6"
       style={{
         background: "rgba(0, 0, 0, 0.6)",
         backdropFilter: "blur(12px)",
         animation: "fadeIn 0.3s ease-out both",
       }}
+      onTouchStart={onTouchStart}
+      onTouchEnd={onTouchEnd}
     >
       {/* Card container for readability */}
       <div
@@ -64,12 +126,14 @@ export default function Onboarding({ onComplete }: { onComplete: () => void }) {
           animation: "fadeInUp 0.4s ease-out both",
         }}
       >
-        {/* Progress dots */}
+        {/* Progress dots — tappable */}
         <div className="flex justify-center gap-2.5 mb-8">
           {STEPS.map((_, i) => (
-            <div
+            <button
               key={i}
-              className="h-1.5 rounded-full transition-all duration-300"
+              onClick={() => goTo(i)}
+              className="h-1.5 rounded-full transition-all duration-300 cursor-pointer py-1"
+              aria-label={`Go to step ${i + 1}`}
               style={{
                 width: i === step ? "2rem" : "0.5rem",
                 background: i === step
@@ -82,37 +146,40 @@ export default function Onboarding({ onComplete }: { onComplete: () => void }) {
           ))}
         </div>
 
-        {/* Step letter circle */}
-        <div
-          className="w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-6"
-          style={{
-            background: "rgba(196, 162, 101, 0.12)",
-            border: "2px solid rgba(196, 162, 101, 0.3)",
-          }}
-        >
-          <span
-            className="font-serif text-4xl font-bold"
-            style={{ color: "#c4a265" }}
+        {/* Animated content */}
+        <div style={contentStyle}>
+          {/* Step letter circle */}
+          <div
+            className="w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-6"
+            style={{
+              background: "rgba(196, 162, 101, 0.12)",
+              border: "2px solid rgba(196, 162, 101, 0.3)",
+            }}
           >
-            {current.letter}
-          </span>
+            <span
+              className="font-serif text-4xl font-bold"
+              style={{ color: "#c4a265" }}
+            >
+              {current.letter}
+            </span>
+          </div>
+
+          {/* Title */}
+          <h2
+            className="font-serif text-3xl font-semibold mb-5"
+            style={{ color: "#f5efe3" }}
+          >
+            {current.title}
+          </h2>
+
+          {/* Description */}
+          <p
+            className="text-base leading-relaxed mb-10 max-w-sm mx-auto"
+            style={{ color: "rgba(245, 239, 227, 0.75)" }}
+          >
+            {current.description}
+          </p>
         </div>
-
-        {/* Title */}
-        <h2
-          className="font-serif text-3xl font-semibold mb-5"
-          style={{ color: "#f5efe3" }}
-        >
-          {current.title}
-        </h2>
-
-        {/* Description */}
-        <p
-          className="text-base leading-relaxed mb-10 max-w-sm mx-auto"
-          style={{ color: "rgba(245, 239, 227, 0.75)" }}
-        >
-          {current.description}
-        </p>
 
         {/* Buttons */}
         <div className="flex flex-col items-center gap-4">

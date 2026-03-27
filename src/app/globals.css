@@ -37,6 +37,17 @@
   --animate-fade-in-fast: fadeIn 0.15s ease-out both;
 }
 
+/* Hide native video controls on iOS Safari */
+video::-webkit-media-controls-panel,
+video::-webkit-media-controls-play-button,
+video::-webkit-media-controls-start-playback-button,
+video::-webkit-media-controls {
+  display: none !important;
+  -webkit-appearance: none;
+  opacity: 0;
+  pointer-events: none;
+}
+
 /* Base */
 body {
   background-color: var(--color-ivory);

@@ -12,14 +12,14 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en">
+    <html lang="en" className="overflow-x-hidden">
       <head>
         <link
           href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;600;700&family=Inter:wght@400;500;600&display=swap"
           rel="stylesheet"
         />
       </head>
-      <body className="min-h-screen bg-ivory text-dark antialiased">
+      <body className="min-h-screen bg-ivory text-dark antialiased overflow-x-hidden">
         {children}
       </body>
     </html>

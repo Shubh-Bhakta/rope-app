@@ -151,7 +151,8 @@ export default function CheckinPage() {
   return (
     <div className="px-5 pt-6 pb-8" style={{ animation: "fadeIn 0.4s ease-out both" }}>
       <h1 className="font-serif text-2xl text-brown mb-1">Execution Check-in</h1>
-      <p className="text-muted text-sm mb-4">Reflect on yesterday&apos;s commitment</p>
+      <p className="text-muted text-sm mb-1">The &ldquo;E&rdquo; in ROPE is about living it out.</p>
+      <p className="text-muted text-sm mb-4">Yesterday you wrote a commitment based on what you read. Did you follow through?</p>
 
       {/* Streak badge */}
       {streak > 0 && (

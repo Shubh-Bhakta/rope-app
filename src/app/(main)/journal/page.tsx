@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef, useCallback } from "react";
-import { getOrCreateUser, addRopeEntry, suggestBooks, getStreak, getTranslation, setTranslation, getGatewayVersion, TRANSLATIONS, getPlanSuggestedVerse, advancePlan, getActivePlan, getReachedMilestone, getNextMilestone, addMemoryVerse, getMemoryVerses } from "@/lib/store";
+import { getOrCreateUser, addRopeEntry, suggestBooks, getStreak, getTranslation, setTranslation, getGatewayVersion, TRANSLATIONS, getPlanSuggestedVerse, advancePlan, getActivePlan, getReachedMilestone, getNextMilestone, addMemoryVerse, getMemoryVerses, fetchVerse } from "@/lib/store";
 import { OliveBranch } from "@/components/Accents";
 import ShareCard from "@/components/ShareCard";
 import Breathing from "@/components/Breathing";
@@ -259,7 +259,7 @@ export default function JournalPage() {
 
   // New feature state
   const [showShare, setShowShare] = useState(false);
-  const [showBreathing, setShowBreathing] = useState(false);
+  const [showBreathing, setShowBreathing] = useState(true);
   const [milestoneReached, setMilestoneReached] = useState<{ title: string; verse: string; ref: string } | null>(null);
   const [isMemoryVerse, setIsMemoryVerse] = useState(false);
 
@@ -297,6 +297,19 @@ export default function JournalPage() {
         if (d.observation) setObservation(d.observation);
         if (d.prayer) setPrayer(d.prayer);
         if (d.execution) setExecution(d.execution);
+      }
+    } catch { /* ignore */ }
+
+    // Check if Bible reader sent a verse
+    try {
+      const bibleData = sessionStorage.getItem("rope_bible_to_journal");
+      if (bibleData) {
+        const { ref, text, translation: trans } = JSON.parse(bibleData);
+        sessionStorage.removeItem("rope_bible_to_journal");
+        setVerseRef(ref);
+        setVerseText(text);
+        setVerseLookedUp(true);
+        if (trans) { setTranslationState(trans); setTranslation(trans); }
       }
     } catch { /* ignore */ }
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -371,20 +384,12 @@ export default function JournalPage() {
     setLookupError("");
     setVerseText("");
     try {
-      const res = await fetch(
-        `https://bible-api.com/${encodeURIComponent(verseRef.trim())}?translation=${translation}`
-      );
-      if (!res.ok) throw new Error("Verse not found");
-      const data = await res.json();
-      if (data.text) {
-        setVerseText(data.text.trim());
-        setVerseLookedUp(true);
-        // Check if already a memory verse
-        const memVerses = getMemoryVerses();
-        setIsMemoryVerse(memVerses.some(v => v.verse === verseRef.trim()));
-      } else {
-        throw new Error("No text returned");
-      }
+      const text = await fetchVerse(verseRef.trim(), translation);
+      setVerseText(text);
+      setVerseLookedUp(true);
+      // Check if already a memory verse
+      const memVerses = getMemoryVerses();
+      setIsMemoryVerse(memVerses.some(v => v.verse === verseRef.trim()));
     } catch {
       setLookupError("Could not find that verse. Try a format like 'John 3:16' or 'Romans 8:28'.");
     } finally {
@@ -542,17 +547,6 @@ export default function JournalPage() {
         <OliveBranch className="opacity-50" />
       </div>
 
-      {/* Be still button */}
-      {!showBreathing && (
-        <button
-          onClick={() => setShowBreathing(true)}
-          className="flex items-center gap-2 px-3 py-2 text-xs text-muted hover:text-brown bg-brown/[0.03] hover:bg-brown/[0.06] rounded-lg transition mb-4"
-        >
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><circle cx="12" cy="12" r="10"/><path d="M12 8v4l2 2"/></svg>
-          Be still before journaling
-        </button>
-      )}
-
       {showBreathing && <Breathing onComplete={() => setShowBreathing(false)} />}
 
       {/* ROPE Progress */}
@@ -617,7 +611,7 @@ export default function JournalPage() {
           })()}
 
           <div className="relative">
-            <div className="flex gap-2 mb-3">
+            <div className="flex flex-wrap gap-2 mb-2">
               <input
                 ref={inputRef}
                 type="text"
@@ -627,7 +621,7 @@ export default function JournalPage() {
                   if (suggestions.length > 0) setShowSuggestions(true);
                 }}
                 placeholder="e.g. Romans 8:28"
-                className="flex-1 px-4 py-2.5 bg-ivory border border-brown/10 rounded-xl text-dark placeholder:text-muted/50 focus:outline-none text-sm"
+                className="flex-1 min-w-[120px] px-4 py-2.5 bg-ivory border border-brown/10 rounded-xl text-dark placeholder:text-muted/50 focus:outline-none text-sm"
               />
               <select
                 value={translation}
@@ -641,35 +635,32 @@ export default function JournalPage() {
               <button
                 onClick={lookupVerse}
                 disabled={lookingUp || !verseRef.trim()}
-                className="px-4 py-2.5 bg-brown text-ivory rounded-xl text-sm font-medium hover:bg-brown-light disabled:opacity-40 transition shrink-0"
+                className="px-4 py-2.5 bg-brown text-ivory rounded-xl text-sm font-medium hover:bg-brown-light disabled:opacity-40 transition shrink-0 w-full sm:w-auto"
               >
                 {lookingUp ? "..." : "Look up"}
               </button>
-              <button
-                onClick={async () => {
-                  const verse = getTodaysVerse();
-                  setVerseRef(verse);
-                  setShowSuggestions(false);
-                  // Auto-fetch the verse
-                  setLookingUp(true);
-                  setLookupError("");
-                  setVerseText("");
-                  try {
-                    const res = await fetch(`https://bible-api.com/${encodeURIComponent(verse)}?translation=${translation}`);
-                    if (!res.ok) throw new Error("Verse not found");
-                    const data = await res.json();
-                    if (data.text) { setVerseText(data.text.trim()); setVerseLookedUp(true); }
-                    else throw new Error("No text");
-                  } catch { setLookupError("Could not fetch today's verse. Try clicking Look up."); }
-                  finally { setLookingUp(false); }
-                }}
-                className="px-3 py-2.5 text-accent-olive text-xs font-medium border border-accent-olive/20 rounded-xl hover:bg-accent-olive/5 transition shrink-0 whitespace-nowrap"
-                title="Get today's suggested verse"
-              >
-                Today&apos;s verse
-              </button>
             </div>
-            <p className="text-[10px] text-muted/40 mt-1 text-right">NIV, ESV, NLT &mdash; coming soon</p>
+            <button
+              onClick={async () => {
+                const verse = getTodaysVerse();
+                setVerseRef(verse);
+                setShowSuggestions(false);
+                setLookingUp(true);
+                setLookupError("");
+                setVerseText("");
+                try {
+                  const text = await fetchVerse(verse, translation);
+                  setVerseText(text);
+                  setVerseLookedUp(true);
+                } catch { setLookupError("Could not fetch today's verse. Try clicking Look up."); }
+                finally { setLookingUp(false); }
+              }}
+              className="w-full mb-3 px-3 py-2 text-accent-olive text-xs font-medium border border-accent-olive/20 rounded-xl hover:bg-accent-olive/5 transition whitespace-nowrap md:w-auto"
+              title="Get today's suggested verse"
+            >
+              ✦ Today&apos;s verse
+            </button>
+            {/* Translation selection covers all major versions */}
 
             {/* Autocomplete dropdown */}
             {showSuggestions && suggestions.length > 0 && (

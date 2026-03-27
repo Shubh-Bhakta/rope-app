@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { getOrCreateUser, getRopeEntries, getStreak, getUniqueBooksCount, getMostCommonBook, getThemes, getBookFrequency, deleteRopeEntry, updateRopeEntry, getDarkMode, setDarkMode, getMemoryVerses, removeMemoryVerse, type User, type RopeEntry } from "@/lib/store";
+import { getOrCreateUser, getRopeEntries, getStreak, getUniqueBooksCount, getMostCommonBook, getThemes, getBookFrequency, deleteRopeEntry, updateRopeEntry, getDarkMode, setDarkMode, getMemoryVerses, removeMemoryVerse, getPrayers, type User, type RopeEntry, type PrayerItem } from "@/lib/store";
 import { LampIcon, OliveBranch } from "@/components/Accents";
 
 export default function MePage() {
@@ -19,6 +19,8 @@ export default function MePage() {
   const [bookFreq, setBookFreq] = useState<{ book: string; count: number }[]>([]);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editFields, setEditFields] = useState({ observation: "", prayer: "", execution: "" });
+  const [meView, setMeView] = useState<"entries" | "prayers">("entries");
+  const [answeredPrayers, setAnsweredPrayers] = useState<PrayerItem[]>([]);
 
   useEffect(() => {
     const u = getOrCreateUser();
@@ -31,6 +33,7 @@ export default function MePage() {
     setIsDark(getDarkMode());
     setMemoryVerses(getMemoryVerses());
     setBookFreq(getBookFrequency(u.id));
+    setAnsweredPrayers(getPrayers().filter(p => !!p.answeredAt));
   }, []);
 
   function formatDate(dateStr: string): string {
@@ -120,12 +123,21 @@ export default function MePage() {
         </button>
       </div>
 
+      {/* Data privacy note */}
+      <div className="flex items-center gap-2 px-3 py-2.5 bg-brown/[0.03] rounded-xl mb-4 text-muted text-xs">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="shrink-0">
+          <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
+          <path d="M7 11V7a5 5 0 0 1 10 0v4" />
+        </svg>
+        <span>All data is stored locally on your device. Nothing is sent to any server.</span>
+      </div>
+
       {/* Walk Snapshot */}
       <div className="grid grid-cols-3 gap-3 mb-8">
         {[
           { value: entries.length, label: "Entries" },
           { value: streak, label: "Streak" },
-          { value: uniqueBooks, label: "Books" },
+          { value: uniqueBooks, label: "Books Studied" },
         ].map((stat, i) => (
           <div key={stat.label} className="text-center p-3 bg-brown/[0.03] rounded-xl" style={{ animation: "fadeIn 0.3s ease-out both", animationDelay: `${i * 0.1}s` }}>
             <p className="font-serif text-xl text-brown font-bold">{stat.value}</p>
@@ -168,8 +180,78 @@ export default function MePage() {
       )}
 
       <div className="mb-8">
-        <h2 className="font-serif text-lg text-brown mb-3">Your ROPE Entries</h2>
+        {/* View toggle */}
+        <div className="flex gap-1 mb-4 bg-brown/[0.04] rounded-xl p-1">
+          <button
+            onClick={() => setMeView("entries")}
+            className={`flex-1 py-2 text-xs font-medium rounded-lg transition ${meView === "entries" ? "bg-ivory text-brown shadow-sm" : "text-muted hover:text-brown"}`}
+          >
+            Journal Entries ({entries.length})
+          </button>
+          <button
+            onClick={() => setMeView("prayers")}
+            className={`flex-1 py-2 text-xs font-medium rounded-lg transition ${meView === "prayers" ? "bg-ivory text-brown shadow-sm" : "text-muted hover:text-brown"}`}
+          >
+            Answered Prayers ({answeredPrayers.length})
+          </button>
+        </div>
 
+        {/* Answered Prayers Timeline */}
+        {meView === "prayers" && (
+          answeredPrayers.length === 0 ? (
+            <div className="flex flex-col items-center py-10">
+              <LampIcon className="w-10 h-[52px] mb-4" />
+              <p className="text-muted text-sm text-center max-w-xs">
+                Your testimony wall. When prayers are answered, they&apos;ll appear here as a record of His faithfulness.
+              </p>
+            </div>
+          ) : (
+            <div className="space-y-3">
+              {answeredPrayers.map((p, i) => (
+                <div
+                  key={p.id}
+                  className="rounded-2xl p-4 border border-accent-gold/15"
+                  style={{
+                    animation: "fadeInUp 0.3s ease-out both",
+                    animationDelay: `${Math.min(i * 0.05, 0.3)}s`,
+                    background: "linear-gradient(135deg, rgba(196,162,101,0.06) 0%, var(--color-cream) 50%, rgba(196,162,101,0.04) 100%)",
+                  }}
+                >
+                  <div className="flex items-center gap-2 mb-2">
+                    <span className="flex items-center gap-1 px-2 py-0.5 bg-accent-gold/12 text-accent-gold text-[10px] font-medium rounded-full">
+                      <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+                        <polyline points="20 6 9 17 4 12" />
+                      </svg>
+                      Answered
+                    </span>
+                  </div>
+                  <p className="text-dark text-sm leading-relaxed">{p.text}</p>
+                  {p.verse && <p className="text-accent-olive/60 text-xs mt-1">{p.verse}</p>}
+                  {p.answeredNote && (
+                    <div className="mt-3 pt-3 border-t border-accent-gold/10">
+                      <p className="text-[10px] text-accent-gold uppercase tracking-wider font-medium mb-1">How God answered</p>
+                      <p className="text-dark/80 text-sm leading-relaxed italic pl-3 border-l-2 border-accent-gold/20">{p.answeredNote}</p>
+                    </div>
+                  )}
+                  <div className="flex items-center gap-3 mt-3 text-muted/50 text-[10px]">
+                    <span>Prayed {new Date(p.createdAt).toLocaleDateString("en-US", { month: "short", day: "numeric" })}</span>
+                    {p.answeredAt && (
+                      <span>Answered {new Date(p.answeredAt).toLocaleDateString("en-US", { month: "short", day: "numeric" })}</span>
+                    )}
+                    {p.answeredAt && (() => {
+                      const days = Math.round((new Date(p.answeredAt).getTime() - new Date(p.createdAt).getTime()) / (1000 * 60 * 60 * 24));
+                      return <span>{days} day{days !== 1 ? "s" : ""}</span>;
+                    })()}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )
+        )}
+
+        {/* Journal Entries */}
+        {meView === "entries" && (
+          <>
         {/* Search and filter */}
         {entries.length > 0 && (
           <div className="flex gap-2 mb-4">
@@ -404,6 +486,8 @@ export default function MePage() {
               </div>
             ))}
           </div>
+        )}
+          </>
         )}
       </div>
 

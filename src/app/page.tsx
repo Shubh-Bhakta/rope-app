@@ -77,14 +77,14 @@ export default function SplashPage() {
           onLoadedData={() => setVideoLoaded(true)}
           onCanPlay={() => setVideoLoaded(true)}
           onPlaying={() => setVideoLoaded(true)}
-          className="absolute inset-0 w-full h-full object-cover transition-opacity duration-[2000ms] ease-out"
-          style={{ opacity: phase >= 1 ? 0.35 : 0 }}
+          className="absolute inset-0 w-full h-full object-cover transition-opacity duration-[2000ms] ease-out pointer-events-none"
+          style={{ opacity: phase >= 1 ? 0.75 : 0 }}
           src="https://assets.mixkit.co/videos/17384/17384-720.mp4"
         />
 
         {/* ─── Dark overlays for depth + readability ─── */}
-        <div className="absolute inset-0 bg-gradient-to-b from-[#0a0804]/60 via-[#0a0804]/30 to-[#0a0804]/70 pointer-events-none" />
-        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,transparent_30%,rgba(10,8,4,0.7)_100%)] pointer-events-none" />
+        <div className="absolute inset-0 bg-gradient-to-b from-[#0a0804]/30 via-[#0a0804]/10 to-[#0a0804]/50 pointer-events-none" />
+        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,transparent_40%,rgba(10,8,4,0.55)_100%)] pointer-events-none" />
 
         {/* ─── Sacred light bloom from above ─── */}
         <div
@@ -252,6 +252,18 @@ export default function SplashPage() {
             <span className="relative z-10 tracking-wide">Begin today&#39;s journal</span>
             <div className="absolute inset-0 rounded-xl opacity-0 group-hover:opacity-100 transition-opacity duration-500 bg-[radial-gradient(ellipse_at_center,rgba(196,162,101,0.08),transparent_70%)]" />
           </button>
+
+          {/* ═══ Trust badge ═══ */}
+          <div
+            className="flex items-center gap-2 mt-5 text-ivory/25 text-[11px] transition-all duration-600 ease-out"
+            style={{ opacity: phase >= 8 ? 1 : 0, transitionDelay: "200ms" }}
+          >
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
+              <path d="M7 11V7a5 5 0 0 1 10 0v4" />
+            </svg>
+            <span>Your data stays on this device</span>
+          </div>
 
           {/* ═══ Scripture — editorial credit ═══ */}
           <p

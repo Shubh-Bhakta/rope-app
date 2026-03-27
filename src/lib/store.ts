@@ -365,16 +365,130 @@ export function getUniqueBooksCount(userId: string): number {
 
 // ─── Bible Translations ─────────────────────────────────────────────────────
 
+// bible-api.com translations (free, no API key)
+const BIBLE_API_TRANSLATIONS = new Set(["kjv", "web", "bbe"]);
+
 const TRANSLATIONS = [
   { id: "kjv", label: "KJV", gateway: "KJV" },
+  { id: "niv", label: "NIV", gateway: "NIV" },
+  { id: "esv", label: "ESV", gateway: "ESV" },
+  { id: "nlt", label: "NLT", gateway: "NLT" },
+  { id: "nasb", label: "NASB", gateway: "NASB" },
+  { id: "nkjv", label: "NKJV", gateway: "NKJV" },
+  { id: "amp", label: "AMP", gateway: "AMP" },
+  { id: "msg", label: "MSG", gateway: "MSG" },
   { id: "web", label: "WEB", gateway: "WEB" },
   { id: "bbe", label: "BBE", gateway: "BBE" },
 ];
 
+// bolls.life translation ID mapping (their API uses numeric IDs)
+const BOLLS_TRANSLATION_MAP: Record<string, number> = {
+  kjv: 1,
+  niv: 111,
+  esv: 59,
+  nlt: 116,
+  nasb: 100,
+  nkjv: 114,
+  amp: 12,
+  msg: 97,
+  web: 206,
+  bbe: 15,
+};
+
+/**
+ * Parse a verse reference into book + chapter + verse(s) for the bolls.life API.
+ * Returns { book, chapter, verseStart, verseEnd } or null.
+ */
+export function parseVerseRef(ref: string): { bookNum: number; chapter: number; verseStart?: number; verseEnd?: number } | null {
+  const trimmed = ref.trim();
+  // Match: "Book Chapter:Verse-Verse" or "Book Chapter:Verse" or "Book Chapter"
+  const match = trimmed.match(/^(.+?)\s+(\d+)(?::(\d+)(?:-(\d+))?)?$/);
+  if (!match) return null;
+
+  const bookName = match[1].trim().toLowerCase();
+  const chapter = parseInt(match[2]);
+  const verseStart = match[3] ? parseInt(match[3]) : undefined;
+  const verseEnd = match[4] ? parseInt(match[4]) : verseStart;
+
+  // Map book name to bolls.life book number (1-66)
+  const bookIndex = BIBLE_BOOKS.findIndex(b => {
+    const nameLower = b.name.toLowerCase();
+    if (nameLower === bookName) return true;
+    return b.abbrevs.some(a => a === bookName);
+  });
+
+  if (bookIndex === -1) return null;
+  return { bookNum: bookIndex + 1, chapter, verseStart, verseEnd };
+}
+
+/**
+ * Fetch a verse from the appropriate API based on translation.
+ * Uses bible-api.com for KJV/WEB/BBE, bolls.life for all others.
+ */
+export async function fetchVerse(verseRef: string, translationId: string): Promise<string> {
+  if (BIBLE_API_TRANSLATIONS.has(translationId)) {
+    // Use bible-api.com
+    const res = await fetch(`https://bible-api.com/${encodeURIComponent(verseRef)}?translation=${translationId}`);
+    if (!res.ok) throw new Error("Verse not found");
+    const data = await res.json();
+    if (data.text) return data.text.trim();
+    throw new Error("No text returned");
+  }
+
+  // Use bolls.life for NIV, ESV, NLT, NASB, NKJV, AMP, MSG
+  const bollsId = BOLLS_TRANSLATION_MAP[translationId];
+  if (!bollsId) throw new Error(`Translation ${translationId} not supported`);
+
+  const parsed = parseVerseRef(verseRef);
+  if (!parsed) throw new Error("Could not parse verse reference");
+
+  const { bookNum, chapter, verseStart, verseEnd } = parsed;
+
+  if (verseStart !== undefined) {
+    // Fetch specific verse(s)
+    const url = `https://bolls.life/get-verse/${bollsId}/${bookNum}/${chapter}/${verseStart}/`;
+
+    if (verseEnd && verseEnd > verseStart) {
+      // Range of verses — fetch each and combine
+      const promises = [];
+      for (let v = verseStart; v <= verseEnd; v++) {
+        promises.push(
+          fetch(`https://bolls.life/get-verse/${bollsId}/${bookNum}/${chapter}/${v}/`)
+            .then(r => r.json())
+            .then(d => ({ verse: v, text: (d.text || "").replace(/<[^>]*>/g, "").trim() }))
+        );
+      }
+      const results = await Promise.all(promises);
+      const combined = results.sort((a, b) => a.verse - b.verse).map(r => r.text).join(" ");
+      if (!combined) throw new Error("No text returned");
+      return combined;
+    }
+
+    // Single verse
+    const res = await fetch(url);
+    if (!res.ok) throw new Error("Verse not found");
+    const data = await res.json();
+    const text = (data.text || "").replace(/<[^>]*>/g, "").trim();
+    if (!text) throw new Error("No text returned");
+    return text;
+  }
+
+  // Whole chapter — fetch chapter text
+  const url = `https://bolls.life/get-chapter/${bollsId}/${bookNum}/${chapter}/`;
+  const res = await fetch(url);
+  if (!res.ok) throw new Error("Chapter not found");
+  const data = await res.json();
+  if (Array.isArray(data)) {
+    const combined = data.map((v: { text: string }) => (v.text || "").replace(/<[^>]*>/g, "").trim()).join(" ");
+    if (!combined) throw new Error("No text returned");
+    return combined;
+  }
+  throw new Error("Unexpected response format");
+}
+
 export function getTranslation(): string {
   if (typeof window === "undefined") return "kjv";
   const saved = localStorage.getItem("rope_translation") || "kjv";
-  // Migrate old invalid translations to KJV
   if (!TRANSLATIONS.some(t => t.id === saved)) return "kjv";
   return saved;
 }
@@ -389,6 +503,35 @@ export function setTranslation(t: string): void {
 }
 
 export { TRANSLATIONS };
+
+/**
+ * Fetch a full chapter as individual verses from bolls.life.
+ * Returns array of { verse: number, text: string }.
+ */
+export async function fetchChapterVerses(bookName: string, chapter: number, translationId: string): Promise<{ verse: number; text: string }[]> {
+  // Map translation ID to bolls.life translation name
+  const BOLLS_NAMES: Record<string, string> = {
+    kjv: "KJV", niv: "NIV", esv: "ESV", nlt: "NLT", nasb: "NASB",
+    nkjv: "NKJV", amp: "AMP", msg: "MSG", web: "WEB", bbe: "BBE",
+  };
+  const bollsName = BOLLS_NAMES[translationId] || "KJV";
+
+  const bookIndex = BIBLE_BOOKS.findIndex(b => b.name.toLowerCase() === bookName.toLowerCase());
+  if (bookIndex === -1) throw new Error(`Book not found: ${bookName}`);
+  const bookNum = bookIndex + 1;
+
+  const url = `https://bolls.life/get-text/${bollsName}/${bookNum}/${chapter}/`;
+  const res = await fetch(url);
+  if (!res.ok) throw new Error("Chapter not found");
+  const data = await res.json();
+
+  if (!Array.isArray(data)) throw new Error("Unexpected response");
+
+  return data.map((v: { verse: number; text: string }) => ({
+    verse: v.verse,
+    text: (v.text || "").replace(/<S>\d+<\/S>/g, "").replace(/<[^>]*>/g, "").trim(),
+  })).filter((v: { text: string }) => v.text.length > 0);
+}
 
 // ─── Dark Mode ──────────────────────────────────────────────────────────────
 
@@ -598,6 +741,40 @@ export function deletePrayer(id: string): void {
   localStorage.setItem("rope_prayers", JSON.stringify(prayers));
 }
 
+// ─── Gratitude List ─────────────────────────────────────────────────────────
+
+export interface GratitudeItem {
+  id: string;
+  text: string;
+  verse: string;
+  createdAt: string;
+}
+
+export function getGratitudeItems(): GratitudeItem[] {
+  if (typeof window === "undefined") return [];
+  const raw = localStorage.getItem("rope_gratitude");
+  if (!raw) return [];
+  try { return JSON.parse(raw) as GratitudeItem[]; } catch { return []; }
+}
+
+export function addGratitudeItem(text: string, verse?: string): GratitudeItem {
+  const item: GratitudeItem = {
+    id: generateId(),
+    text,
+    verse: verse || "",
+    createdAt: new Date().toISOString(),
+  };
+  const items = getGratitudeItems();
+  items.unshift(item);
+  localStorage.setItem("rope_gratitude", JSON.stringify(items));
+  return item;
+}
+
+export function deleteGratitudeItem(id: string): void {
+  const items = getGratitudeItems().filter(i => i.id !== id);
+  localStorage.setItem("rope_gratitude", JSON.stringify(items));
+}
+
 // ─── Memory Verses ──────────────────────────────────────────────────────────
 
 export function getMemoryVerses(): { verse: string; text: string; addedAt: string }[] {
@@ -618,6 +795,59 @@ export function removeMemoryVerse(verse: string): void {
   const verses = getMemoryVerses().filter(v => v.verse !== verse);
   localStorage.setItem("rope_memory_verses", JSON.stringify(verses));
 }
+
+// ─── Bible Highlights ───────────────────────────────────────────────────────
+
+export interface BibleHighlight {
+  book: string;      // e.g. "John"
+  chapter: number;
+  verse: number;
+  color: string;     // "gold" | "green" | "blue" | "red"
+  note: string;
+  createdAt: string;
+}
+
+export function getBibleHighlights(): BibleHighlight[] {
+  if (typeof window === "undefined") return [];
+  const raw = localStorage.getItem("rope_bible_highlights");
+  if (!raw) return [];
+  try { return JSON.parse(raw) as BibleHighlight[]; } catch { return []; }
+}
+
+export function addBibleHighlight(book: string, chapter: number, verse: number, color: string, note?: string): void {
+  const highlights = getBibleHighlights();
+  // Remove existing highlight for same verse
+  const filtered = highlights.filter(h => !(h.book === book && h.chapter === chapter && h.verse === verse));
+  filtered.push({ book, chapter, verse, color, note: note || "", createdAt: new Date().toISOString() });
+  localStorage.setItem("rope_bible_highlights", JSON.stringify(filtered));
+}
+
+export function removeBibleHighlight(book: string, chapter: number, verse: number): void {
+  const highlights = getBibleHighlights().filter(h => !(h.book === book && h.chapter === chapter && h.verse === verse));
+  localStorage.setItem("rope_bible_highlights", JSON.stringify(highlights));
+}
+
+export function getHighlightsForChapter(book: string, chapter: number): BibleHighlight[] {
+  return getBibleHighlights().filter(h => h.book === book && h.chapter === chapter);
+}
+
+// Chapter count per book (for navigation)
+export const BOOK_CHAPTERS: Record<string, number> = {
+  Genesis: 50, Exodus: 40, Leviticus: 27, Numbers: 36, Deuteronomy: 34,
+  Joshua: 24, Judges: 21, Ruth: 4, "1 Samuel": 31, "2 Samuel": 24,
+  "1 Kings": 22, "2 Kings": 25, "1 Chronicles": 29, "2 Chronicles": 36,
+  Ezra: 10, Nehemiah: 13, Esther: 10, Job: 42, Psalms: 150, Proverbs: 31,
+  Ecclesiastes: 12, "Song of Solomon": 8, Isaiah: 66, Jeremiah: 52,
+  Lamentations: 5, Ezekiel: 48, Daniel: 12, Hosea: 14, Joel: 3, Amos: 9,
+  Obadiah: 1, Jonah: 4, Micah: 7, Nahum: 3, Habakkuk: 3, Zephaniah: 3,
+  Haggai: 2, Zechariah: 14, Malachi: 4,
+  Matthew: 28, Mark: 16, Luke: 24, John: 21, Acts: 28, Romans: 16,
+  "1 Corinthians": 16, "2 Corinthians": 13, Galatians: 6, Ephesians: 6,
+  Philippians: 4, Colossians: 4, "1 Thessalonians": 5, "2 Thessalonians": 3,
+  "1 Timothy": 6, "2 Timothy": 4, Titus: 3, Philemon: 1, Hebrews: 13,
+  James: 5, "1 Peter": 5, "2 Peter": 3, "1 John": 5, "2 John": 1,
+  "3 John": 1, Jude: 1, Revelation: 22,
+};
 
 // ─── Verse Recommendations ──────────────────────────────────────────────────
 

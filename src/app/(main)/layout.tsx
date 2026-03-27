@@ -53,6 +53,16 @@ const navItems = [
     ),
   },
   {
+    label: "Bible",
+    href: "/bible",
+    icon: (active: boolean) => (
+      <svg width="20" height="20" viewBox="0 0 24 24" fill={active ? "currentColor" : "none"} stroke="currentColor" strokeWidth={active ? "1.5" : "1.8"} strokeLinecap="round" strokeLinejoin="round">
+        <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20" />
+        <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z" />
+      </svg>
+    ),
+  },
+  {
     label: "Prayers",
     href: "/prayers",
     icon: (active: boolean) => (
@@ -234,6 +244,12 @@ export default function MainLayout({ children }: { children: React.ReactNode }) 
               verse: { text: "Thy word is a lamp unto my feet, and a light unto my path.", ref: "Psalm 119:105" },
               prompt: "A reading plan gives structure to your devotion. Trust the journey.",
               footerLabel: "One step at a time",
+            };
+            if (pathname.startsWith("/bible")) return {
+              label: "The Living Word",
+              verse: { text: "All Scripture is God-breathed and is useful for teaching, rebuking, correcting and training in righteousness.", ref: "2 Tim. 3:16" },
+              prompt: "A grateful heart sees His hand in every season.",
+              footerLabel: "His goodness endures",
             };
             if (pathname.startsWith("/prayers")) return {
               label: "The Prayer Closet",

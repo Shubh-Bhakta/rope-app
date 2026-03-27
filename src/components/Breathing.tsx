@@ -2,25 +2,59 @@
 
 import { useState, useEffect, useCallback, useRef } from "react";
 
+/*
+ * Biblical Stillness Gate
+ *
+ * Psalm 46:10 — "Be still, and know that I am God"
+ * The practice of centering before Scripture is rooted throughout the Bible:
+ *   - Habakkuk 2:20: "The LORD is in his holy temple; let all the earth be silent before him."
+ *   - 1 Kings 19:12: God spoke in "a still small voice"
+ *   - Psalm 37:7: "Be still before the LORD and wait patiently for him"
+ *   - Lamentations 3:25-26: "The LORD is good to those who wait for him... it is good to wait quietly"
+ *
+ * This exercise uses progressive stillness — breathing slows the body,
+ * Scripture phrases focus the mind, and silence prepares the heart to hear God.
+ */
+
+const STILLNESS_PHASES = [
+  { text: "Be still", subtext: "Psalm 46:10", duration: 5000 },
+  { text: "and know", subtext: "", duration: 4000 },
+  { text: "that I am God", subtext: "", duration: 5000 },
+] as const;
+
+const BREATHING_CYCLES = 3;
+
 export default function Breathing({ onComplete }: { onComplete: () => void }) {
+  const [stage, setStage] = useState<"stillness" | "breathing" | "ready">("stillness");
+  const [stillnessIdx, setStillnessIdx] = useState(0);
   const [phase, setPhase] = useState<"inhale" | "hold" | "exhale">("inhale");
   const [cycle, setCycle] = useState(0);
   const [scale, setScale] = useState(1);
-  const totalCycles = 3;
   const onCompleteRef = useRef(onComplete);
   onCompleteRef.current = onComplete;
 
+  /* Stage 1: Progressive Psalm 46:10 stillness */
+  useEffect(() => {
+    if (stage !== "stillness") return;
+    if (stillnessIdx >= STILLNESS_PHASES.length) {
+      setStage("breathing");
+      return;
+    }
+    const timer = setTimeout(() => {
+      setStillnessIdx(i => i + 1);
+    }, STILLNESS_PHASES[stillnessIdx].duration);
+    return () => clearTimeout(timer);
+  }, [stage, stillnessIdx]);
+
+  /* Stage 2: Breathing cycles */
   const runCycle = useCallback(async () => {
-    // Inhale 4s
     setPhase("inhale");
     setScale(1.3);
     await new Promise(r => setTimeout(r, 4000));
 
-    // Hold 4s
     setPhase("hold");
     await new Promise(r => setTimeout(r, 4000));
 
-    // Exhale 4s
     setPhase("exhale");
     setScale(1);
     await new Promise(r => setTimeout(r, 4000));
@@ -29,26 +63,86 @@ export default function Breathing({ onComplete }: { onComplete: () => void }) {
   }, []);
 
   useEffect(() => {
-    if (cycle >= totalCycles) {
-      const timer = setTimeout(() => onCompleteRef.current(), 500);
-      return () => clearTimeout(timer);
+    if (stage !== "breathing") return;
+    if (cycle >= BREATHING_CYCLES) {
+      setStage("ready");
+      return;
     }
     runCycle();
-  }, [cycle, runCycle]);
+  }, [stage, cycle, runCycle]);
 
-  if (cycle >= totalCycles) {
+  /* Stage 3: Ready — auto-dismiss */
+  useEffect(() => {
+    if (stage !== "ready") return;
+    const timer = setTimeout(() => onCompleteRef.current(), 2000);
+    return () => clearTimeout(timer);
+  }, [stage]);
+
+  /* ─── Stillness stage ─── */
+  if (stage === "stillness") {
+    // Build the cumulative text: "Be still" → "Be still and know" → "Be still and know that I am God"
+    const accumulated = STILLNESS_PHASES.slice(0, stillnessIdx + 1).map(p => p.text).join(" ");
+    const currentPhase = STILLNESS_PHASES[Math.min(stillnessIdx, STILLNESS_PHASES.length - 1)];
+
     return (
-      <div className="fixed inset-0 z-[80] flex items-center justify-center" style={{ background: "rgba(10,8,4,0.85)", backdropFilter: "blur(12px)", animation: "fadeIn 0.3s ease-out both" }}>
-        <div className="text-center" style={{ animation: "fadeInUp 0.5s ease-out both" }}>
-          <p className="font-serif text-2xl text-ivory/90 mb-2">You are ready</p>
-          <p className="text-ivory/40 text-sm italic">Open His Word</p>
+      <div className="fixed inset-0 z-[80] flex flex-col items-center justify-center" style={{ background: "rgba(10,8,4,0.95)", backdropFilter: "blur(16px)" }}>
+        {/* Small cross */}
+        <svg width="16" height="24" viewBox="0 0 16 24" fill="none" className="mb-10 opacity-20">
+          <rect x="6" y="0" width="4" height="24" rx="1" fill="rgba(196, 162, 101, 1)" />
+          <rect x="0" y="5" width="16" height="4" rx="1" fill="rgba(196, 162, 101, 1)" />
+        </svg>
+
+        <p
+          className="font-serif text-ivory/90 text-2xl md:text-3xl text-center max-w-md px-6 leading-relaxed transition-all duration-1000 ease-out"
+          style={{ opacity: 1 }}
+        >
+          {accumulated}
+        </p>
+
+        {currentPhase.subtext && (
+          <p className="text-ivory/25 text-xs mt-4 tracking-[0.2em] uppercase transition-opacity duration-700" style={{ opacity: stillnessIdx === 0 ? 1 : 0 }}>
+            {currentPhase.subtext}
+          </p>
+        )}
+
+        {/* Subtle pulse ring */}
+        <div
+          className="absolute w-64 h-64 rounded-full border border-ivory/[0.03]"
+          style={{ animation: "pulse 4s ease-in-out infinite" }}
+        />
+      </div>
+    );
+  }
+
+  /* ─── Ready stage ─── */
+  if (stage === "ready") {
+    return (
+      <div className="fixed inset-0 z-[80] flex flex-col items-center justify-center" style={{ background: "rgba(10,8,4,0.9)", backdropFilter: "blur(12px)", animation: "fadeIn 0.5s ease-out both" }}>
+        <svg width="16" height="24" viewBox="0 0 16 24" fill="none" className="mb-6 opacity-30">
+          <rect x="6" y="0" width="4" height="24" rx="1" fill="rgba(196, 162, 101, 1)" />
+          <rect x="0" y="5" width="16" height="4" rx="1" fill="rgba(196, 162, 101, 1)" />
+        </svg>
+        <div className="text-center" style={{ animation: "fadeInUp 0.6s ease-out both" }}>
+          <p className="font-serif text-2xl text-ivory/90 mb-3">Your heart is ready</p>
+          <p className="text-ivory/35 text-sm italic max-w-xs mx-auto leading-relaxed">
+            &ldquo;The LORD is in his holy temple; let all the earth be silent before him.&rdquo;
+          </p>
+          <p className="text-ivory/15 text-xs mt-2 tracking-[0.15em] uppercase">Habakkuk 2:20</p>
         </div>
       </div>
     );
   }
 
+  /* ─── Breathing stage ─── */
+  const breathingVerses = [
+    { text: "Wait for the LORD; be strong and take heart and wait for the LORD.", ref: "Psalm 27:14" },
+    { text: "In quietness and trust is your strength.", ref: "Isaiah 30:15" },
+    { text: "The LORD is good to those who wait for him, to the soul who seeks him.", ref: "Lamentations 3:25" },
+  ];
+  const currentVerse = breathingVerses[Math.min(cycle, breathingVerses.length - 1)];
+
   return (
-    <div className="fixed inset-0 z-[80] flex flex-col items-center justify-center" style={{ background: "rgba(10,8,4,0.9)", backdropFilter: "blur(12px)" }}>
+    <div className="fixed inset-0 z-[80] flex flex-col items-center justify-center" style={{ background: "rgba(10,8,4,0.92)", backdropFilter: "blur(14px)" }}>
       {/* Breathing circle */}
       <div
         className="w-40 h-40 rounded-full border-2 border-accent-gold/20 flex items-center justify-center mb-8"
@@ -59,27 +153,22 @@ export default function Breathing({ onComplete }: { onComplete: () => void }) {
         }}
       >
         <span className="font-serif text-ivory/80 text-lg">
-          {phase === "inhale" ? "Breathe in" : phase === "hold" ? "Hold" : "Breathe out"}
+          {phase === "inhale" ? "Breathe in" : phase === "hold" ? "Hold" : "Release"}
         </span>
       </div>
 
-      {/* Verse */}
-      <p className="text-ivory/30 text-sm italic max-w-xs text-center mb-6">
-        &ldquo;Be still, and know that I am God.&rdquo;
+      {/* Rotating verse per cycle */}
+      <p className="text-ivory/25 text-sm italic max-w-xs text-center mb-2 transition-opacity duration-500">
+        &ldquo;{currentVerse.text}&rdquo;
       </p>
-      <p className="text-ivory/15 text-xs">Psalm 46:10</p>
+      <p className="text-ivory/12 text-xs">{currentVerse.ref}</p>
 
-      {/* Progress */}
+      {/* Progress dots */}
       <div className="flex gap-2 mt-8">
-        {Array.from({ length: totalCycles }).map((_, i) => (
-          <div key={i} className={`w-2 h-2 rounded-full ${i < cycle ? "bg-accent-gold" : i === cycle ? "bg-accent-gold/50" : "bg-ivory/10"}`} />
+        {Array.from({ length: BREATHING_CYCLES }).map((_, i) => (
+          <div key={i} className={`w-2 h-2 rounded-full transition-colors duration-300 ${i < cycle ? "bg-accent-gold" : i === cycle ? "bg-accent-gold/50" : "bg-ivory/10"}`} />
         ))}
       </div>
-
-      {/* Skip */}
-      <button onClick={onComplete} className="text-ivory/20 text-xs mt-6 hover:text-ivory/40 transition">
-        Skip
-      </button>
     </div>
   );
 }

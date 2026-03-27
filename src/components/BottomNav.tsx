@@ -49,6 +49,29 @@ const tabs = [
     ),
   },
   {
+    label: "Bible",
+    href: "/bible",
+    icon: (active: boolean) => (
+      <svg
+        width="24"
+        height="24"
+        viewBox="0 0 24 24"
+        fill={active ? "currentColor" : "none"}
+        stroke="currentColor"
+        strokeWidth={active ? "1.5" : "2"}
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        className={active ? "text-brown" : "text-muted"}
+      >
+        <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20" />
+        <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z" />
+        {!active && <line x1="9" y1="7" x2="15" y2="7" />}
+        {!active && <line x1="9" y1="11" x2="13" y2="11" />}
+        {!active && <line x1="9" y1="15" x2="15" y2="15" />}
+      </svg>
+    ),
+  },
+  {
     label: "Prayers",
     href: "/prayers",
     icon: (active: boolean) => (
@@ -67,27 +90,6 @@ const tabs = [
         <circle cx="9" cy="7" r="4" />
         <path d="M23 21v-2a4 4 0 0 0-3-3.87" />
         <path d="M16 3.13a4 4 0 0 1 0 7.75" />
-      </svg>
-    ),
-  },
-  {
-    label: "Insights",
-    href: "/insights",
-    icon: (active: boolean) => (
-      <svg
-        width="24"
-        height="24"
-        viewBox="0 0 24 24"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth={active ? "2.2" : "2"}
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        className={active ? "text-brown" : "text-muted"}
-      >
-        <line x1="18" y1="20" x2="18" y2="10" />
-        <line x1="12" y1="20" x2="12" y2="4" />
-        <line x1="6" y1="20" x2="6" y2="14" />
       </svg>
     ),
   },
@@ -125,8 +127,8 @@ export default function BottomNav() {
   }, [pathname]);
 
   return (
-    <nav className="fixed bottom-0 left-0 right-0 z-50 md:hidden border-t border-brown/8 bg-cream/90 backdrop-blur-md">
-      <div className="flex items-center justify-around h-16 pb-[env(safe-area-inset-bottom)] max-w-lg mx-auto">
+    <nav className="fixed bottom-0 left-0 right-0 z-50 md:hidden border-t border-brown/8 bg-cream/90 backdrop-blur-md overflow-hidden">
+      <div className="flex items-center justify-around h-16 pb-[env(safe-area-inset-bottom)] max-w-lg mx-auto w-full">
         {tabs.map((tab) => {
           const isActive =
             pathname === tab.href || pathname.startsWith(tab.href + "/");
