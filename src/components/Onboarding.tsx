@@ -7,22 +7,22 @@ const STEPS = [
   {
     letter: "R",
     title: "Revelation",
-    description: "Open your Bible and just read. Don\u2019t set a goal. Silence your mind, and let God\u2019s Word speak. Wherever you feel Him stop you \u2014 that\u2019s your revelation. Write down that verse.",
+    description: "Open your Bible and just read. Don\u2019t set a goal. Silence your mind, and let God\u2019s Word speak. Wherever you feel Him stop you, that\u2019s your revelation. Write down that verse.",
   },
   {
     letter: "O",
     title: "Observation",
-    description: "Why did God stop you there? What stood out? Write down what you noticed \u2014 a pattern, a command, a promise, a truth that hit differently today.",
+    description: "Why did God stop you there? What stood out? Write down what you noticed: a pattern, a command, a promise, a truth that hit differently today.",
   },
   {
     letter: "P",
     title: "Prayer",
-    description: "Talk to God about what you just read. Be honest. This isn\u2019t a formula \u2014 it\u2019s a conversation. Tell Him what you\u2019re feeling, what you need, what you\u2019re grateful for.",
+    description: "Talk to God about what you just read. Be honest. This isn\u2019t a formula, it\u2019s a conversation. Tell Him what you\u2019re feeling, what you need, what you\u2019re grateful for.",
   },
   {
     letter: "E",
     title: "Execution",
-    description: "Write one specific thing you\u2019ll do differently tomorrow because of this verse. Not vague \u2014 specific. Something you can check in on. This is where faith becomes action.",
+    description: "Write one specific thing you\u2019ll do differently tomorrow because of this verse. Not vague, but specific. Something you can check in on. This is where faith becomes action.",
   },
 ];
 

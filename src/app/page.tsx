@@ -55,6 +55,7 @@ export default function SplashPage() {
   const s4 = useScrollReveal(0.2);
   const sCta = useScrollReveal(0.3);
   const sVerse = useScrollReveal(0.3);
+  const sComing = useScrollReveal(0.2);
 
   const scrollSections = [s1, s2, s3, s4];
 
@@ -218,7 +219,7 @@ export default function SplashPage() {
 
           {/* ═══ Subtitle ═══ */}
           <p
-            className="font-serif text-ivory/45 text-sm md:text-base tracking-[0.3em] uppercase mb-8 md:mb-10 text-center transition-all duration-600 ease-out"
+            className="font-serif text-ivory/70 text-sm md:text-base tracking-[0.3em] uppercase mb-8 md:mb-10 text-center transition-all duration-600 ease-out"
             style={{
               opacity: phase >= 6 ? 1 : 0,
               transform: phase >= 6 ? "translateY(0)" : "translateY(10px)",
@@ -229,28 +230,32 @@ export default function SplashPage() {
 
           {/* ═══ Supporting copy ═══ */}
           <p
-            className="text-ivory/30 text-sm md:text-base max-w-md text-center leading-relaxed mb-10 md:mb-12 transition-all duration-600 ease-out"
+            className="text-ivory/60 text-sm md:text-base max-w-md text-center leading-relaxed mb-10 md:mb-12 transition-all duration-600 ease-out"
             style={{
               opacity: phase >= 7 ? 1 : 0,
               transform: phase >= 7 ? "translateY(0)" : "translateY(10px)",
             }}
           >
-            A daily practice for reading Scripture with intention&mdash;one verse, four steps, a deeper walk.
+            A daily practice for reading Scripture with intention. One verse, four steps, a deeper walk.
           </p>
 
           {/* ═══ Primary CTA ═══ */}
           <button
             onClick={handleEnter}
             disabled={exiting || phase < 8}
-            className="group relative px-10 py-4 text-ivory/90 font-medium text-base md:text-lg rounded-xl border border-ivory/12 bg-ivory/[0.04] backdrop-blur-sm transition-all duration-300 ease-out disabled:opacity-0 disabled:pointer-events-none hover:bg-ivory/[0.1] hover:border-ivory/25 hover:shadow-[0_0_30px_rgba(196,162,101,0.1)] active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ivory/20"
+            className="group relative px-12 py-4 font-serif font-medium text-base md:text-lg rounded-full transition-all duration-500 ease-out disabled:opacity-0 disabled:pointer-events-none hover:scale-[1.03] active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#c4a265]/30"
             style={{
               opacity: phase >= 8 ? 1 : 0,
               transform: phase >= 8 ? "translateY(0)" : "translateY(12px)",
               transitionDuration: "600ms",
+              background: "linear-gradient(135deg, rgba(196, 162, 101, 0.9) 0%, rgba(166, 132, 71, 0.9) 100%)",
+              color: "#1a1714",
+              boxShadow: "0 4px 24px rgba(196, 162, 101, 0.2), 0 1px 3px rgba(0,0,0,0.3), inset 0 1px 0 rgba(255,255,255,0.15)",
+              letterSpacing: "0.04em",
             }}
           >
-            <span className="relative z-10 tracking-wide">Begin today&#39;s journal</span>
-            <div className="absolute inset-0 rounded-xl opacity-0 group-hover:opacity-100 transition-opacity duration-500 bg-[radial-gradient(ellipse_at_center,rgba(196,162,101,0.08),transparent_70%)]" />
+            <span className="relative z-10">Begin today&#39;s journal</span>
+            <div className="absolute inset-0 rounded-full opacity-0 group-hover:opacity-100 transition-opacity duration-500" style={{ boxShadow: "0 8px 40px rgba(196, 162, 101, 0.35), 0 0 60px rgba(196, 162, 101, 0.1)" }} />
           </button>
 
           {/* ═══ Trust badge ═══ */}
@@ -370,6 +375,84 @@ export default function SplashPage() {
             <p className="text-ivory/15 text-xs mt-3 tracking-[0.15em] uppercase">
               2 Timothy 3:16
             </p>
+          </div>
+        </div>
+
+        {/* ═══ Coming Soon — Community Features ═══ */}
+        <div
+          ref={sComing.ref}
+          className="max-w-3xl mx-auto px-6 mt-20 md:mt-28 transition-all duration-700 ease-out"
+          style={{
+            opacity: sComing.visible ? 1 : 0,
+            transform: sComing.visible ? "translateY(0)" : "translateY(20px)",
+          }}
+        >
+          <div className="text-center mb-12">
+            <p className="text-accent-gold/40 text-xs tracking-[0.4em] uppercase mb-3 font-medium">
+              Coming Soon
+            </p>
+            <h2 className="font-serif text-ivory/60 text-xl md:text-2xl font-semibold leading-snug">
+              Faith is better together.
+            </h2>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            {/* Community Conversations */}
+            <div className="rounded-2xl border border-ivory/6 bg-ivory/[0.02] p-5 text-center">
+              <div className="w-10 h-10 mx-auto mb-3 rounded-full border border-ivory/10 flex items-center justify-center">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="text-ivory/40">
+                  <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
+                </svg>
+              </div>
+              <h3 className="font-serif text-ivory/60 text-sm font-semibold mb-2">Community Conversations</h3>
+              <p className="text-ivory/25 text-xs leading-relaxed">
+                Discuss verses with others on the same journey. Share what God is teaching you.
+              </p>
+            </div>
+
+            {/* Testimonials */}
+            <div className="rounded-2xl border border-ivory/6 bg-ivory/[0.02] p-5 text-center">
+              <div className="w-10 h-10 mx-auto mb-3 rounded-full border border-ivory/10 flex items-center justify-center">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="text-ivory/40">
+                  <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
+                </svg>
+              </div>
+              <h3 className="font-serif text-ivory/60 text-sm font-semibold mb-2">Testimonials Wall</h3>
+              <p className="text-ivory/25 text-xs leading-relaxed">
+                Share answered prayers publicly. Let your testimony encourage someone else&apos;s faith.
+              </p>
+            </div>
+
+            {/* Accountability Groups */}
+            <div className="rounded-2xl border border-ivory/6 bg-ivory/[0.02] p-5 text-center">
+              <div className="w-10 h-10 mx-auto mb-3 rounded-full border border-ivory/10 flex items-center justify-center">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="text-ivory/40">
+                  <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
+                  <circle cx="9" cy="7" r="4" />
+                  <path d="M23 21v-2a4 4 0 0 0-3-3.87" />
+                  <path d="M16 3.13a4 4 0 0 1 0 7.75" />
+                </svg>
+              </div>
+              <h3 className="font-serif text-ivory/60 text-sm font-semibold mb-2">Accountability Groups</h3>
+              <p className="text-ivory/25 text-xs leading-relaxed">
+                Journal alongside friends. See each other&apos;s streaks and cheer one another on.
+              </p>
+            </div>
+          </div>
+
+          {/* Additional features row */}
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mt-4">
+            {[
+              { icon: "🔔", label: "Daily Reminders" },
+              { icon: "📖", label: "Shared Reading Plans" },
+              { icon: "🤝", label: "Prayer Partners" },
+              { icon: "🌍", label: "Global Prayer Map" },
+            ].map((f) => (
+              <div key={f.label} className="rounded-xl border border-ivory/5 bg-ivory/[0.015] px-3 py-3 text-center">
+                <span className="text-lg block mb-1">{f.icon}</span>
+                <p className="text-ivory/30 text-[10px] font-medium tracking-wide">{f.label}</p>
+              </div>
+            ))}
           </div>
         </div>
 
