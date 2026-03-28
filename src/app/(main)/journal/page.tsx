@@ -259,7 +259,10 @@ export default function JournalPage() {
 
   // New feature state
   const [showShare, setShowShare] = useState(false);
-  const [showBreathing, setShowBreathing] = useState(true);
+  const [showBreathing, setShowBreathing] = useState(() => {
+    if (typeof window === "undefined") return false;
+    return !sessionStorage.getItem("rope-breathing-done");
+  });
   const [milestoneReached, setMilestoneReached] = useState<{ title: string; verse: string; ref: string } | null>(null);
   const [isMemoryVerse, setIsMemoryVerse] = useState(false);
 
@@ -547,7 +550,7 @@ export default function JournalPage() {
         <OliveBranch className="opacity-50" />
       </div>
 
-      {showBreathing && <Breathing onComplete={() => setShowBreathing(false)} />}
+      {showBreathing && <Breathing onComplete={() => { sessionStorage.setItem("rope-breathing-done", "1"); setShowBreathing(false); }} />}
 
       {/* ROPE Progress */}
       <div className="flex items-center gap-1.5 mb-6">
