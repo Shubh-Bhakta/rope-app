@@ -2,8 +2,6 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useEffect, useState } from "react";
-import { getUser, hasPendingCheckin } from "@/lib/store";
 
 const tabs = [
   {
@@ -11,8 +9,8 @@ const tabs = [
     href: "/journal",
     icon: (active: boolean) => (
       <svg
-        width="24"
-        height="24"
+        width="22"
+        height="22"
         viewBox="0 0 24 24"
         fill={active ? "currentColor" : "none"}
         stroke="currentColor"
@@ -29,12 +27,12 @@ const tabs = [
     ),
   },
   {
-    label: "Check-in",
-    href: "/checkin",
+    label: "Insights",
+    href: "/insights",
     icon: (active: boolean) => (
       <svg
-        width="24"
-        height="24"
+        width="22"
+        height="22"
         viewBox="0 0 24 24"
         fill="none"
         stroke="currentColor"
@@ -43,8 +41,9 @@ const tabs = [
         strokeLinejoin="round"
         className={active ? "text-brown" : "text-muted"}
       >
-        <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" />
-        <polyline points="22 4 12 14.01 9 11.01" />
+        <line x1="18" y1="20" x2="18" y2="10" />
+        <line x1="12" y1="20" x2="12" y2="4" />
+        <line x1="6" y1="20" x2="6" y2="14" />
       </svg>
     ),
   },
@@ -53,8 +52,8 @@ const tabs = [
     href: "/bible",
     icon: (active: boolean) => (
       <svg
-        width="24"
-        height="24"
+        width="22"
+        height="22"
         viewBox="0 0 24 24"
         fill={active ? "currentColor" : "none"}
         stroke="currentColor"
@@ -72,12 +71,12 @@ const tabs = [
     ),
   },
   {
-    label: "Prayers",
-    href: "/prayers",
+    label: "Plans",
+    href: "/plans",
     icon: (active: boolean) => (
       <svg
-        width="24"
-        height="24"
+        width="22"
+        height="22"
         viewBox="0 0 24 24"
         fill="none"
         stroke="currentColor"
@@ -86,10 +85,8 @@ const tabs = [
         strokeLinejoin="round"
         className={active ? "text-brown" : "text-muted"}
       >
-        <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
-        <circle cx="9" cy="7" r="4" />
-        <path d="M23 21v-2a4 4 0 0 0-3-3.87" />
-        <path d="M16 3.13a4 4 0 0 1 0 7.75" />
+        <path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z" />
+        <path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z" />
       </svg>
     ),
   },
@@ -98,8 +95,8 @@ const tabs = [
     href: "/me",
     icon: (active: boolean) => (
       <svg
-        width="24"
-        height="24"
+        width="22"
+        height="22"
         viewBox="0 0 24 24"
         fill={active ? "currentColor" : "none"}
         stroke="currentColor"
@@ -117,14 +114,6 @@ const tabs = [
 
 export default function BottomNav() {
   const pathname = usePathname();
-  const [showDot, setShowDot] = useState(false);
-
-  useEffect(() => {
-    const user = getUser();
-    if (user) {
-      setShowDot(hasPendingCheckin(user.id));
-    }
-  }, [pathname]);
 
   return (
     <nav className="fixed bottom-0 left-0 right-0 z-50 md:hidden border-t border-brown/8 bg-cream/90 backdrop-blur-md overflow-hidden">
@@ -141,9 +130,6 @@ export default function BottomNav() {
             >
               <div className="relative">
                 {tab.icon(isActive)}
-                {tab.label === "Check-in" && showDot && (
-                  <span className="absolute -top-0.5 -right-0.5 w-2.5 h-2.5 bg-brown rounded-full" />
-                )}
               </div>
               <span
                 className={`text-[10px] leading-tight ${

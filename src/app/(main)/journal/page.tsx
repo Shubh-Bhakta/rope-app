@@ -604,7 +604,23 @@ export default function JournalPage() {
                   <p className="text-dark text-sm">{planVerse}</p>
                 </div>
                 <button
-                  onClick={() => { setVerseRef(planVerse); setShowSuggestions(false); }}
+                  onClick={async () => {
+                    setVerseRef(planVerse);
+                    setShowSuggestions(false);
+                    setLookingUp(true);
+                    setLookupError("");
+                    try {
+                      const text = await fetchVerse(planVerse, translation);
+                      setVerseText(text);
+                      setVerseLookedUp(true);
+                      const memVerses = getMemoryVerses();
+                      setIsMemoryVerse(memVerses.some(v => v.verse === planVerse));
+                    } catch {
+                      setLookupError("Could not find that verse. Try a format like 'John 3:16' or 'Romans 8:28'.");
+                    } finally {
+                      setLookingUp(false);
+                    }
+                  }}
                   className="px-3 py-1.5 text-xs text-accent-gold border border-accent-gold/20 rounded-lg hover:bg-accent-gold/5 transition shrink-0"
                 >
                   Use this
@@ -871,6 +887,20 @@ export default function JournalPage() {
         >
           Save Entry
         </button>
+        {!allFilled && (
+          <p className="text-center text-struggle text-xs mt-3">
+            Complete all four ROPE steps to save &mdash;{" "}
+            {[
+              !verseRef.trim() && "Verse",
+              !observation.trim() && "Observation",
+              !prayer.trim() && "Prayer",
+              !execution.trim() && "Execution",
+            ]
+              .filter(Boolean)
+              .join(", ")}{" "}
+            {[!verseRef.trim(), !observation.trim(), !prayer.trim(), !execution.trim()].filter(Boolean).length === 1 ? "is" : "are"} missing.
+          </p>
+        )}
         <p className="text-center text-muted/40 text-xs mt-3 italic">
           Your words are kept safely on this device
         </p>
