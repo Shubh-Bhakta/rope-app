@@ -313,10 +313,10 @@ export default function SplashPage() {
 
         {/* Section heading */}
         <div className="max-w-2xl mx-auto px-6 mb-16 md:mb-24 text-center">
-          <p className="text-ivory/20 text-xs tracking-[0.4em] uppercase mb-4 font-medium">
+          <p className="text-ivory/40 text-xs tracking-[0.4em] uppercase mb-4 font-medium">
             The Practice
           </p>
-          <h2 className="font-serif text-ivory/70 text-2xl md:text-3xl font-semibold leading-snug">
+          <h2 className="font-serif text-ivory/90 text-2xl md:text-3xl font-semibold leading-snug">
             Four steps. One verse.<br />A daily rhythm of faith.
           </h2>
         </div>
@@ -337,15 +337,15 @@ export default function SplashPage() {
                 }}
               >
                 <div className="flex-shrink-0 w-12 h-12 md:w-14 md:h-14 rounded-full border border-ivory/10 flex items-center justify-center">
-                  <span className="font-serif text-xl md:text-2xl font-bold text-ivory/60">
+                  <span className="font-serif text-xl md:text-2xl font-bold text-ivory/80">
                     {letter}
                   </span>
                 </div>
                 <div className="pt-1">
-                  <h3 className="font-serif text-ivory/70 text-lg md:text-xl font-semibold mb-2 tracking-wide">
+                  <h3 className="font-serif text-ivory/90 text-lg md:text-xl font-semibold mb-2 tracking-wide">
                     {word}
                   </h3>
-                  <p className="text-ivory/30 text-sm md:text-base leading-relaxed max-w-md">
+                  <p className="text-ivory/50 text-sm md:text-base leading-relaxed max-w-md">
                     {prompt}
                   </p>
                 </div>
@@ -363,16 +363,16 @@ export default function SplashPage() {
             transform: sVerse.visible ? "translateY(0)" : "translateY(16px)",
           }}
         >
-          <div className="border-t border-b border-ivory/6 py-8 md:py-10">
+          <div className="border-t border-b border-ivory/10 py-8 md:py-10">
             {/* Small cross */}
-            <svg width="14" height="20" viewBox="0 0 14 20" fill="none" className="mx-auto mb-5 opacity-20">
+            <svg width="14" height="20" viewBox="0 0 14 20" fill="none" className="mx-auto mb-5 opacity-40">
               <rect x="5.5" y="0" width="3" height="20" rx="0.5" fill="rgba(245,239,227,1)" />
               <rect x="0" y="4.5" width="14" height="3" rx="0.5" fill="rgba(245,239,227,1)" />
             </svg>
-            <p className="text-ivory/30 text-sm md:text-base italic leading-relaxed max-w-sm mx-auto">
+            <p className="text-ivory/55 text-sm md:text-base italic leading-relaxed max-w-sm mx-auto">
               &ldquo;All Scripture is God-breathed and is useful for teaching, rebuking, correcting and training in righteousness.&rdquo;
             </p>
-            <p className="text-ivory/15 text-xs mt-3 tracking-[0.15em] uppercase">
+            <p className="text-ivory/35 text-xs mt-3 tracking-[0.15em] uppercase">
               2 Timothy 3:16
             </p>
           </div>
@@ -388,53 +388,53 @@ export default function SplashPage() {
           }}
         >
           <div className="text-center mb-12">
-            <p className="text-accent-gold/40 text-xs tracking-[0.4em] uppercase mb-3 font-medium">
+            <p className="text-accent-gold/60 text-xs tracking-[0.4em] uppercase mb-3 font-medium">
               Coming Soon
             </p>
-            <h2 className="font-serif text-ivory/60 text-xl md:text-2xl font-semibold leading-snug">
+            <h2 className="font-serif text-ivory/80 text-xl md:text-2xl font-semibold leading-snug">
               Faith is better together.
             </h2>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             {/* Community Conversations */}
-            <div className="rounded-2xl border border-ivory/6 bg-ivory/[0.02] p-5 text-center">
+            <div className="rounded-2xl border border-ivory/10 bg-ivory/[0.04] p-5 text-center">
               <div className="w-10 h-10 mx-auto mb-3 rounded-full border border-ivory/10 flex items-center justify-center">
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="text-ivory/40">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="text-ivory/60">
                   <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
                 </svg>
               </div>
-              <h3 className="font-serif text-ivory/60 text-sm font-semibold mb-2">Community Conversations</h3>
-              <p className="text-ivory/25 text-xs leading-relaxed">
+              <h3 className="font-serif text-ivory/80 text-sm font-semibold mb-2">Community Conversations</h3>
+              <p className="text-ivory/45 text-xs leading-relaxed">
                 Discuss verses with others on the same journey. Share what God is teaching you.
               </p>
             </div>
 
             {/* Testimonials */}
-            <div className="rounded-2xl border border-ivory/6 bg-ivory/[0.02] p-5 text-center">
+            <div className="rounded-2xl border border-ivory/10 bg-ivory/[0.04] p-5 text-center">
               <div className="w-10 h-10 mx-auto mb-3 rounded-full border border-ivory/10 flex items-center justify-center">
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="text-ivory/40">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="text-ivory/60">
                   <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
                 </svg>
               </div>
-              <h3 className="font-serif text-ivory/60 text-sm font-semibold mb-2">Testimonials Wall</h3>
-              <p className="text-ivory/25 text-xs leading-relaxed">
+              <h3 className="font-serif text-ivory/80 text-sm font-semibold mb-2">Testimonials Wall</h3>
+              <p className="text-ivory/45 text-xs leading-relaxed">
                 Share answered prayers publicly. Let your testimony encourage someone else&apos;s faith.
               </p>
             </div>
 
             {/* Accountability Groups */}
-            <div className="rounded-2xl border border-ivory/6 bg-ivory/[0.02] p-5 text-center">
+            <div className="rounded-2xl border border-ivory/10 bg-ivory/[0.04] p-5 text-center">
               <div className="w-10 h-10 mx-auto mb-3 rounded-full border border-ivory/10 flex items-center justify-center">
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="text-ivory/40">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="text-ivory/60">
                   <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
                   <circle cx="9" cy="7" r="4" />
                   <path d="M23 21v-2a4 4 0 0 0-3-3.87" />
                   <path d="M16 3.13a4 4 0 0 1 0 7.75" />
                 </svg>
               </div>
-              <h3 className="font-serif text-ivory/60 text-sm font-semibold mb-2">Accountability Groups</h3>
-              <p className="text-ivory/25 text-xs leading-relaxed">
+              <h3 className="font-serif text-ivory/80 text-sm font-semibold mb-2">Accountability Groups</h3>
+              <p className="text-ivory/45 text-xs leading-relaxed">
                 Journal alongside friends. See each other&apos;s streaks and cheer one another on.
               </p>
             </div>
@@ -448,9 +448,9 @@ export default function SplashPage() {
               { icon: "🤝", label: "Prayer Partners" },
               { icon: "🌍", label: "Global Prayer Map" },
             ].map((f) => (
-              <div key={f.label} className="rounded-xl border border-ivory/5 bg-ivory/[0.015] px-3 py-3 text-center">
+              <div key={f.label} className="rounded-xl border border-ivory/8 bg-ivory/[0.03] px-3 py-3 text-center">
                 <span className="text-lg block mb-1">{f.icon}</span>
-                <p className="text-ivory/30 text-[10px] font-medium tracking-wide">{f.label}</p>
+                <p className="text-ivory/50 text-[10px] font-medium tracking-wide">{f.label}</p>
               </div>
             ))}
           </div>
@@ -478,7 +478,7 @@ export default function SplashPage() {
             <span className="tracking-wide">Enter today&#39;s ROPE</span>
           </button>
 
-          <p className="text-ivory/12 text-xs mt-8 tracking-wide italic">
+          <p className="text-ivory/30 text-xs mt-8 tracking-wide italic">
             Open source &middot; Free forever
           </p>
         </div>
