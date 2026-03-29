@@ -301,22 +301,22 @@ export default function SplashPage() {
           ═══════════════════════════════════════════ */}
       <section
         className="relative py-24 md:py-32 overflow-hidden"
-        style={{ background: "linear-gradient(180deg, #0a0804 0%, #12100a 50%, #0a0804 100%)" }}
+        style={{ background: "#f5efe3" }}
       >
-        {/* Subtle top light bleed */}
+        {/* Subtle top shadow for depth at transition */}
         <div
-          className="absolute top-0 left-0 right-0 h-32 pointer-events-none"
+          className="absolute top-0 left-0 right-0 h-24 pointer-events-none"
           style={{
-            background: "linear-gradient(180deg, rgba(196, 162, 101, 0.03) 0%, transparent 100%)",
+            background: "linear-gradient(180deg, rgba(10,8,4,0.15) 0%, transparent 100%)",
           }}
         />
 
         {/* Section heading */}
         <div className="max-w-2xl mx-auto px-6 mb-16 md:mb-24 text-center">
-          <p className="text-ivory/40 text-xs tracking-[0.4em] uppercase mb-4 font-medium">
+          <p className="text-xs tracking-[0.4em] uppercase mb-4 font-medium" style={{ color: "#8a7a5a" }}>
             The Practice
           </p>
-          <h2 className="font-serif text-ivory/90 text-2xl md:text-3xl font-semibold leading-snug">
+          <h2 className="font-serif text-2xl md:text-3xl font-semibold leading-snug" style={{ color: "#1a1714" }}>
             Four steps. One verse.<br />A daily rhythm of faith.
           </h2>
         </div>
@@ -336,16 +336,16 @@ export default function SplashPage() {
                   transitionDelay: `${i * 80}ms`,
                 }}
               >
-                <div className="flex-shrink-0 w-12 h-12 md:w-14 md:h-14 rounded-full border border-ivory/10 flex items-center justify-center">
-                  <span className="font-serif text-xl md:text-2xl font-bold text-ivory/80">
+                <div className="flex-shrink-0 w-12 h-12 md:w-14 md:h-14 rounded-full flex items-center justify-center" style={{ border: "1px solid #c4a265", background: "rgba(196,162,101,0.08)" }}>
+                  <span className="font-serif text-xl md:text-2xl font-bold" style={{ color: "#8a7a5a" }}>
                     {letter}
                   </span>
                 </div>
                 <div className="pt-1">
-                  <h3 className="font-serif text-ivory/90 text-lg md:text-xl font-semibold mb-2 tracking-wide">
+                  <h3 className="font-serif text-lg md:text-xl font-semibold mb-2 tracking-wide" style={{ color: "#1a1714" }}>
                     {word}
                   </h3>
-                  <p className="text-ivory/50 text-sm md:text-base leading-relaxed max-w-md">
+                  <p className="text-sm md:text-base leading-relaxed max-w-md" style={{ color: "#5a5247" }}>
                     {prompt}
                   </p>
                 </div>
@@ -363,16 +363,16 @@ export default function SplashPage() {
             transform: sVerse.visible ? "translateY(0)" : "translateY(16px)",
           }}
         >
-          <div className="border-t border-b border-ivory/10 py-8 md:py-10">
+          <div className="py-8 md:py-10" style={{ borderTop: "1px solid rgba(196,162,101,0.25)", borderBottom: "1px solid rgba(196,162,101,0.25)" }}>
             {/* Small cross */}
-            <svg width="14" height="20" viewBox="0 0 14 20" fill="none" className="mx-auto mb-5 opacity-40">
-              <rect x="5.5" y="0" width="3" height="20" rx="0.5" fill="rgba(245,239,227,1)" />
-              <rect x="0" y="4.5" width="14" height="3" rx="0.5" fill="rgba(245,239,227,1)" />
+            <svg width="14" height="20" viewBox="0 0 14 20" fill="none" className="mx-auto mb-5">
+              <rect x="5.5" y="0" width="3" height="20" rx="0.5" fill="rgba(196,162,101,0.5)" />
+              <rect x="0" y="4.5" width="14" height="3" rx="0.5" fill="rgba(196,162,101,0.5)" />
             </svg>
-            <p className="text-ivory/55 text-sm md:text-base italic leading-relaxed max-w-sm mx-auto">
+            <p className="text-sm md:text-base italic leading-relaxed max-w-sm mx-auto" style={{ color: "#5a5247" }}>
               &ldquo;All Scripture is God-breathed and is useful for teaching, rebuking, correcting and training in righteousness.&rdquo;
             </p>
-            <p className="text-ivory/35 text-xs mt-3 tracking-[0.15em] uppercase">
+            <p className="text-xs mt-3 tracking-[0.15em] uppercase" style={{ color: "#8a7a5a" }}>
               2 Timothy 3:16
             </p>
           </div>
@@ -388,53 +388,53 @@ export default function SplashPage() {
           }}
         >
           <div className="text-center mb-12">
-            <p className="text-accent-gold/60 text-xs tracking-[0.4em] uppercase mb-3 font-medium">
+            <p className="text-xs tracking-[0.4em] uppercase mb-3 font-medium" style={{ color: "#c4a265" }}>
               Coming Soon
             </p>
-            <h2 className="font-serif text-ivory/80 text-xl md:text-2xl font-semibold leading-snug">
+            <h2 className="font-serif text-xl md:text-2xl font-semibold leading-snug" style={{ color: "#1a1714" }}>
               Faith is better together.
             </h2>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             {/* Community Conversations */}
-            <div className="rounded-2xl border border-ivory/10 bg-ivory/[0.04] p-5 text-center">
-              <div className="w-10 h-10 mx-auto mb-3 rounded-full border border-ivory/10 flex items-center justify-center">
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="text-ivory/60">
+            <div className="rounded-2xl p-5 text-center" style={{ border: "1px solid rgba(196,162,101,0.2)", background: "rgba(255,255,255,0.5)" }}>
+              <div className="w-10 h-10 mx-auto mb-3 rounded-full flex items-center justify-center" style={{ border: "1px solid rgba(196,162,101,0.3)", background: "rgba(196,162,101,0.08)" }}>
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#8a7a5a" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
                   <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
                 </svg>
               </div>
-              <h3 className="font-serif text-ivory/80 text-sm font-semibold mb-2">Community Conversations</h3>
-              <p className="text-ivory/45 text-xs leading-relaxed">
+              <h3 className="font-serif text-sm font-semibold mb-2" style={{ color: "#1a1714" }}>Community Conversations</h3>
+              <p className="text-xs leading-relaxed" style={{ color: "#6a6058" }}>
                 Discuss verses with others on the same journey. Share what God is teaching you.
               </p>
             </div>
 
             {/* Testimonials */}
-            <div className="rounded-2xl border border-ivory/10 bg-ivory/[0.04] p-5 text-center">
-              <div className="w-10 h-10 mx-auto mb-3 rounded-full border border-ivory/10 flex items-center justify-center">
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="text-ivory/60">
+            <div className="rounded-2xl p-5 text-center" style={{ border: "1px solid rgba(196,162,101,0.2)", background: "rgba(255,255,255,0.5)" }}>
+              <div className="w-10 h-10 mx-auto mb-3 rounded-full flex items-center justify-center" style={{ border: "1px solid rgba(196,162,101,0.3)", background: "rgba(196,162,101,0.08)" }}>
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#8a7a5a" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
                   <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
                 </svg>
               </div>
-              <h3 className="font-serif text-ivory/80 text-sm font-semibold mb-2">Testimonials Wall</h3>
-              <p className="text-ivory/45 text-xs leading-relaxed">
+              <h3 className="font-serif text-sm font-semibold mb-2" style={{ color: "#1a1714" }}>Testimonials Wall</h3>
+              <p className="text-xs leading-relaxed" style={{ color: "#6a6058" }}>
                 Share answered prayers publicly. Let your testimony encourage someone else&apos;s faith.
               </p>
             </div>
 
             {/* Accountability Groups */}
-            <div className="rounded-2xl border border-ivory/10 bg-ivory/[0.04] p-5 text-center">
-              <div className="w-10 h-10 mx-auto mb-3 rounded-full border border-ivory/10 flex items-center justify-center">
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="text-ivory/60">
+            <div className="rounded-2xl p-5 text-center" style={{ border: "1px solid rgba(196,162,101,0.2)", background: "rgba(255,255,255,0.5)" }}>
+              <div className="w-10 h-10 mx-auto mb-3 rounded-full flex items-center justify-center" style={{ border: "1px solid rgba(196,162,101,0.3)", background: "rgba(196,162,101,0.08)" }}>
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#8a7a5a" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
                   <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
                   <circle cx="9" cy="7" r="4" />
                   <path d="M23 21v-2a4 4 0 0 0-3-3.87" />
                   <path d="M16 3.13a4 4 0 0 1 0 7.75" />
                 </svg>
               </div>
-              <h3 className="font-serif text-ivory/80 text-sm font-semibold mb-2">Accountability Groups</h3>
-              <p className="text-ivory/45 text-xs leading-relaxed">
+              <h3 className="font-serif text-sm font-semibold mb-2" style={{ color: "#1a1714" }}>Accountability Groups</h3>
+              <p className="text-xs leading-relaxed" style={{ color: "#6a6058" }}>
                 Journal alongside friends. See each other&apos;s streaks and cheer one another on.
               </p>
             </div>
@@ -448,9 +448,9 @@ export default function SplashPage() {
               { icon: "🤝", label: "Prayer Partners" },
               { icon: "🌍", label: "Global Prayer Map" },
             ].map((f) => (
-              <div key={f.label} className="rounded-xl border border-ivory/8 bg-ivory/[0.03] px-3 py-3 text-center">
+              <div key={f.label} className="rounded-xl px-3 py-3 text-center" style={{ border: "1px solid rgba(196,162,101,0.15)", background: "rgba(255,255,255,0.35)" }}>
                 <span className="text-lg block mb-1">{f.icon}</span>
-                <p className="text-ivory/50 text-[10px] font-medium tracking-wide">{f.label}</p>
+                <p className="text-[10px] font-medium tracking-wide" style={{ color: "#6a6058" }}>{f.label}</p>
               </div>
             ))}
           </div>
@@ -467,18 +467,19 @@ export default function SplashPage() {
         >
           <div
             className="w-12 h-px mb-10"
-            style={{ background: "linear-gradient(90deg, transparent, rgba(196, 162, 101, 0.2), transparent)" }}
+            style={{ background: "linear-gradient(90deg, transparent, rgba(196, 162, 101, 0.4), transparent)" }}
           />
 
           <button
             onClick={handleEnter}
             disabled={exiting}
-            className="group relative px-10 py-4 text-ivory/80 font-medium text-base rounded-xl border border-ivory/10 bg-ivory/[0.03] backdrop-blur-sm transition-all duration-300 ease-out hover:bg-ivory/[0.08] hover:border-ivory/20 hover:shadow-[0_0_24px_rgba(196,162,101,0.06)] active:scale-[0.98] disabled:opacity-50"
+            className="group relative px-10 py-4 font-medium text-base rounded-xl transition-all duration-300 ease-out hover:shadow-lg active:scale-[0.98] disabled:opacity-50"
+            style={{ border: "1px solid #c4a265", color: "#1a1714", background: "rgba(196,162,101,0.1)" }}
           >
             <span className="tracking-wide">Enter today&#39;s ROPE</span>
           </button>
 
-          <p className="text-ivory/30 text-xs mt-8 tracking-wide italic">
+          <p className="text-xs mt-8 tracking-wide italic" style={{ color: "#8a7a5a" }}>
             Open source &middot; Free forever
           </p>
         </div>
