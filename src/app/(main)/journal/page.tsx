@@ -147,7 +147,51 @@ function MicButton({
   ) => { stop: () => void } | null;
 }) {
   const [listening, setListening] = useState(false);
+  const [volume, setVolume] = useState(0);
   const recognitionRef = useRef<{ stop: () => void } | null>(null);
+  const audioContextRef = useRef<AudioContext | null>(null);
+  const animationRef = useRef<number | null>(null);
+  const streamRef = useRef<MediaStream | null>(null);
+
+  useEffect(() => {
+    if (listening) {
+      const startAnalysis = async () => {
+        try {
+          const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+          streamRef.current = stream;
+          const AudioContextClass = (window.AudioContext || (window as any).webkitAudioContext);
+          const context = new AudioContextClass();
+          audioContextRef.current = context;
+          const source = context.createMediaStreamSource(stream);
+          const analyser = context.createAnalyser();
+          analyser.fftSize = 32;
+          source.connect(analyser);
+
+          const dataArray = new Uint8Array(analyser.frequencyBinCount);
+          const render = () => {
+            analyser.getByteFrequencyData(dataArray);
+            const avg = dataArray.reduce((a, b) => a + b, 0) / dataArray.length;
+            setVolume(avg);
+            animationRef.current = requestAnimationFrame(render);
+          };
+          render();
+        } catch (err) {
+          console.error("Mic analysis failed", err);
+        }
+      };
+      startAnalysis();
+    } else {
+      if (animationRef.current) cancelAnimationFrame(animationRef.current);
+      if (audioContextRef.current) audioContextRef.current.close();
+      if (streamRef.current) streamRef.current.getTracks().forEach(t => t.stop());
+      setVolume(0);
+    }
+    return () => {
+      if (animationRef.current) cancelAnimationFrame(animationRef.current);
+      if (audioContextRef.current && audioContextRef.current.state !== "closed") audioContextRef.current.close();
+      if (streamRef.current) streamRef.current.getTracks().forEach(t => t.stop());
+    };
+  }, [listening]);
 
   if (!supported) return null;
 
@@ -174,11 +218,18 @@ function MicButton({
       onClick={toggle}
       className={`absolute bottom-2.5 right-2.5 w-9 h-9 rounded-full flex items-center justify-center transition-all ${
         listening
-          ? "bg-struggle text-white animate-pulse"
+          ? "bg-struggle text-white shadow-[0_0_20px_rgba(235,87,87,0.4)]"
           : "bg-brown/8 text-brown hover:bg-brown/15"
       }`}
+      aria-label={listening ? "Stop listening" : "Voice input"}
       title={listening ? "Stop listening" : "Voice input"}
     >
+      {listening && (
+        <div 
+          className="absolute inset-0 rounded-full bg-struggle/30 animate-pulse pointer-events-none" 
+          style={{ transform: `scale(${1 + (volume / 100)})` }}
+        />
+      )}
       <svg
         width="16"
         height="16"
@@ -615,8 +666,8 @@ export default function JournalPage() {
                       setVerseLookedUp(true);
                       const memVerses = getMemoryVerses();
                       setIsMemoryVerse(memVerses.some(v => v.verse === planVerse));
-                    } catch {
-                      setLookupError("Could not find that verse. Try a format like 'John 3:16' or 'Romans 8:28'.");
+                    } catch (err: any) {
+                      setLookupError(err.message || "Could not find that verse. Try a format like 'John 3:16' or 'Romans 8:28'.");
                     } finally {
                       setLookingUp(false);
                     }

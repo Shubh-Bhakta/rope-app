@@ -81,6 +81,7 @@ export default function SplashPage() {
           className="absolute inset-0 w-full h-full object-cover transition-opacity duration-[2000ms] ease-out pointer-events-none"
           style={{ opacity: phase >= 1 ? 0.75 : 0 }}
           src="https://assets.mixkit.co/videos/17384/17384-720.mp4"
+          aria-hidden="true"
         />
 
         {/* ─── Dark overlays for depth + readability ─── */}
@@ -139,7 +140,7 @@ export default function SplashPage() {
               transform: phase >= 1 ? "translateY(0)" : "translateY(12px)",
             }}
           >
-            <svg width="20" height="28" viewBox="0 0 20 28" fill="none" className="mx-auto">
+            <svg width="20" height="28" viewBox="0 0 20 28" fill="none" className="mx-auto" aria-hidden="true">
               <rect x="8" y="0" width="4" height="28" rx="1" fill="rgba(196, 162, 101, 0.25)" />
               <rect x="0" y="6" width="20" height="4" rx="1" fill="rgba(196, 162, 101, 0.25)" />
             </svg>
@@ -159,6 +160,9 @@ export default function SplashPage() {
                   onMouseEnter={() => setHoveredIdx(i)}
                   onMouseLeave={() => setHoveredIdx(null)}
                   onClick={() => setHoveredIdx(hoveredIdx === i ? null : i)}
+                  role="button"
+                  aria-label={`${letter} for ${word}: ${prompt}`}
+                  aria-expanded={hoveredIdx === i}
                 >
                   <span
                     className="font-serif font-bold inline-block transition-all duration-500 ease-out"

@@ -18,6 +18,7 @@ import {
   type User,
 } from "@/lib/store";
 import { LampIcon, OliveBranch, VerseBlock } from "@/components/Accents";
+import Link from "next/link";
 
 export default function InsightsPage() {
   const [user, setUserState] = useState<User | null>(null);
@@ -294,6 +295,9 @@ export default function InsightsPage() {
                 {i < recentEntries.length - 1 && (
                   <div className="w-px flex-1 bg-brown/20 my-1" />
                 )}
+                {i === recentEntries.length - 1 && entries.length > recentEntries.length && (
+                  <div className="w-px flex-1 bg-gradient-to-b from-brown/20 to-transparent my-1" />
+                )}
               </div>
 
               {/* Content */}
@@ -311,6 +315,13 @@ export default function InsightsPage() {
               </div>
             </div>
           ))}
+          {entries.length > recentEntries.length && (
+            <div className="mt-2 text-center">
+              <Link href="/history" className="text-brown text-sm font-serif font-medium hover:underline">
+                View All {entries.length} Reflections &rarr;
+              </Link>
+            </div>
+          )}
         </div>
       </section>
 

@@ -138,6 +138,10 @@ function generateAliasNumber(): number {
   return next;
 }
 
+function formatLocalDate(date: Date): string {
+  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+}
+
 // ─── User ────────────────────────────────────────────────────────────────────
 
 export function getUser(): User | null {
@@ -180,19 +184,66 @@ export function setUser(name: string, email: string): User {
   return user;
 }
 
-// ─── ROPE Entries ────────────────────────────────────────────────────────────
+// ─── Entry Store ──────────────────────────────────────────────────────────
+
+import { migrateFromLocalStorage, loadRopeEntries, saveRopeEntries } from "./db";
+
+let cachedEntries: RopeEntry[] | null = null;
+let storeInitialized = false;
+
+/**
+ * Initializes the store by loading entries from IndexedDB.
+ * Falls back to localStorage if IndexedDB is empty/unavailable.
+ */
+export async function initializeStore() {
+  if (typeof window === "undefined" || storeInitialized) return;
+  
+  try {
+    // 1. Check for migration
+    if (!localStorage.getItem("rope_entries_migrated")) {
+      await migrateFromLocalStorage();
+    }
+    
+    // 2. Load from IndexedDB
+    const entries = await loadRopeEntries();
+    cachedEntries = entries;
+    storeInitialized = true;
+  } catch (e) {
+    console.error("Store initialization failed", e);
+    // Fallback path: use localStorage directly
+    const raw = localStorage.getItem("rope_entries");
+    cachedEntries = raw ? JSON.parse(raw) : [];
+  }
+}
 
 export function getRopeEntries(userId?: string): RopeEntry[] {
   if (typeof window === "undefined") return [];
-  const raw = localStorage.getItem("rope_entries");
-  if (!raw) return [];
-  try {
-    const entries = JSON.parse(raw) as RopeEntry[];
-    if (userId) return entries.filter((e) => e.userId === userId);
-    return entries;
-  } catch {
-    return [];
+
+  let entries: RopeEntry[] = [];
+  
+  if (storeInitialized && cachedEntries) {
+    entries = cachedEntries;
+  } else {
+    // Fallback until initialized
+    const raw = localStorage.getItem("rope_entries");
+    if (raw) {
+      try {
+        entries = JSON.parse(raw);
+      } catch (e) {
+        entries = [];
+      }
+    }
   }
+
+  const sorted = [...entries].sort(
+    (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+  );
+
+  return userId ? sorted.filter((e) => e.userId === userId) : sorted;
+}
+
+export function clearCache(): void {
+  cachedEntries = null;
 }
 
 export function addRopeEntry(
@@ -205,9 +256,20 @@ export function addRopeEntry(
     executionStatus: null,
     executionReflection: "",
   };
-  const entries = getRopeEntries();
-  entries.unshift(newEntry);
-  localStorage.setItem("rope_entries", JSON.stringify(entries));
+  
+  const existing = getRopeEntries();
+  const updated = [newEntry, ...existing];
+  
+  // Sync to memory
+  cachedEntries = updated;
+  
+  // Async save to IndexedDB
+  if (typeof window !== "undefined") {
+    saveRopeEntries(updated).catch(console.error);
+    // Backward compatibility: save to localStorage too
+    localStorage.setItem("rope_entries", JSON.stringify(updated));
+  }
+
   return newEntry;
 }
 
@@ -215,8 +277,15 @@ export function updateRopeEntry(id: string, updates: Partial<RopeEntry>): RopeEn
   const entries = getRopeEntries();
   const index = entries.findIndex((e) => e.id === id);
   if (index === -1) return null;
+  
   entries[index] = { ...entries[index], ...updates };
-  localStorage.setItem("rope_entries", JSON.stringify(entries));
+  cachedEntries = entries;
+  
+  if (typeof window !== "undefined") {
+    saveRopeEntries(entries).catch(console.error);
+    localStorage.setItem("rope_entries", JSON.stringify(entries));
+  }
+  
   return entries[index];
 }
 
@@ -224,13 +293,12 @@ export function getYesterdayEntry(userId: string): RopeEntry | null {
   const entries = getRopeEntries(userId);
   const yesterday = new Date();
   yesterday.setDate(yesterday.getDate() - 1);
-  const yStr = `${yesterday.getFullYear()}-${String(yesterday.getMonth() + 1).padStart(2, '0')}-${String(yesterday.getDate()).padStart(2, '0')}`;
+  const yStr = formatLocalDate(yesterday);
 
   return (
     entries.find((e) => {
       const d = new Date(e.createdAt);
-      const eStr = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
-      return eStr === yStr;
+      return formatLocalDate(d) === yStr;
     }) ?? null
   );
 }
@@ -239,7 +307,14 @@ export function deleteRopeEntry(id: string): boolean {
   const entries = getRopeEntries();
   const filtered = entries.filter((e) => e.id !== id);
   if (filtered.length === entries.length) return false;
-  localStorage.setItem("rope_entries", JSON.stringify(filtered));
+  
+  cachedEntries = filtered;
+  
+  if (typeof window !== "undefined") {
+    saveRopeEntries(filtered).catch(console.error);
+    localStorage.setItem("rope_entries", JSON.stringify(filtered));
+  }
+  
   return true;
 }
 
@@ -257,10 +332,7 @@ export function getStreak(userId: string): number {
 
   // Get unique LOCAL dates (sorted descending)
   const dates = Array.from(
-    new Set(entries.map((e) => {
-      const d = new Date(e.createdAt);
-      return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
-    }))
+    new Set(entries.map((e) => formatLocalDate(new Date(e.createdAt))))
   ).sort((a, b) => b.localeCompare(a));
 
   let streak = 0;
@@ -426,14 +498,15 @@ export function parseVerseRef(ref: string): { bookNum: number; chapter: number; 
  * Uses bible-api.com for KJV/WEB/BBE, bolls.life for all others.
  */
 export async function fetchVerse(verseRef: string, translationId: string): Promise<string> {
-  if (BIBLE_API_TRANSLATIONS.has(translationId)) {
-    // Use bible-api.com
-    const res = await fetch(`https://bible-api.com/${encodeURIComponent(verseRef)}?translation=${translationId}`);
-    if (!res.ok) throw new Error("Verse not found");
-    const data = await res.json();
-    if (data.text) return data.text.trim();
-    throw new Error("No text returned");
-  }
+  try {
+    if (BIBLE_API_TRANSLATIONS.has(translationId)) {
+      // Use bible-api.com
+      const res = await fetch(`https://bible-api.com/${encodeURIComponent(verseRef)}?translation=${translationId}`);
+      if (!res.ok) throw new Error(`Reference "${verseRef}" not found in ${translationId.toUpperCase()}.`);
+      const data = await res.json();
+      if (data.text) return data.text.trim();
+      throw new Error("No text found for this reference.");
+    }
 
   // Use bolls.life for NIV, ESV, NLT, NASB, NKJV, AMP, MSG
   const bollsId = BOLLS_TRANSLATION_MAP[translationId];
@@ -483,7 +556,13 @@ export async function fetchVerse(verseRef: string, translationId: string): Promi
     if (!combined) throw new Error("No text returned");
     return combined;
   }
-  throw new Error("Unexpected response format");
+    throw new Error("Unexpected response format from Bible API.");
+  } catch (err: any) {
+    if (err instanceof Error && err.message.includes("Failed to fetch")) {
+      throw new Error("Connection failed. Please check your internet.");
+    }
+    throw err;
+  }
 }
 
 export function getTranslation(): string {
@@ -505,11 +584,24 @@ export function setTranslation(t: string): void {
 export { TRANSLATIONS };
 
 /**
- * Fetch a full chapter as individual verses from bolls.life.
- * Returns array of { verse: number, text: string }.
+ * Fetch a full chapter as individual verses.
+ * Uses bible-api.com for KJV/WEB/BBE, bolls.life for all others.
  */
 export async function fetchChapterVerses(bookName: string, chapter: number, translationId: string): Promise<{ verse: number; text: string }[]> {
-  // Map translation ID to bolls.life translation name
+  if (BIBLE_API_TRANSLATIONS.has(translationId)) {
+    // Use bible-api.com for chapter fetch
+    const res = await fetch(`https://bible-api.com/${encodeURIComponent(bookName + ' ' + chapter)}?translation=${translationId}`);
+    if (!res.ok) throw new Error("Chapter not found");
+    const data = await res.json();
+    if (!data.verses || !Array.isArray(data.verses)) throw new Error("Unexpected response");
+    
+    return data.verses.map((v: { verse: number; text: string }) => ({
+      verse: v.verse,
+      text: (v.text || "").trim(),
+    }));
+  }
+
+  // Use bolls.life translation name
   const BOLLS_NAMES: Record<string, string> = {
     kjv: "KJV", niv: "NIV", esv: "ESV", nlt: "NLT", nasb: "NASB",
     nkjv: "NKJV", amp: "AMP", msg: "MSG", web: "WEB", bbe: "BBE",
@@ -527,10 +619,66 @@ export async function fetchChapterVerses(bookName: string, chapter: number, tran
 
   if (!Array.isArray(data)) throw new Error("Unexpected response");
 
-  return data.map((v: { verse: number; text: string }) => ({
-    verse: v.verse,
-    text: (v.text || "").replace(/<S>\d+<\/S>/g, "").replace(/<[^>]*>/g, "").trim(),
-  })).filter((v: { text: string }) => v.text.length > 0);
+  // Advanced cleaning for bolls.life metadata/headers
+  // often returns headers like "Psalm 43" or "BOOK I" in the first verse
+  return data.map((v: { verse: number; text: string }) => {
+    let cleanText = (v.text || "")
+      .replace(/<S>\d+<\/S>/g, "")
+      .replace(/<[^>]*>/g, "")
+      .trim();
+
+    if (v.verse === 1) {
+      // Remove leading Psalm/Book headers if they clump into verse 1
+      // e.g. "Psalm 43Vindicate me" -> "Vindicate me"
+      const psalmMatch = cleanText.match(new RegExp(`^Psalm\\s*\\d+\\s*`, 'i'));
+      if (psalmMatch) cleanText = cleanText.substring(psalmMatch[0].length).trim();
+      
+      const bookMatch = cleanText.match(/^BOOK\s+[IVXLCDM]+\s*/i);
+      if (bookMatch) cleanText = cleanText.substring(bookMatch[0].length).trim();
+
+      // Remove specific clumping like "Psalms 1–41Psalm 1"
+      const multiMatch = cleanText.match(/^[A-Za-z]+\s+\d+[-–]\d+[A-Za-z]+\s+\d+/i);
+      if (multiMatch) cleanText = cleanText.substring(multiMatch[0].length).trim();
+
+      // Remove Hebrew letter headers for Psalm 119
+      if (bookName.toLowerCase() === 'psalms' && chapter === 119) {
+        cleanText = cleanText.replace(/^[א-ת]\s+\w+\s+/i, "").trim();
+      }
+    }
+
+    return {
+      verse: v.verse,
+      text: cleanText,
+    };
+  }).filter((v: { text: string }) => v.text.length > 0);
+}
+
+// ─── Bible History ──────────────────────────────────────────────────────────
+
+export interface BibleHistoryItem {
+  book: string;
+  chapter: number;
+  lastRead: string; // ISO date
+}
+
+export function getBibleHistory(): BibleHistoryItem[] {
+  if (typeof window === "undefined") return [];
+  const raw = localStorage.getItem("rope_bible_history");
+  if (!raw) return [];
+  try {
+    return (JSON.parse(raw) as BibleHistoryItem[]).sort((a, b) => 
+      new Date(b.lastRead).getTime() - new Date(a.lastRead).getTime()
+    );
+  } catch {
+    return [];
+  }
+}
+
+export function updateBibleHistory(book: string, chapter: number): void {
+  const history = getBibleHistory();
+  const existing = history.filter(h => !(h.book === book && h.chapter === chapter));
+  existing.unshift({ book, chapter, lastRead: new Date().toISOString() });
+  localStorage.setItem("rope_bible_history", JSON.stringify(existing.slice(0, 5)));
 }
 
 // ─── Dark Mode ──────────────────────────────────────────────────────────────
@@ -906,4 +1054,71 @@ export function getThemes(userId: string): string[] {
     .sort((a, b) => b[1] - a[1])
     .slice(0, 5)
     .map(([theme]) => theme);
+}
+
+// ─── Data Export / Import ──────────────────────────────────────────────────
+
+export function exportData(): string {
+  if (typeof window === "undefined") return "{}";
+  const data: Record<string, string | null> = {};
+  const keys = [
+    "rope_user",
+    "rope_entries",
+    "rope_prayers",
+    "rope_gratitude",
+    "rope_memory_verses",
+    "rope_bible_highlights",
+    "rope_active_plan",
+    "rope_translation",
+    "rope_dark_mode",
+    "rope_onboarding_done",
+    "rope_alias_counter"
+  ];
+
+  for (const key of keys) {
+    data[key] = localStorage.getItem(key);
+  }
+
+  return JSON.stringify({
+    version: "1.0",
+    timestamp: new Date().toISOString(),
+    data
+  }, null, 2);
+}
+
+export function importData(jsonString: string): { success: boolean; error?: string } {
+  try {
+    const parsed = JSON.parse(jsonString);
+    if (!parsed.data || typeof parsed.data !== "object") {
+      return { success: false, error: "Invalid data format" };
+    }
+
+    Object.entries(parsed.data).forEach(([key, value]) => {
+      if (typeof value === "string") {
+        localStorage.setItem(key, value);
+      }
+    });
+
+    return { success: true };
+  } catch (e) {
+    return { success: false, error: e instanceof Error ? e.message : "Unknown error" };
+  }
+}
+
+export function clearAllData(): void {
+  if (typeof window === "undefined") return;
+  const keys = [
+    "rope_user",
+    "rope_entries",
+    "rope_prayers",
+    "rope_gratitude",
+    "rope_memory_verses",
+    "rope_bible_highlights",
+    "rope_active_plan",
+    "rope_translation",
+    "rope_dark_mode",
+    "rope_onboarding_done",
+    "rope_alias_counter"
+  ];
+  keys.forEach(key => localStorage.removeItem(key));
 }

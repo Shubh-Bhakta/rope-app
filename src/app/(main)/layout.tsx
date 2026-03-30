@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { usePathname } from "next/navigation";
 import Link from "next/link";
-import { getOrCreateUser, getDarkMode, setDarkMode, hasCompletedOnboarding, resetOnboarding } from "@/lib/store";
+import { getOrCreateUser, getDarkMode, setDarkMode, hasCompletedOnboarding, resetOnboarding, initializeStore } from "@/lib/store";
 import BottomNav from "@/components/BottomNav";
 import Onboarding from "@/components/Onboarding";
 import { OliveBranch } from "@/components/Accents";
@@ -113,16 +113,35 @@ export default function MainLayout({ children }: { children: React.ReactNode }) 
   const [showOnboarding, setShowOnboarding] = useState(false);
 
   useEffect(() => {
-    getOrCreateUser();
-    setDarkModeState(getDarkMode());
-    if (!hasCompletedOnboarding()) setShowOnboarding(true);
-    setReady(true);
+    async function init() {
+      await initializeStore();
+      getOrCreateUser();
+      
+      const initialDark = getDarkMode();
+      setDarkModeState(initialDark);
+      
+      if (!hasCompletedOnboarding()) setShowOnboarding(true);
+      setReady(true);
+    }
+    init();
+
+    // Listen for system theme changes
+    const mediaQuery = window.matchMedia("(prefers-color-scheme: dark)");
+    const handleChange = (e: MediaQueryListEvent) => {
+      // Only apply if user hasn't set a manual preference
+      if (localStorage.getItem("rope_dark_mode") === null) {
+        setDarkModeState(e.matches);
+      }
+    };
+    
+    mediaQuery.addEventListener("change", handleChange);
+    return () => mediaQuery.removeEventListener("change", handleChange);
   }, []);
 
   function toggleDarkMode() {
     const next = !darkMode;
     setDarkModeState(next);
-    setDarkMode(next);
+    setDarkMode(next); // Saves to localStorage, overriding system
   }
 
   if (!ready) {

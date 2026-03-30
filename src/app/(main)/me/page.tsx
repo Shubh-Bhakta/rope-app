@@ -1,8 +1,27 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { getOrCreateUser, getRopeEntries, getStreak, getUniqueBooksCount, getMostCommonBook, getThemes, getBookFrequency, deleteRopeEntry, updateRopeEntry, getDarkMode, setDarkMode, getMemoryVerses, removeMemoryVerse, getPrayers, type User, type RopeEntry, type PrayerItem } from "@/lib/store";
 import { LampIcon, OliveBranch } from "@/components/Accents";
+import DataManagement from "@/components/DataManagement";
+import { 
+  getOrCreateUser, 
+  getRopeEntries, 
+  getStreak, 
+  getUniqueBooksCount, 
+  getMostCommonBook, 
+  getThemes, 
+  getDarkMode, 
+  setDarkMode,
+  getMemoryVerses, 
+  removeMemoryVerse,
+  getBookFrequency, 
+  getPrayers, 
+  updateRopeEntry, 
+  deleteRopeEntry,
+  type User, 
+  type RopeEntry,
+  type PrayerItem
+} from "@/lib/store";
 
 export default function MePage() {
   const [user, setUserState] = useState<User | null>(null);
@@ -178,6 +197,17 @@ export default function MePage() {
           </div>
         </div>
       )}
+
+      {/* Backup & Portability */}
+      <div className="mb-12">
+        <h2 className="font-serif text-lg text-brown mb-4 flex items-center gap-2">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="opacity-60">
+            <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+          </svg>
+          Account & Data
+        </h2>
+        <DataManagement />
+      </div>
 
       <div className="mb-8">
         {/* View toggle */}
