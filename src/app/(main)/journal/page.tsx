@@ -180,16 +180,22 @@ function MicButton({
         }
       };
       startAnalysis();
-    } else {
-      if (animationRef.current) cancelAnimationFrame(animationRef.current);
-      if (audioContextRef.current) audioContextRef.current.close();
-      if (streamRef.current) streamRef.current.getTracks().forEach(t => t.stop());
-      setVolume(0);
     }
+
     return () => {
-      if (animationRef.current) cancelAnimationFrame(animationRef.current);
-      if (audioContextRef.current && audioContextRef.current.state !== "closed") audioContextRef.current.close();
-      if (streamRef.current) streamRef.current.getTracks().forEach(t => t.stop());
+      if (animationRef.current) {
+        cancelAnimationFrame(animationRef.current);
+        animationRef.current = null;
+      }
+      if (audioContextRef.current && audioContextRef.current.state !== "closed") {
+        audioContextRef.current.close().catch(() => {});
+        audioContextRef.current = null;
+      }
+      if (streamRef.current) {
+        streamRef.current.getTracks().forEach(t => t.stop());
+        streamRef.current = null;
+      }
+      setVolume(0);
     };
   }, [listening]);
 
@@ -717,6 +723,12 @@ export default function JournalPage() {
                       onFocus={() => {
                         if (suggestions.length > 0) setShowSuggestions(true);
                       }}
+                      onKeyDown={(e) => {
+                        if (e.key === "Tab" && showSuggestions && suggestions.length > 0) {
+                          e.preventDefault();
+                          selectSuggestion(suggestions[0]);
+                        }
+                      }}
                       placeholder="e.g. Romans 8:28"
                       className="flex-1 min-w-[200px] px-4 py-2.5 bg-ivory border border-brown/10 rounded-xl text-dark placeholder:text-muted/50 focus:outline-none text-sm"
                     />
@@ -742,8 +754,9 @@ export default function JournalPage() {
                   <div className="mt-4 px-3 py-2 bg-brown/[0.03] rounded-lg border border-brown/5">
                     <p className="text-[11px] text-muted/70 leading-relaxed italic">
                       <span className="font-semibold text-brown/60 not-italic uppercase tracking-wider mr-1">Pro Tip:</span>
-                      Type any reference like <span className="text-brown/80 font-medium">John 3:16</span>, <span className="text-brown/80 font-medium">Psalm 23</span>, or <span className="text-brown/80 font-medium">Rom 8 28</span>. 
-                      You can even select multiple verses like <span className="text-brown/80 font-medium">3,5-7</span>!
+                      Type any reference like <span className="text-brown/80 font-medium">John 3:16</span> or <span className="text-brown/80 font-medium">Ps 23</span>. 
+                      Use <span className="text-brown font-semibold not-italic">Tab</span> to auto-complete suggestions! 
+                      You can even select multiple verses like <span className="text-brown/80 font-medium">3,5-7</span>.
                     </p>
                   </div>
                 </div>

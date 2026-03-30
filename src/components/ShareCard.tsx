@@ -22,14 +22,12 @@ export default function ShareCard({ verse, reference, reflection, onClose }: {
   const h = size === "story" ? 1920 : 1080;
 
   async function generateAndDownload() {
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-    
     // Ensure fonts are loaded before drawing
     if (typeof document !== "undefined") {
       await document.fonts.ready;
     }
 
+    const canvas = document.createElement("canvas");
     canvas.width = w;
     canvas.height = h;
     const ctx = canvas.getContext("2d");
@@ -87,18 +85,23 @@ export default function ShareCard({ verse, reference, reflection, onClose }: {
     ctx.font = "20px Inter, sans-serif";
     ctx.fillText("Revelation \u00B7 Observation \u00B7 Prayer \u00B7 Execution", w / 2, brandY + 40);
 
-    // Download with more reliable trigger
-    try {
-      const dataUrl = canvas.toDataURL("image/png");
+    // Reliable download with Blob
+    canvas.toBlob((blob) => {
+      if (!blob) return;
+      const url = URL.createObjectURL(blob);
       const link = document.createElement("a");
       link.download = `rope-${reference.replace(/\s+/g, "-").toLowerCase()}.png`;
-      link.href = dataUrl;
+      link.href = url;
+      link.style.display = "none";
       document.body.appendChild(link);
       link.click();
-      document.body.removeChild(link);
-    } catch (err) {
-      console.error("Download failed:", err);
-    }
+      
+      // Cleanup
+      setTimeout(() => {
+        document.body.removeChild(link);
+        URL.revokeObjectURL(url);
+      }, 100);
+    }, "image/png");
   }
 
   function wrapText(ctx: CanvasRenderingContext2D, text: string, maxWidth: number): string[] {
@@ -161,9 +164,6 @@ export default function ShareCard({ verse, reference, reflection, onClose }: {
         <button onClick={generateAndDownload} className="w-full btn-primary py-3 text-center text-sm">
           Download Card
         </button>
-
-        {/* Hidden canvas for generation */}
-        <canvas ref={canvasRef} style={{ display: "none" }} />
       </div>
     </div>
   );
