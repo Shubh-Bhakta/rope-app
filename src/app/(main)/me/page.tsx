@@ -129,12 +129,11 @@ export default function MePage() {
             const next = !isDark;
             setIsDark(next);
             setDarkMode(next);
-            // Toggle class on nearest .dark ancestor
-            const root = document.querySelector('[class*="min-h-screen"]');
-            if (root) {
-              if (next) root.classList.add("dark");
-              else root.classList.remove("dark");
-            }
+            // Trigger storage event for layout (layout.tsx)
+            window.dispatchEvent(new StorageEvent("storage", {
+              key: "rope_dark_mode",
+              newValue: next.toString(),
+            }));
           }}
           className={`relative w-11 h-6 rounded-full transition-colors ${isDark ? "bg-accent-gold" : "bg-brown/20"}`}
         >

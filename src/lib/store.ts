@@ -454,43 +454,60 @@ const TRANSLATIONS = [
 ];
 
 // bolls.life translation ID mapping (their API uses numeric IDs)
-const BOLLS_TRANSLATION_MAP: Record<string, number> = {
-  kjv: 1,
-  niv: 111,
-  esv: 59,
-  nlt: 116,
-  nasb: 100,
-  nkjv: 114,
-  amp: 12,
-  msg: 97,
-  web: 206,
-  bbe: 15,
+const BOLLS_TRANSLATION_MAP: Record<string, string> = {
+  kjv: "KJV",
+  niv: "NIV",
+  esv: "ESV",
+  nlt: "NLT",
+  nasb: "NASB",
+  nkjv: "NKJV",
+  amp: "AMP",
+  msg: "MSG",
+  web: "WEB",
+  bbe: "BBE",
 };
 
 /**
  * Parse a verse reference into book + chapter + verse(s) for the bolls.life API.
- * Returns { book, chapter, verseStart, verseEnd } or null.
+ * Supports: "John 3:16", "John 3:16-18", "John 3:16,18", "John 3"
+ * Returns { bookNum, chapter, verses: number[] } or null.
  */
-export function parseVerseRef(ref: string): { bookNum: number; chapter: number; verseStart?: number; verseEnd?: number } | null {
+export function parseVerseRef(ref: string): { bookNum: number; chapter: number; verses: number[] } | null {
   const trimmed = ref.trim();
-  // Match: "Book Chapter:Verse-Verse" or "Book Chapter:Verse" or "Book Chapter"
-  const match = trimmed.match(/^(.+?)\s+(\d+)(?::(\d+)(?:-(\d+))?)?$/);
+  // Match: "Book Chapter:VerseStuff" or "Book Chapter VerseStuff" (space/colon/comma)
+  const match = trimmed.match(/^(.+?)\s+(\d+)(?:[ :]+(.+))?$/);
   if (!match) return null;
 
   const bookName = match[1].trim().toLowerCase();
   const chapter = parseInt(match[2]);
-  const verseStart = match[3] ? parseInt(match[3]) : undefined;
-  const verseEnd = match[4] ? parseInt(match[4]) : verseStart;
+  const verseStuff = match[3] ? match[3].trim() : "";
 
   // Map book name to bolls.life book number (1-66)
   const bookIndex = BIBLE_BOOKS.findIndex(b => {
     const nameLower = b.name.toLowerCase();
-    if (nameLower === bookName) return true;
-    return b.abbrevs.some(a => a === bookName);
+    return nameLower === bookName || b.abbrevs.some(a => a === bookName);
   });
 
   if (bookIndex === -1) return null;
-  return { bookNum: bookIndex + 1, chapter, verseStart, verseEnd };
+
+  const verses: number[] = [];
+  if (verseStuff) {
+    // Parse complex ranges like "1-3,5,7-9"
+    const parts = verseStuff.split(",");
+    for (const part of parts) {
+      if (part.includes("-")) {
+        const [start, end] = part.split("-").map(v => parseInt(v.trim()));
+        if (!isNaN(start) && !isNaN(end)) {
+          for (let i = start; i <= end; i++) verses.push(i);
+        }
+      } else {
+        const v = parseInt(part.trim());
+        if (!isNaN(v)) verses.push(v);
+      }
+    }
+  }
+
+  return { bookNum: bookIndex + 1, chapter, verses };
 }
 
 /**
@@ -515,35 +532,32 @@ export async function fetchVerse(verseRef: string, translationId: string): Promi
   const parsed = parseVerseRef(verseRef);
   if (!parsed) throw new Error("Could not parse verse reference");
 
-  const { bookNum, chapter, verseStart, verseEnd } = parsed;
+  const { bookNum, chapter, verses } = parsed;
 
-  if (verseStart !== undefined) {
+  if (verses.length > 0) {
     // Fetch specific verse(s)
-    const url = `https://bolls.life/get-verse/${bollsId}/${bookNum}/${chapter}/${verseStart}/`;
-
-    if (verseEnd && verseEnd > verseStart) {
-      // Range of verses — fetch each and combine
-      const promises = [];
-      for (let v = verseStart; v <= verseEnd; v++) {
-        promises.push(
-          fetch(`https://bolls.life/get-verse/${bollsId}/${bookNum}/${chapter}/${v}/`)
-            .then(r => r.json())
-            .then(d => ({ verse: v, text: (d.text || "").replace(/<[^>]*>/g, "").trim() }))
-        );
-      }
-      const results = await Promise.all(promises);
-      const combined = results.sort((a, b) => a.verse - b.verse).map(r => r.text).join(" ");
-      if (!combined) throw new Error("No text returned");
-      return combined;
-    }
-
-    // Single verse
-    const res = await fetch(url);
-    if (!res.ok) throw new Error("Verse not found");
-    const data = await res.json();
-    const text = (data.text || "").replace(/<[^>]*>/g, "").trim();
-    if (!text) throw new Error("No text returned");
-    return text;
+    const promises = verses.map(v => 
+      fetch(`https://bolls.life/get-verse/${bollsId}/${bookNum}/${chapter}/${v}/`)
+        .then(async r => {
+          if (!r.ok) return { verse: v, text: "" };
+          const d = await r.json();
+          // Clean text and handle clumping
+          let clean = (d.text || "").replace(/<[^>]*>/g, "").trim();
+          // Fix [a-z][A-Z] clumping (section headers)
+          clean = clean.replace(/([a-z])([A-Z])/g, '$1 $2');
+          return { verse: v, text: clean };
+        })
+    );
+    
+    const results = await Promise.all(promises);
+    const combined = results
+      .filter(r => r.text)
+      .sort((a, b) => a.verse - b.verse)
+      .map(r => r.text)
+      .join(" ");
+      
+    if (!combined) throw new Error("No text returned for these verses");
+    return combined;
   }
 
   // Whole chapter — fetch chapter text
@@ -597,7 +611,7 @@ export async function fetchChapterVerses(bookName: string, chapter: number, tran
     
     return data.verses.map((v: { verse: number; text: string }) => ({
       verse: v.verse,
-      text: (v.text || "").trim(),
+      text: (v.text || "").replace(/([a-z])([A-Z])/g, '$1 $2').trim(),
     }));
   }
 
@@ -625,6 +639,7 @@ export async function fetchChapterVerses(bookName: string, chapter: number, tran
     let cleanText = (v.text || "")
       .replace(/<S>\d+<\/S>/g, "")
       .replace(/<[^>]*>/g, "")
+      .replace(/([a-z])([A-Z])/g, '$1 $2')
       .trim();
 
     if (v.verse === 1) {

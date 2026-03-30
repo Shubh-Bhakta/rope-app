@@ -21,9 +21,15 @@ export default function ShareCard({ verse, reference, reflection, onClose }: {
   const w = 1080;
   const h = size === "story" ? 1920 : 1080;
 
-  function generateAndDownload() {
+  async function generateAndDownload() {
     const canvas = canvasRef.current;
     if (!canvas) return;
+    
+    // Ensure fonts are loaded before drawing
+    if (typeof document !== "undefined") {
+      await document.fonts.ready;
+    }
+
     canvas.width = w;
     canvas.height = h;
     const ctx = canvas.getContext("2d");
@@ -35,57 +41,64 @@ export default function ShareCard({ verse, reference, reflection, onClose }: {
 
     // Subtle border
     ctx.strokeStyle = t.accent + "30";
-    ctx.lineWidth = 2;
+    ctx.lineWidth = 4;
     ctx.strokeRect(60, 60, w - 120, h - 120);
 
     // Cross icon at top
-    const crossY = size === "story" ? 200 : 140;
+    const crossY = size === "story" ? 240 : 160;
     ctx.fillStyle = t.accent + "40";
-    ctx.fillRect(w / 2 - 3, crossY, 6, 40);
-    ctx.fillRect(w / 2 - 15, crossY + 10, 30, 6);
+    ctx.fillRect(w / 2 - 4, crossY, 8, 60);
+    ctx.fillRect(w / 2 - 25, crossY + 15, 50, 8);
 
-    // Verse text - word wrap
+    // Verse text - scaled up for 1080px
     ctx.fillStyle = t.text;
-    ctx.font = "italic 42px Georgia, serif";
+    ctx.font = "italic 64px Georgia, serif";
     ctx.textAlign = "center";
-    const verseY = size === "story" ? 400 : 300;
-    const maxWidth = w - 200;
+    const verseY = size === "story" ? 500 : 380;
+    const maxWidth = w - 240;
     const lines = wrapText(ctx, `\u201C${verse}\u201D`, maxWidth);
     lines.forEach((line, i) => {
-      ctx.fillText(line, w / 2, verseY + i * 56);
+      ctx.fillText(line, w / 2, verseY + i * 82);
     });
 
-    // Reference
-    const refY = verseY + lines.length * 56 + 40;
+    // Reference - scaled up
+    const refY = verseY + lines.length * 82 + 60;
     ctx.fillStyle = t.muted;
-    ctx.font = "16px Inter, sans-serif";
+    ctx.font = "32px Inter, sans-serif";
     ctx.fillText(`\u2014 ${reference}`, w / 2, refY);
 
-    // Reflection (if present)
+    // Reflection (if present) - scaled up
     if (reflection) {
-      const reflY = refY + 60;
-      ctx.fillStyle = t.text + "aa";
-      ctx.font = "28px Inter, sans-serif";
-      const reflLines = wrapText(ctx, reflection, maxWidth - 40);
-      reflLines.slice(0, 4).forEach((line, i) => {
-        ctx.fillText(line, w / 2, reflY + i * 40);
+      const reflY = refY + 100;
+      ctx.fillStyle = t.text + "cc";
+      ctx.font = "42px Inter, sans-serif";
+      const reflLines = wrapText(ctx, reflection, maxWidth - 80);
+      reflLines.slice(0, 6).forEach((line, i) => {
+        ctx.fillText(line, w / 2, reflY + i * 60);
       });
     }
 
     // ROPE branding at bottom
-    const brandY = h - 100;
+    const brandY = h - 140;
     ctx.fillStyle = t.accent;
-    ctx.font = "bold 24px Georgia, serif";
+    ctx.font = "bold 36px Georgia, serif";
     ctx.fillText("ROPE", w / 2, brandY);
-    ctx.fillStyle = t.muted + "80";
-    ctx.font = "12px Inter, sans-serif";
-    ctx.fillText("Revelation \u00B7 Observation \u00B7 Prayer \u00B7 Execution", w / 2, brandY + 24);
+    ctx.fillStyle = t.muted + "cc";
+    ctx.font = "20px Inter, sans-serif";
+    ctx.fillText("Revelation \u00B7 Observation \u00B7 Prayer \u00B7 Execution", w / 2, brandY + 40);
 
-    // Download
-    const link = document.createElement("a");
-    link.download = `rope-${reference.replace(/\s+/g, "-").toLowerCase()}.png`;
-    link.href = canvas.toDataURL("image/png");
-    link.click();
+    // Download with more reliable trigger
+    try {
+      const dataUrl = canvas.toDataURL("image/png");
+      const link = document.createElement("a");
+      link.download = `rope-${reference.replace(/\s+/g, "-").toLowerCase()}.png`;
+      link.href = dataUrl;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    } catch (err) {
+      console.error("Download failed:", err);
+    }
   }
 
   function wrapText(ctx: CanvasRenderingContext2D, text: string, maxWidth: number): string[] {

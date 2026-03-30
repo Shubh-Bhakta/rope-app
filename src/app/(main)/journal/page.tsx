@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef, useCallback } from "react";
-import { getOrCreateUser, addRopeEntry, suggestBooks, getStreak, getTranslation, setTranslation, getGatewayVersion, TRANSLATIONS, getPlanSuggestedVerse, advancePlan, getActivePlan, getReachedMilestone, getNextMilestone, addMemoryVerse, getMemoryVerses, fetchVerse } from "@/lib/store";
+import { getOrCreateUser, addRopeEntry, suggestBooks, getStreak, getTranslation, setTranslation, getGatewayVersion, TRANSLATIONS, getPlanSuggestedVerse, advancePlan, getActivePlan, getReachedMilestone, getNextMilestone, addMemoryVerse, getMemoryVerses, fetchVerse, BIBLE_BOOKS } from "@/lib/store";
 import { OliveBranch } from "@/components/Accents";
 import ShareCard from "@/components/ShareCard";
 import Breathing from "@/components/Breathing";
@@ -298,6 +298,10 @@ export default function JournalPage() {
   const [execution, setExecution] = useState("");
   const [saved, setSaved] = useState(false);
   const [savedCount, setSavedCount] = useState(0);
+  const [isQuickEntry, setIsQuickEntry] = useState(true);
+  const [selectedBook, setSelectedBook] = useState("");
+  const [selectedChapter, setSelectedChapter] = useState("");
+  const [selectedVerses, setSelectedVerses] = useState("");
   const [suggestions, setSuggestions] = useState<string[]>([]);
   const [showSuggestions, setShowSuggestions] = useState(false);
   const suggestionsRef = useRef<HTMLDivElement>(null);
@@ -433,17 +437,27 @@ export default function JournalPage() {
   }
 
   async function lookupVerse() {
-    if (!verseRef.trim()) return;
+    let ref = verseRef.trim();
+    if (!isQuickEntry) {
+      if (!selectedBook || !selectedChapter) {
+        setLookupError("Please select a book and enter a chapter.");
+        return;
+      }
+      ref = `${selectedBook} ${selectedChapter}${selectedVerses ? ":" + selectedVerses : ""}`;
+      setVerseRef(ref);
+    }
+
+    if (!ref) return;
     setLookingUp(true);
     setLookupError("");
     setVerseText("");
     try {
-      const text = await fetchVerse(verseRef.trim(), translation);
+      const text = await fetchVerse(ref, translation);
       setVerseText(text);
       setVerseLookedUp(true);
       // Check if already a memory verse
       const memVerses = getMemoryVerses();
-      setIsMemoryVerse(memVerses.some(v => v.verse === verseRef.trim()));
+      setIsMemoryVerse(memVerses.some(v => v.verse === ref));
     } catch {
       setLookupError("Could not find that verse. Try a format like 'John 3:16' or 'Romans 8:28'.");
     } finally {
@@ -657,6 +671,7 @@ export default function JournalPage() {
                 <button
                   onClick={async () => {
                     setVerseRef(planVerse);
+                    setIsQuickEntry(true);
                     setShowSuggestions(false);
                     setLookingUp(true);
                     setLookupError("");
@@ -667,7 +682,7 @@ export default function JournalPage() {
                       const memVerses = getMemoryVerses();
                       setIsMemoryVerse(memVerses.some(v => v.verse === planVerse));
                     } catch (err: any) {
-                      setLookupError(err.message || "Could not find that verse. Try a format like 'John 3:16' or 'Romans 8:28'.");
+                      setLookupError(err.message || "Could not find that verse.");
                     } finally {
                       setLookingUp(false);
                     }
@@ -680,40 +695,145 @@ export default function JournalPage() {
             );
           })()}
 
-          <div className="relative">
-            <div className="flex flex-wrap gap-2 mb-2">
-              <input
-                ref={inputRef}
-                type="text"
-                value={verseRef}
-                onChange={(e) => handleVerseInput(e.target.value)}
-                onFocus={() => {
-                  if (suggestions.length > 0) setShowSuggestions(true);
-                }}
-                placeholder="e.g. Romans 8:28"
-                className="flex-1 min-w-[120px] px-4 py-2.5 bg-ivory border border-brown/10 rounded-xl text-dark placeholder:text-muted/50 focus:outline-none text-sm"
-              />
-              <select
-                value={translation}
-                onChange={(e) => { setTranslationState(e.target.value); setTranslation(e.target.value); }}
-                className="px-2 py-2.5 bg-ivory border border-brown/10 rounded-xl text-dark text-xs focus:outline-none shrink-0"
+          <div className="space-y-4">
+            <div className="flex justify-end">
+              <button 
+                onClick={() => setIsQuickEntry(!isQuickEntry)}
+                className="text-[10px] text-muted hover:text-brown transition italic px-2 py-1"
               >
-                {TRANSLATIONS.map(t => (
-                  <option key={t.id} value={t.id}>{t.label}</option>
-                ))}
-              </select>
-              <button
-                onClick={lookupVerse}
-                disabled={lookingUp || !verseRef.trim()}
-                className="px-4 py-2.5 bg-brown text-ivory rounded-xl text-sm font-medium hover:bg-brown-light disabled:opacity-40 transition shrink-0 w-full sm:w-auto"
-              >
-                {lookingUp ? "..." : "Look up"}
+                {isQuickEntry ? "Try structured lookup" : "Switch to quick entry"}
               </button>
             </div>
+
+            <div className="relative">
+              {isQuickEntry ? (
+                <div className="space-y-3">
+                  <div className="flex flex-wrap gap-2">
+                    <input
+                      ref={inputRef}
+                      type="text"
+                      value={verseRef}
+                      onChange={(e) => handleVerseInput(e.target.value)}
+                      onFocus={() => {
+                        if (suggestions.length > 0) setShowSuggestions(true);
+                      }}
+                      placeholder="e.g. Romans 8:28"
+                      className="flex-1 min-w-[200px] px-4 py-2.5 bg-ivory border border-brown/10 rounded-xl text-dark placeholder:text-muted/50 focus:outline-none text-sm"
+                    />
+                    <select
+                      value={translation}
+                      onChange={(e) => { setTranslationState(e.target.value); setTranslation(e.target.value); }}
+                      className="px-2 py-2.5 bg-ivory border border-brown/10 rounded-xl text-dark text-xs focus:outline-none shrink-0"
+                    >
+                      {TRANSLATIONS.map(t => (
+                        <option key={t.id} value={t.id}>{t.label}</option>
+                      ))}
+                    </select>
+                    <button
+                      onClick={lookupVerse}
+                      disabled={lookingUp || !verseRef.trim()}
+                      className="px-4 py-2.5 bg-brown text-ivory rounded-xl text-sm font-medium hover:bg-brown-light disabled:opacity-40 transition shrink-0 w-full sm:w-auto"
+                    >
+                      {lookingUp ? "..." : "Look up"}
+                    </button>
+                  </div>
+                  
+                  {/* About Quick Entry */}
+                  <div className="mt-4 px-3 py-2 bg-brown/[0.03] rounded-lg border border-brown/5">
+                    <p className="text-[11px] text-muted/70 leading-relaxed italic">
+                      <span className="font-semibold text-brown/60 not-italic uppercase tracking-wider mr-1">Pro Tip:</span>
+                      Type any reference like <span className="text-brown/80 font-medium">John 3:16</span>, <span className="text-brown/80 font-medium">Psalm 23</span>, or <span className="text-brown/80 font-medium">Rom 8 28</span>. 
+                      You can even select multiple verses like <span className="text-brown/80 font-medium">3,5-7</span>!
+                    </p>
+                  </div>
+                </div>
+              ) : (
+                <div className="space-y-2">
+                  <div className="grid grid-cols-1 sm:grid-cols-4 gap-2">
+                    <div className="sm:col-span-2">
+                      <select
+                        value={selectedBook}
+                        onChange={(e) => setSelectedBook(e.target.value)}
+                        className="w-full px-4 py-2.5 bg-ivory border border-brown/10 rounded-xl text-dark text-sm focus:outline-none focus:ring-1 focus:ring-brown/20 appearance-none bg-[url('data:image/svg+xml;charset=US-ASCII,%3Csvg%20width%3D%2220%22%20height%3D%2220%22%20viewBox%3D%220%200%2020%2020%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22%235C4327%22%20stroke-width%3D%221.5%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%3Cpath%20d%3D%22m6%209%204%204%204-4%22%2F%3E%3C%2Fsvg%3E')] bg-[length:20px] bg-[right_10px_center] bg-no-repeat"
+                      >
+                        <option value="">Select Bible Book</option>
+                        {BIBLE_BOOKS.map(book => (
+                          <option key={book.name} value={book.name}>{book.name}</option>
+                        ))}
+                      </select>
+                    </div>
+                    <input
+                      type="number"
+                      min="1"
+                      placeholder="Ch"
+                      value={selectedChapter}
+                      onChange={(e) => setSelectedChapter(e.target.value)}
+                      className="px-4 py-2.5 bg-ivory border border-brown/10 rounded-xl text-dark placeholder:text-muted/50 focus:outline-none text-sm"
+                    />
+                    <input
+                      type="text"
+                      placeholder="Verse(s) ex: 1-5"
+                      value={selectedVerses}
+                      onChange={(e) => setSelectedVerses(e.target.value)}
+                      className="px-4 py-2.5 bg-ivory border border-brown/10 rounded-xl text-dark placeholder:text-muted/50 focus:outline-none text-sm"
+                    />
+                  </div>
+                  <div className="flex flex-wrap gap-2">
+                    <select
+                      value={translation}
+                      onChange={(e) => { setTranslationState(e.target.value); setTranslation(e.target.value); }}
+                      className="flex-1 sm:flex-initial px-4 py-2.5 bg-ivory border border-brown/10 rounded-xl text-dark text-xs focus:outline-none shrink-0"
+                    >
+                      {TRANSLATIONS.map(t => (
+                        <option key={t.id} value={t.id}>{t.label}</option>
+                      ))}
+                    </select>
+                    <button
+                      onClick={lookupVerse}
+                      disabled={lookingUp || !selectedBook || !selectedChapter}
+                      className="flex-1 sm:flex-initial px-8 py-2.5 bg-brown text-ivory rounded-xl text-sm font-medium hover:bg-brown-light disabled:opacity-40 transition"
+                    >
+                      {lookingUp ? "..." : "Look up passage"}
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              {/* Autocomplete dropdown for quick entry */}
+              {isQuickEntry && showSuggestions && suggestions.length > 0 && (
+                <div
+                  ref={suggestionsRef}
+                  className="absolute left-0 right-16 top-12 z-30 bg-ivory border border-brown/10 rounded-xl overflow-hidden max-h-48 overflow-y-auto shadow-elevated"
+                  style={{ animation: "fadeIn 0.15s ease-out both" }}
+                >
+                  {suggestions.map((book) => (
+                    <button
+                      key={book}
+                      onClick={() => selectSuggestion(book)}
+                      className="w-full text-left px-4 py-2.5 text-sm text-brown hover:bg-cream transition"
+                    >
+                      {book}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+
             <button
               onClick={async () => {
                 const verse = getTodaysVerse();
                 setVerseRef(verse);
+                
+                // If in structured mode, try to parse and populate fields
+                if (!isQuickEntry) {
+                   const m = verse.match(/^(.+?)\s+(\d+)(?:[ :]+(.+))?$/);
+                   if (m) {
+                     setSelectedBook(m[1]);
+                     setSelectedChapter(m[2]);
+                     setSelectedVerses(m[3] || "");
+                   }
+                }
+                
                 setShowSuggestions(false);
                 setLookingUp(true);
                 setLookupError("");
@@ -722,41 +842,22 @@ export default function JournalPage() {
                   const text = await fetchVerse(verse, translation);
                   setVerseText(text);
                   setVerseLookedUp(true);
-                } catch { setLookupError("Could not fetch today's verse. Try clicking Look up."); }
+                } catch { setLookupError("Could not fetch today's verse."); }
                 finally { setLookingUp(false); }
               }}
-              className="w-full mb-3 px-3 py-2 text-accent-olive text-xs font-medium border border-accent-olive/20 rounded-xl hover:bg-accent-olive/5 transition whitespace-nowrap md:w-auto"
+              className="w-full px-3 py-2 text-accent-olive text-xs font-medium border border-accent-olive/20 rounded-xl hover:bg-accent-olive/5 transition whitespace-nowrap md:w-auto"
               title="Get today's suggested verse"
             >
               ✦ Today&apos;s verse
             </button>
-            {/* Translation selection covers all major versions */}
 
-            {/* Autocomplete dropdown */}
-            {showSuggestions && suggestions.length > 0 && (
-              <div
-                ref={suggestionsRef}
-                className="absolute left-0 right-16 top-12 z-20 bg-ivory border border-brown/10 rounded-xl overflow-hidden max-h-48 overflow-y-auto"
-                style={{ animation: "fadeIn 0.15s ease-out both", boxShadow: "var(--shadow-elevated)" }}
-              >
-                {suggestions.map((book) => (
-                  <button
-                    key={book}
-                    onClick={() => selectSuggestion(book)}
-                    className="w-full text-left px-4 py-2.5 text-sm text-brown hover:bg-cream transition"
-                  >
-                    {book}
-                  </button>
-                ))}
-              </div>
+            {lookupError && (
+              <p className="text-struggle text-xs italic">{lookupError}</p>
             )}
           </div>
-          {lookupError && (
-            <p className="text-struggle text-xs">{lookupError}</p>
-          )}
+
           {verseLookedUp && verseText && (
-            <div className="mt-3 rounded-xl overflow-hidden" style={{ animation: "fadeInUp 0.3s ease-out both" }}>
-              {/* Passage card */}
+            <div className="mt-4 rounded-xl overflow-hidden" style={{ animation: "fadeInUp 0.3s ease-out both" }}>
               <div className="bg-ivory/80 p-4 border-l-2 border-accent-gold/30">
                 <p className="text-dark text-sm leading-relaxed italic">
                   &ldquo;{verseText}&rdquo;
@@ -771,7 +872,6 @@ export default function JournalPage() {
                         setIsMemoryVerse(true);
                       }}
                       className={`text-[10px] uppercase tracking-wider transition-colors flex items-center gap-1 ${isMemoryVerse ? "text-accent-gold" : "text-muted/50 hover:text-accent-gold"}`}
-                      title={isMemoryVerse ? "Saved to memory verses" : "Save as memory verse"}
                     >
                       <svg width="12" height="12" viewBox="0 0 24 24" fill={isMemoryVerse ? "currentColor" : "none"} stroke="currentColor" strokeWidth="2"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" /></svg>
                       {isMemoryVerse ? "Saved" : "Memorize"}
@@ -787,14 +887,14 @@ export default function JournalPage() {
                   </div>
                 </div>
               </div>
-              {/* Revelation reflection */}
-              <div className="px-4 py-3 bg-brown/[0.03] border-t border-brown/5">
+              <div className="mt-4 px-2">
+                <p className="text-[10px] uppercase tracking-[0.2em] text-muted font-medium mb-2.5 opacity-60 ml-2">Heart Reflection</p>
                 <textarea
                   value={revelationReflection}
                   onChange={(e) => setRevelationReflection(e.target.value)}
-                  placeholder="What is God highlighting for you in this verse?"
-                  rows={2}
-                  className="w-full bg-transparent text-dark text-sm placeholder:text-muted/40 focus:outline-none resize-none leading-relaxed italic"
+                  placeholder="What is the Holy Spirit highlighting for you in this verse? Record your initial impressions here..."
+                  rows={3}
+                  className="w-full px-4 py-3 bg-ivory border border-brown/10 rounded-xl text-dark text-sm placeholder:text-muted/30 focus:outline-none resize-none leading-relaxed italic"
                 />
               </div>
             </div>

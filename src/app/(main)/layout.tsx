@@ -127,15 +127,25 @@ export default function MainLayout({ children }: { children: React.ReactNode }) 
 
     // Listen for system theme changes
     const mediaQuery = window.matchMedia("(prefers-color-scheme: dark)");
-    const handleChange = (e: MediaQueryListEvent) => {
-      // Only apply if user hasn't set a manual preference
+    const handleSystemChange = (e: MediaQueryListEvent) => {
       if (localStorage.getItem("rope_dark_mode") === null) {
         setDarkModeState(e.matches);
       }
     };
     
-    mediaQuery.addEventListener("change", handleChange);
-    return () => mediaQuery.removeEventListener("change", handleChange);
+    // Listen for manual changes in other tabs/components
+    const handleStorageChange = (e: StorageEvent) => {
+      if (e.key === "rope_dark_mode") {
+        setDarkModeState(e.newValue === "true");
+      }
+    };
+
+    mediaQuery.addEventListener("change", handleSystemChange);
+    window.addEventListener("storage", handleStorageChange);
+    return () => {
+      mediaQuery.removeEventListener("change", handleSystemChange);
+      window.removeEventListener("storage", handleStorageChange);
+    };
   }, []);
 
   function toggleDarkMode() {
@@ -239,7 +249,18 @@ export default function MainLayout({ children }: { children: React.ReactNode }) 
 
       {/* Main content area */}
       <main className="pb-24 md:pb-8 md:ml-64 xl:mr-[280px]">
-        <div className="max-w-lg mx-auto md:max-w-2xl md:px-4">{children}</div>
+        <div className="max-w-lg mx-auto md:max-w-2xl md:px-4">
+          {children}
+          
+          {/* Creator Credit Footer */}
+          <footer className="mt-12 py-8 border-t border-brown/5 text-center px-4">
+            <p className="text-muted/30 text-[10px] uppercase tracking-[0.2em] font-medium leading-loose">
+              Created by <span className="text-muted/40">Shubh Bhakta</span> & <span className="text-muted/40">Tiernan Lindauer</span>
+              <br />
+              ROPE Bible Journaling &copy; {new Date().getFullYear()}
+            </p>
+          </footer>
+        </div>
       </main>
 
       {/* Devotional side rail — xl+ only */}
