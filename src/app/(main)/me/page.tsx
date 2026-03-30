@@ -53,6 +53,15 @@ export default function MePage() {
     setMemoryVerses(getMemoryVerses());
     setBookFreq(getBookFrequency(currentUserId));
     setAnsweredPrayers(getPrayers().filter(p => !!p.answeredAt));
+
+    const handleCustomChange = (e: any) => {
+      setIsDark(e.detail.darkMode);
+    };
+
+    window.addEventListener("rope-theme-toggle", handleCustomChange as any);
+    return () => {
+      window.removeEventListener("rope-theme-toggle", handleCustomChange as any);
+    };
   }, [isLoaded, userId]);
 
   function formatDate(dateStr: string): string {
@@ -137,7 +146,11 @@ export default function MePage() {
               const next = !isDark;
               setIsDark(next);
               setDarkMode(next);
-              // Trigger storage event for layout (layout.tsx)
+              
+              // Notify other components (like MainLayout) in the same tab
+              window.dispatchEvent(new CustomEvent("rope-theme-toggle", { detail: { darkMode: next } }));
+              
+              // Still dispatch storage event for other tabs to stay in sync
               window.dispatchEvent(new StorageEvent("storage", {
                 key: "rope_dark_mode",
                 newValue: next.toString(),

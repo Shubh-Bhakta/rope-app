@@ -148,18 +148,37 @@ export default function MainLayout({ children }: { children: React.ReactNode }) 
       }
     };
 
+    // Listen for custom event within the same tab
+    const handleCustomChange = (e: any) => {
+      setDarkModeState(e.detail.darkMode);
+    };
+ 
     mediaQuery.addEventListener("change", handleSystemChange);
     window.addEventListener("storage", handleStorageChange);
+    window.addEventListener("rope-theme-toggle", handleCustomChange as any);
     return () => {
       mediaQuery.removeEventListener("change", handleSystemChange);
       window.removeEventListener("storage", handleStorageChange);
+      window.removeEventListener("rope-theme-toggle", handleCustomChange as any);
     };
   }, [isLoaded, isSignedIn]);
+
+  // Sync darkMode state with document root for instant theme switching
+  useEffect(() => {
+    if (darkMode) {
+      document.documentElement.classList.add("dark");
+    } else {
+      document.documentElement.classList.remove("dark");
+    }
+  }, [darkMode]);
 
   function toggleDarkMode() {
     const next = !darkMode;
     setDarkModeState(next);
     setDarkMode(next); // Saves to localStorage, overriding system
+    
+    // Notify other components in the same tab
+    window.dispatchEvent(new CustomEvent("rope-theme-toggle", { detail: { darkMode: next } }));
   }
 
   const [showHelpCenter, setShowHelpCenter] = useState(false);
@@ -177,7 +196,7 @@ export default function MainLayout({ children }: { children: React.ReactNode }) 
   const todayPrompt = reflectionPrompts[dayIndex];
 
   return (
-    <div className={`min-h-screen bg-ivory ${darkMode ? "dark" : ""}`}>
+    <div className="min-h-screen bg-ivory">
       {/* Desktop sidebar */}
       <aside className="hidden md:flex md:fixed md:inset-y-0 md:left-0 md:w-64 md:flex-col bg-sidebar border-r border-brown/8 z-40">
         {/* Help/Quick Guide Area */}
