@@ -1,12 +1,13 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { usePathname } from "next/navigation";
 import Link from "next/link";
 import { useAuth } from "@clerk/nextjs";
 import { getDarkMode, setDarkMode, hasCompletedOnboarding, resetOnboarding, initializeStore } from "@/lib/store";
 import BottomNav from "@/components/BottomNav";
 import Onboarding from "@/components/Onboarding";
+import HelpCenter from "@/components/HelpCenter";
 import { OliveBranch } from "@/components/Accents";
 
 const navItems = [
@@ -161,6 +162,8 @@ export default function MainLayout({ children }: { children: React.ReactNode }) 
     setDarkMode(next); // Saves to localStorage, overriding system
   }
 
+  const [showHelpCenter, setShowHelpCenter] = useState(false);
+
   if (!ready) {
     return (
       <div className="min-h-screen bg-ivory flex items-center justify-center">
@@ -177,14 +180,19 @@ export default function MainLayout({ children }: { children: React.ReactNode }) 
     <div className={`min-h-screen bg-ivory ${darkMode ? "dark" : ""}`}>
       {/* Desktop sidebar */}
       <aside className="hidden md:flex md:fixed md:inset-y-0 md:left-0 md:w-64 md:flex-col bg-sidebar border-r border-brown/8 z-40">
-        {/* Brand area removed - handled by global Navbar */}
-        <div className="px-6 pt-20 pb-8 relative">
+        {/* Help/Quick Guide Area */}
+        <div className="px-3 pt-20 pb-4">
           <button
-            onClick={() => { resetOnboarding(); setShowOnboarding(true); }}
-            className="absolute top-10 right-4 w-7 h-7 rounded-full bg-brown/8 flex items-center justify-center text-muted hover:text-brown hover:bg-brown/15 transition text-xs shadow-sm"
-            title="Show walkthrough"
+            onClick={() => setShowHelpCenter(true)}
+            className="flex items-center gap-3 w-full px-4 py-3 rounded-xl text-sm font-medium transition-all text-muted hover:text-brown hover:bg-cream/50 group"
+            aria-label="Help and info"
           >
-            ?
+            <span className="w-5 h-5 flex items-center justify-center rounded-full bg-brown/5 text-muted group-hover:bg-brown/10 group-hover:text-brown transition-colors">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                <circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/>
+              </svg>
+            </span>
+            Quick Guide
           </button>
         </div>
 
@@ -350,6 +358,13 @@ export default function MainLayout({ children }: { children: React.ReactNode }) 
       <BottomNav />
 
       {showOnboarding && <Onboarding onComplete={() => setShowOnboarding(false)} />}
+      
+      {showHelpCenter && (
+        <HelpCenter 
+          onClose={() => setShowHelpCenter(false)} 
+          onRestartWalkthrough={() => { resetOnboarding(); setShowOnboarding(true); }} 
+        />
+      )}
     </div>
   );
 }
