@@ -20,7 +20,7 @@ import { LampIcon, OliveBranch, VerseBlock } from "@/components/Accents";
 import Link from "next/link";
 
 export default function InsightsPage() {
-  const { isLoaded, isSignedIn } = useAuth();
+  const { isLoaded, isSignedIn, userId } = useAuth();
   const [entries, setEntries] = useState<RopeEntry[]>([]);
   const [streak, setStreakVal] = useState(0);
   const [bookFreq, setBookFreq] = useState<{ book: string; count: number }[]>([]);
@@ -35,18 +35,18 @@ export default function InsightsPage() {
 
   useEffect(() => {
     if (!isLoaded) return;
-    const userId = "local"; 
-    setEntries(getRopeEntries(userId));
-    setStreakVal(getStreak(userId));
-    setBookFreq(getBookFrequency(userId));
-    setExecRate(getExecutionRate(userId));
-    setTopBook(getMostCommonBook(userId));
-    setRopeBalance(getRopeBalance(userId));
-    setThemes(getThemes(userId));
-    const s = getStreak(userId);
+    const currentUserId = userId || "local";
+    setEntries(getRopeEntries(currentUserId));
+    setStreakVal(getStreak(currentUserId));
+    setBookFreq(getBookFrequency(currentUserId));
+    setExecRate(getExecutionRate(currentUserId));
+    setTopBook(getMostCommonBook(currentUserId));
+    setRopeBalance(getRopeBalance(currentUserId));
+    setThemes(getThemes(currentUserId));
+    const s = getStreak(currentUserId);
     setNextMilestone(getNextMilestone(s));
     setReachedMilestones(getAllReachedMilestones(s));
-    setRecommendations(getRecommendedVerses(userId));
+    setRecommendations(getRecommendedVerses(currentUserId));
     // Prayer stats
     const allPrayers = getPrayers();
     const answered = allPrayers.filter(p => !!p.answeredAt);
@@ -59,7 +59,7 @@ export default function InsightsPage() {
       avgDays = Math.round(totalDays / answered.length);
     }
     setPrayerStats({ total: allPrayers.length, answered: answered.length, avgDays });
-  }, [isLoaded]);
+  }, [isLoaded, userId]);
 
   if (!isLoaded) {
     return (

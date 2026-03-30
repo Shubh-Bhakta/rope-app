@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef, useCallback } from "react";
 import { useAuth } from "@clerk/nextjs";
-import { addRopeEntry, suggestBooks, getStreak, getTranslation, setTranslation, getGatewayVersion, TRANSLATIONS, getPlanSuggestedVerse, advancePlan, getActivePlan, getReachedMilestone, getNextMilestone, addMemoryVerse, getMemoryVerses, fetchVerse, BIBLE_BOOKS } from "@/lib/store";
+import { addRopeEntry, suggestBooks, getStreak, getTranslation, setTranslation, getGatewayVersion, TRANSLATIONS, getPlanSuggestedVerse, advancePlan, getActivePlan, getReachedMilestone, getNextMilestone, addMemoryVerse, getMemoryVerses, getBibleHistory, fetchVerse, BIBLE_BOOKS } from "@/lib/store";
 import { OliveBranch } from "@/components/Accents";
 import ShareCard from "@/components/ShareCard";
 import Breathing from "@/components/Breathing";
@@ -328,7 +328,7 @@ export default function JournalPage() {
   const [milestoneReached, setMilestoneReached] = useState<{ title: string; verse: string; ref: string } | null>(null);
   const [isMemoryVerse, setIsMemoryVerse] = useState(false);
 
-  const { isSignedIn } = useAuth();
+  const { isLoaded, isSignedIn } = useAuth();
   const { supported: speechSupported, startListening } = useSpeechRecognition();
 
   const today = new Date().toLocaleDateString("en-US", {
@@ -343,10 +343,15 @@ export default function JournalPage() {
   const prayerRef = useRef<HTMLTextAreaElement>(null);
   const executionRef = useRef<HTMLTextAreaElement>(null);
 
-  // Load translation on mount
+  // Load translation and last read on mount
   useEffect(() => {
     setTranslationState(getTranslation());
-  }, []);
+    const history = getBibleHistory();
+    if (history.length > 0) {
+      setSelectedBook(history[0].book);
+      setSelectedChapter(history[0].chapter.toString());
+    }
+  }, [isLoaded]);
 
   // ─── Draft persistence ─────────────────────────────────────────────────────
   const todayKey = `rope_draft_${new Date().toISOString().split("T")[0]}`;

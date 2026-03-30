@@ -23,7 +23,7 @@ import {
 } from "@/lib/store";
 
 export default function MePage() {
-  const { isLoaded, isSignedIn } = useAuth();
+  const { isLoaded, isSignedIn, userId } = useAuth();
   const { user: clerkUser } = useUser();
   const [entries, setEntries] = useState<RopeEntry[]>([]);
   const [expandedId, setExpandedId] = useState<string | null>(null);
@@ -43,17 +43,17 @@ export default function MePage() {
 
   useEffect(() => {
     if (!isLoaded) return;
-    const userId = "local"; 
-    setEntries(getRopeEntries(userId));
-    setStreakVal(getStreak(userId));
-    setUniqueBooks(getUniqueBooksCount(userId));
-    setTopBook(getMostCommonBook(userId));
-    setThemes(getThemes(userId));
+    const currentUserId = userId || "local";
+    setEntries(getRopeEntries(currentUserId));
+    setStreakVal(getStreak(currentUserId));
+    setUniqueBooks(getUniqueBooksCount(currentUserId));
+    setTopBook(getMostCommonBook(currentUserId));
+    setThemes(getThemes(currentUserId));
     setIsDark(getDarkMode());
     setMemoryVerses(getMemoryVerses());
-    setBookFreq(getBookFrequency(userId));
+    setBookFreq(getBookFrequency(currentUserId));
     setAnsweredPrayers(getPrayers().filter(p => !!p.answeredAt));
-  }, [isLoaded]);
+  }, [isLoaded, userId]);
 
   function formatDate(dateStr: string): string {
     const d = new Date(dateStr);
@@ -87,7 +87,7 @@ export default function MePage() {
       prayer: editFields.prayer.trim(),
       execution: editFields.execution.trim(),
     }, isSignedIn || false);
-    setEntries(getRopeEntries("local"));
+    setEntries(getRopeEntries(userId || "local"));
     setEditingId(null);
   }
 

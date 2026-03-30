@@ -138,9 +138,23 @@ function formatLocalDate(date: Date): string {
 // ─── Entry Store ──────────────────────────────────────────────────────────
 
 import { migrateFromLocalStorage, loadRopeEntries, saveRopeEntries } from "./db";
-import { getDbEntries, saveDbEntry, deleteDbEntry, syncEntries } from "./actions";
+import { 
+  getDbEntries, saveDbEntry, deleteDbEntry, syncEntries,
+  getDbPrayers, saveDbPrayer, deleteDbPrayer, syncPrayers,
+  getDbHighlights, saveDbHighlight, deleteDbHighlight, syncHighlights,
+  getDbGratitude, saveDbGratitude, deleteDbGratitude, syncGratitude,
+  getDbPlanProgress, saveDbPlanProgress,
+  getDbMemoryVerses, saveDbMemoryVerse, deleteDbMemoryVerse, syncMemoryVerses,
+  getDbSettings, saveDbSettings
+} from "./actions";
 
 let cachedEntries: RopeEntry[] | null = null;
+let cachedPrayers: PrayerItem[] | null = null;
+let cachedHighlights: BibleHighlight[] | null = null;
+let cachedGratitude: GratitudeItem[] | null = null;
+let cachedPlan: PlanProgress | null = null;
+let cachedMemoryVerses: { verse: string; text: string; addedAt: string }[] | null = null;
+let cachedSettings: { darkMode: boolean; translation: string; onboardingComplete: boolean; lastRead: any[] } | null = null;
 let storeInitialized = false;
 
 /**
@@ -151,40 +165,81 @@ export async function initializeStore(isAuthenticated: boolean = false) {
   if (typeof window === "undefined" || storeInitialized) return;
   
   try {
-    // 1. Check for migration from localStorage to IndexedDB
     if (!localStorage.getItem("rope_entries_migrated")) {
       await migrateFromLocalStorage();
     }
     
-    let entries: RopeEntry[] = [];
-
     if (isAuthenticated) {
-      // 2a. Fetch from Postgres if logged in
-      try {
-        entries = await getDbEntries();
-        // If we have local entries that aren't in the DB, we might want to sync them
-        const local = await loadRopeEntries();
-        if (local.length > 0 && !localStorage.getItem("rope_db_synced")) {
-          await syncEntries(local);
-          entries = await getDbEntries(); // Refresh
-          localStorage.setItem("rope_db_synced", "true");
-        }
-      } catch (e) {
-        console.error("Failed to fetch from DB, falling back to local", e);
-        entries = await loadRopeEntries();
+      // 1. Initial Sync if needed
+      const needsSync = !localStorage.getItem("rope_full_db_synced");
+      if (needsSync) {
+        const localEntries = await loadRopeEntries();
+        const localPrayers = getPrayers();
+        const localGratitude = getGratitudeItems();
+        const localHighlights = getBibleHighlights();
+        const localMemoryVerses = getMemoryVerses();
+        
+        await Promise.all([
+          syncEntries(localEntries).catch(console.error),
+          syncPrayers(localPrayers).catch(console.error),
+          syncGratitude(localGratitude).catch(console.error),
+          syncHighlights(localHighlights).catch(console.error),
+          syncMemoryVerses(localMemoryVerses).catch(console.error)
+        ]);
+        localStorage.setItem("rope_full_db_synced", "true");
+      }
+
+      // 2. Load all data from Postgres
+      const [entries, prayers, gratitude, highlights, plan, mvs, settings] = await Promise.all([
+        getDbEntries(),
+        getDbPrayers(),
+        getDbGratitude(),
+        getDbHighlights(),
+        getDbPlanProgress(),
+        getDbMemoryVerses(),
+        getDbSettings()
+      ]);
+
+      cachedEntries = entries;
+      cachedPrayers = prayers;
+      cachedGratitude = gratitude;
+      cachedHighlights = highlights;
+      cachedPlan = plan;
+      cachedMemoryVerses = mvs;
+      cachedSettings = settings || {
+        darkMode: getDarkMode(),
+        translation: getTranslation(),
+        onboardingComplete: hasCompletedOnboarding(),
+        lastRead: getBibleHistory()
+      };
+      // If we got settings from cloud, hydrate local storage
+      if (settings) {
+        localStorage.setItem("rope_dark_mode", settings.darkMode ? "true" : "false");
+        localStorage.setItem("rope_translation", settings.translation);
+        localStorage.setItem("rope_onboarding_done", settings.onboardingComplete ? "true" : "false");
+        localStorage.setItem("rope_bible_history", JSON.stringify(settings.lastRead));
+        // Force theme update
+        if (settings.darkMode) document.documentElement.classList.add('dark');
+        else document.documentElement.classList.remove('dark');
       }
     } else {
-      // 2b. Load from IndexedDB
-      entries = await loadRopeEntries();
+      cachedEntries = await loadRopeEntries();
+      cachedPrayers = JSON.parse(localStorage.getItem("rope_prayers") || "[]");
+      cachedGratitude = JSON.parse(localStorage.getItem("rope_gratitude") || "[]");
+      cachedHighlights = JSON.parse(localStorage.getItem("rope_bible_highlights") || "[]");
+      cachedPlan = JSON.parse(localStorage.getItem("rope_active_plan") || "null");
+      cachedMemoryVerses = JSON.parse(localStorage.getItem("rope_memory_verses") || "[]");
+      cachedSettings = {
+        darkMode: getDarkMode(),
+        translation: getTranslation(),
+        onboardingComplete: hasCompletedOnboarding(),
+        lastRead: getBibleHistory()
+      };
     }
 
-    cachedEntries = entries;
     storeInitialized = true;
   } catch (e) {
     console.error("Store initialization failed", e);
-    // Fallback path: use localStorage directly
-    const raw = localStorage.getItem("rope_entries");
-    cachedEntries = raw ? JSON.parse(raw) : [];
   }
 }
 
@@ -569,6 +624,7 @@ export async function fetchVerse(verseRef: string, translationId: string): Promi
 
 export function getTranslation(): string {
   if (typeof window === "undefined") return "kjv";
+  if (storeInitialized && cachedSettings) return cachedSettings.translation;
   const saved = localStorage.getItem("rope_translation") || "kjv";
   if (!TRANSLATIONS.some(t => t.id === saved)) return "kjv";
   return saved;
@@ -580,7 +636,9 @@ export function getGatewayVersion(translationId: string): string {
 }
 
 export function setTranslation(t: string): void {
+  if (storeInitialized && cachedSettings) cachedSettings.translation = t;
   localStorage.setItem("rope_translation", t);
+  saveSettings();
 }
 
 export { TRANSLATIONS };
@@ -666,6 +724,7 @@ export interface BibleHistoryItem {
 
 export function getBibleHistory(): BibleHistoryItem[] {
   if (typeof window === "undefined") return [];
+  if (storeInitialized && cachedSettings) return cachedSettings.lastRead;
   const raw = localStorage.getItem("rope_bible_history");
   if (!raw) return [];
   try {
@@ -681,13 +740,17 @@ export function updateBibleHistory(book: string, chapter: number): void {
   const history = getBibleHistory();
   const existing = history.filter(h => !(h.book === book && h.chapter === chapter));
   existing.unshift({ book, chapter, lastRead: new Date().toISOString() });
-  localStorage.setItem("rope_bible_history", JSON.stringify(existing.slice(0, 5)));
+  const final = existing.slice(0, 5);
+  if (storeInitialized && cachedSettings) cachedSettings.lastRead = final;
+  localStorage.setItem("rope_bible_history", JSON.stringify(final));
+  saveSettings();
 }
 
 // ─── Dark Mode ──────────────────────────────────────────────────────────────
 
 export function getDarkMode(): boolean {
   if (typeof window === "undefined") return false;
+  if (storeInitialized && cachedSettings) return cachedSettings.darkMode;
   const saved = localStorage.getItem("rope_dark_mode");
   if (saved !== null) return saved === "true";
   // Auto-detect system preference
@@ -695,22 +758,35 @@ export function getDarkMode(): boolean {
 }
 
 export function setDarkMode(dark: boolean): void {
+  if (storeInitialized && cachedSettings) cachedSettings.darkMode = dark;
   localStorage.setItem("rope_dark_mode", dark ? "true" : "false");
+  saveSettings();
 }
 
 // ─── Onboarding ─────────────────────────────────────────────────────────────
 
 export function hasCompletedOnboarding(): boolean {
   if (typeof window === "undefined") return true;
+  if (storeInitialized && cachedSettings) return cachedSettings.onboardingComplete;
   return localStorage.getItem("rope_onboarding_done") === "true";
 }
 
 export function completeOnboarding(): void {
+  if (storeInitialized && cachedSettings) cachedSettings.onboardingComplete = true;
   localStorage.setItem("rope_onboarding_done", "true");
+  saveSettings();
 }
 
 export function resetOnboarding(): void {
+  if (storeInitialized && cachedSettings) cachedSettings.onboardingComplete = false;
   localStorage.removeItem("rope_onboarding_done");
+  saveSettings();
+}
+
+/** Internal helper to background-sync settings */
+function saveSettings() {
+  if (!storeInitialized || !cachedSettings) return;
+  saveDbSettings(cachedSettings).catch(console.error);
 }
 
 // ─── Reading Plans ──────────────────────────────────────────────────────────
@@ -774,6 +850,7 @@ export interface PlanProgress {
 
 export function getActivePlan(): PlanProgress | null {
   if (typeof window === "undefined") return null;
+  if (storeInitialized && cachedPlan) return cachedPlan;
   const raw = localStorage.getItem("rope_active_plan");
   if (!raw) return null;
   try { return JSON.parse(raw); } catch { return null; }
@@ -787,7 +864,9 @@ export function startPlan(planId: string): PlanProgress {
     completedDays: [],
     paused: false,
   };
+  if (storeInitialized) cachedPlan = progress;
   localStorage.setItem("rope_active_plan", JSON.stringify(progress));
+  saveDbPlanProgress(progress).catch(console.error);
   return progress;
 }
 
@@ -802,7 +881,9 @@ export function advancePlan(): PlanProgress | null {
   if (progress.currentDay < plan.days - 1) {
     progress.currentDay++;
   }
+  if (storeInitialized) cachedPlan = progress;
   localStorage.setItem("rope_active_plan", JSON.stringify(progress));
+  saveDbPlanProgress(progress).catch(console.error);
   return progress;
 }
 
@@ -810,11 +891,16 @@ export function pausePlan(): void {
   const progress = getActivePlan();
   if (!progress) return;
   progress.paused = !progress.paused;
+  if (storeInitialized) cachedPlan = progress;
   localStorage.setItem("rope_active_plan", JSON.stringify(progress));
+  saveDbPlanProgress(progress).catch(console.error);
 }
 
 export function quitPlan(): void {
+  if (storeInitialized) cachedPlan = null;
   localStorage.removeItem("rope_active_plan");
+  // We don't delete from DB, just null it out or we could add a 'delete' action
+  // For now, removing local is enough to stop the UI from showing it.
 }
 
 export function getPlanSuggestedVerse(): string | null {
@@ -864,6 +950,7 @@ export interface PrayerItem {
 
 export function getPrayers(): PrayerItem[] {
   if (typeof window === "undefined") return [];
+  if (storeInitialized && cachedPrayers) return cachedPrayers;
   const raw = localStorage.getItem("rope_prayers");
   if (!raw) return [];
   try { return JSON.parse(raw) as PrayerItem[]; } catch { return []; }
@@ -873,7 +960,9 @@ export function addPrayer(text: string, verse: string): PrayerItem {
   const prayer: PrayerItem = { id: generateId(), text, verse, createdAt: new Date().toISOString(), answeredAt: null, answeredNote: "" };
   const prayers = getPrayers();
   prayers.unshift(prayer);
+  if (storeInitialized && cachedPrayers) cachedPrayers = prayers;
   localStorage.setItem("rope_prayers", JSON.stringify(prayers));
+  saveDbPrayer(prayer).catch(console.error);
   return prayer;
 }
 
@@ -883,13 +972,17 @@ export function markPrayerAnswered(id: string, note?: string): void {
   if (idx !== -1) {
     prayers[idx].answeredAt = new Date().toISOString();
     if (note !== undefined) prayers[idx].answeredNote = note;
+    if (storeInitialized && cachedPrayers) cachedPrayers = prayers;
     localStorage.setItem("rope_prayers", JSON.stringify(prayers));
+    saveDbPrayer(prayers[idx]).catch(console.error);
   }
 }
 
 export function deletePrayer(id: string): void {
   const prayers = getPrayers().filter(p => p.id !== id);
+  if (storeInitialized && cachedPrayers) cachedPrayers = prayers;
   localStorage.setItem("rope_prayers", JSON.stringify(prayers));
+  deleteDbPrayer(id).catch(console.error);
 }
 
 // ─── Gratitude List ─────────────────────────────────────────────────────────
@@ -903,6 +996,7 @@ export interface GratitudeItem {
 
 export function getGratitudeItems(): GratitudeItem[] {
   if (typeof window === "undefined") return [];
+  if (storeInitialized && cachedGratitude) return cachedGratitude;
   const raw = localStorage.getItem("rope_gratitude");
   if (!raw) return [];
   try { return JSON.parse(raw) as GratitudeItem[]; } catch { return []; }
@@ -917,34 +1011,44 @@ export function addGratitudeItem(text: string, verse?: string): GratitudeItem {
   };
   const items = getGratitudeItems();
   items.unshift(item);
+  if (storeInitialized && cachedGratitude) cachedGratitude = items;
   localStorage.setItem("rope_gratitude", JSON.stringify(items));
+  saveDbGratitude(item).catch(console.error);
   return item;
 }
 
 export function deleteGratitudeItem(id: string): void {
   const items = getGratitudeItems().filter(i => i.id !== id);
+  if (storeInitialized && cachedGratitude) cachedGratitude = items;
   localStorage.setItem("rope_gratitude", JSON.stringify(items));
+  deleteDbGratitude(id).catch(console.error);
 }
 
 // ─── Memory Verses ──────────────────────────────────────────────────────────
 
 export function getMemoryVerses(): { verse: string; text: string; addedAt: string }[] {
   if (typeof window === "undefined") return [];
+  if (storeInitialized && cachedMemoryVerses) return cachedMemoryVerses;
   const raw = localStorage.getItem("rope_memory_verses");
   if (!raw) return [];
   try { return JSON.parse(raw); } catch { return []; }
 }
 
 export function addMemoryVerse(verse: string, text: string): void {
+  const item = { verse, text, addedAt: new Date().toISOString() };
   const verses = getMemoryVerses();
   if (verses.some(v => v.verse === verse)) return;
-  verses.unshift({ verse, text, addedAt: new Date().toISOString() });
+  verses.unshift(item);
+  if (storeInitialized && cachedMemoryVerses) cachedMemoryVerses = verses;
   localStorage.setItem("rope_memory_verses", JSON.stringify(verses));
+  saveDbMemoryVerse(item).catch(console.error);
 }
 
 export function removeMemoryVerse(verse: string): void {
   const verses = getMemoryVerses().filter(v => v.verse !== verse);
+  if (storeInitialized && cachedMemoryVerses) cachedMemoryVerses = verses;
   localStorage.setItem("rope_memory_verses", JSON.stringify(verses));
+  deleteDbMemoryVerse(verse).catch(console.error);
 }
 
 // ─── Bible Highlights ───────────────────────────────────────────────────────
@@ -960,6 +1064,7 @@ export interface BibleHighlight {
 
 export function getBibleHighlights(): BibleHighlight[] {
   if (typeof window === "undefined") return [];
+  if (storeInitialized && cachedHighlights) return cachedHighlights;
   const raw = localStorage.getItem("rope_bible_highlights");
   if (!raw) return [];
   try { return JSON.parse(raw) as BibleHighlight[]; } catch { return []; }
@@ -967,15 +1072,20 @@ export function getBibleHighlights(): BibleHighlight[] {
 
 export function addBibleHighlight(book: string, chapter: number, verse: number, color: string, note?: string): void {
   const highlights = getBibleHighlights();
+  const highlight: BibleHighlight = { book, chapter, verse, color, note: note || "", createdAt: new Date().toISOString() };
   // Remove existing highlight for same verse
   const filtered = highlights.filter(h => !(h.book === book && h.chapter === chapter && h.verse === verse));
-  filtered.push({ book, chapter, verse, color, note: note || "", createdAt: new Date().toISOString() });
+  filtered.push(highlight);
+  if (storeInitialized && cachedHighlights) cachedHighlights = filtered;
   localStorage.setItem("rope_bible_highlights", JSON.stringify(filtered));
+  saveDbHighlight(highlight).catch(console.error);
 }
 
 export function removeBibleHighlight(book: string, chapter: number, verse: number): void {
   const highlights = getBibleHighlights().filter(h => !(h.book === book && h.chapter === chapter && h.verse === verse));
+  if (storeInitialized && cachedHighlights) cachedHighlights = highlights;
   localStorage.setItem("rope_bible_highlights", JSON.stringify(highlights));
+  deleteDbHighlight(book, chapter, verse).catch(console.error);
 }
 
 export function getHighlightsForChapter(book: string, chapter: number): BibleHighlight[] {
