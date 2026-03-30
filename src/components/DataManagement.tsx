@@ -1,8 +1,10 @@
 "use client";
 import { useState, useRef } from "react";
+import { useAuth } from "@clerk/nextjs";
 import { exportData, importData, clearAllData } from "@/lib/store";
 
 export default function DataManagement() {
+  const { isSignedIn } = useAuth();
   const [importStatus, setImportStatus] = useState<{ success?: boolean; error?: string } | null>(null);
   const [showConfirmClear, setShowConfirmClear] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -44,7 +46,10 @@ export default function DataManagement() {
       <div className="card-surface rounded-2xl p-6 border border-brown/5">
         <h3 className="font-serif text-xl text-dark mb-2">Backup & Portability</h3>
         <p className="text-muted text-sm mb-6 leading-relaxed">
-          Your journal is stored locally on this device. Export a backup to keep your data safe or move it to another device.
+          {isSignedIn 
+            ? "Your journal is synced to the cloud, but you can still export a local backup for extra peace of mind or to move to another account."
+            : "Your journal is currently stored only on this device. Sign in to sync your journey to the cloud and access it anywhere."
+          }
         </p>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">

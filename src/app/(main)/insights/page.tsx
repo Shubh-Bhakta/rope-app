@@ -1,8 +1,8 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { useAuth } from "@clerk/nextjs";
 import {
-  getOrCreateUser,
   getRopeEntries,
   getStreak,
   getBookFrequency,
@@ -15,13 +15,12 @@ import {
   getRecommendedVerses,
   getPrayers,
   type RopeEntry,
-  type User,
 } from "@/lib/store";
 import { LampIcon, OliveBranch, VerseBlock } from "@/components/Accents";
 import Link from "next/link";
 
 export default function InsightsPage() {
-  const [user, setUserState] = useState<User | null>(null);
+  const { isLoaded, isSignedIn } = useAuth();
   const [entries, setEntries] = useState<RopeEntry[]>([]);
   const [streak, setStreakVal] = useState(0);
   const [bookFreq, setBookFreq] = useState<{ book: string; count: number }[]>([]);
@@ -35,19 +34,19 @@ export default function InsightsPage() {
   const [prayerStats, setPrayerStats] = useState({ total: 0, answered: 0, avgDays: 0 });
 
   useEffect(() => {
-    const u = getOrCreateUser();
-    setUserState(u);
-    setEntries(getRopeEntries(u.id));
-    setStreakVal(getStreak(u.id));
-    setBookFreq(getBookFrequency(u.id));
-    setExecRate(getExecutionRate(u.id));
-    setTopBook(getMostCommonBook(u.id));
-    setRopeBalance(getRopeBalance(u.id));
-    setThemes(getThemes(u.id));
-    const s = getStreak(u.id);
+    if (!isLoaded) return;
+    const userId = "local"; 
+    setEntries(getRopeEntries(userId));
+    setStreakVal(getStreak(userId));
+    setBookFreq(getBookFrequency(userId));
+    setExecRate(getExecutionRate(userId));
+    setTopBook(getMostCommonBook(userId));
+    setRopeBalance(getRopeBalance(userId));
+    setThemes(getThemes(userId));
+    const s = getStreak(userId);
     setNextMilestone(getNextMilestone(s));
     setReachedMilestones(getAllReachedMilestones(s));
-    setRecommendations(getRecommendedVerses(u.id));
+    setRecommendations(getRecommendedVerses(userId));
     // Prayer stats
     const allPrayers = getPrayers();
     const answered = allPrayers.filter(p => !!p.answeredAt);
@@ -60,9 +59,9 @@ export default function InsightsPage() {
       avgDays = Math.round(totalDays / answered.length);
     }
     setPrayerStats({ total: allPrayers.length, answered: answered.length, avgDays });
-  }, []);
+  }, [isLoaded]);
 
-  if (!user) {
+  if (!isLoaded) {
     return (
       <div className="min-h-[80vh] flex items-center justify-center">
         <p className="text-muted font-serif">Loading...</p>

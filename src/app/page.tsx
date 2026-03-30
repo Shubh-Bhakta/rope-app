@@ -130,7 +130,7 @@ export default function SplashPage() {
         />
 
         {/* ─── Content ─── */}
-        <div className="relative z-10 flex flex-col items-center px-6 w-full">
+        <div className="relative z-10 flex flex-col items-center px-6 w-full pt-20">
 
           {/* ═══ Small cross icon above ROPE ═══ */}
           <div
@@ -200,10 +200,10 @@ export default function SplashPage() {
                       transform: isHovered && isRevealed ? "translateY(0)" : "translateY(6px)",
                     }}
                   >
-                    <span className="font-serif text-sm md:text-base text-ivory/70 tracking-[0.2em] uppercase">
+                    <span className="font-serif text-sm md:text-base text-[#f5efe3]/70 tracking-[0.2em] uppercase">
                       {word}
                     </span>
-                    <span className="text-ivory/35 text-xs md:text-sm mt-1 italic font-light">
+                    <span className="text-[#f5efe3]/35 text-xs md:text-sm mt-1 italic font-light">
                       {prompt}
                     </span>
                   </div>
@@ -223,7 +223,7 @@ export default function SplashPage() {
 
           {/* ═══ Subtitle ═══ */}
           <p
-            className="font-serif text-ivory/70 text-sm md:text-base tracking-[0.3em] uppercase mb-8 md:mb-10 text-center transition-all duration-600 ease-out"
+            className="font-serif text-[#f5efe3]/70 text-sm md:text-base tracking-[0.3em] uppercase mb-8 md:mb-10 text-center transition-all duration-600 ease-out"
             style={{
               opacity: phase >= 6 ? 1 : 0,
               transform: phase >= 6 ? "translateY(0)" : "translateY(10px)",
@@ -234,7 +234,7 @@ export default function SplashPage() {
 
           {/* ═══ Supporting copy ═══ */}
           <p
-            className="text-ivory/60 text-sm md:text-base max-w-md text-center leading-relaxed mb-10 md:mb-12 transition-all duration-600 ease-out"
+            className="text-[#f5efe3]/60 text-sm md:text-base max-w-md text-center leading-relaxed mb-10 md:mb-12 transition-all duration-600 ease-out"
             style={{
               opacity: phase >= 7 ? 1 : 0,
               transform: phase >= 7 ? "translateY(0)" : "translateY(10px)",
@@ -264,7 +264,7 @@ export default function SplashPage() {
 
           {/* ═══ Trust badge ═══ */}
           <div
-            className="flex items-center gap-2 mt-5 text-ivory/25 text-[11px] transition-all duration-600 ease-out"
+            className="flex items-center gap-2 mt-5 text-[#f5efe3]/25 text-[11px] transition-all duration-600 ease-out"
             style={{ opacity: phase >= 8 ? 1 : 0, transitionDelay: "200ms" }}
           >
             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -276,11 +276,11 @@ export default function SplashPage() {
 
           {/* ═══ Scripture — editorial credit ═══ */}
           <p
-            className="text-ivory/20 text-xs italic mt-16 md:mt-20 text-center transition-all duration-600 ease-out tracking-wide"
+            className="text-[#f5efe3]/20 text-xs italic mt-16 md:mt-20 text-center transition-all duration-600 ease-out tracking-wide"
             style={{ opacity: phase >= 9 ? 1 : 0 }}
           >
             &ldquo;Your word is a lamp to my feet and a light to my path.&rdquo;
-            <span className="not-italic block mt-1 text-ivory/12 text-[10px] tracking-[0.2em] uppercase">
+            <span className="not-italic block mt-1 text-[#f5efe3]/12 text-[10px] tracking-[0.2em] uppercase">
               Psalm 119:105
             </span>
           </p>

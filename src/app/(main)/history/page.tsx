@@ -1,7 +1,8 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { getOrCreateUser, getRopeEntries, type RopeEntry } from "@/lib/store";
+import { useAuth } from "@clerk/nextjs";
+import { getRopeEntries, type RopeEntry } from "@/lib/store";
 import SearchEntries from "@/components/SearchEntries";
 import { OliveBranch } from "@/components/Accents";
 import Link from "next/link";
@@ -10,14 +11,14 @@ export default function HistoryPage() {
   const [entries, setEntries] = useState<RopeEntry[]>([]);
   const [filteredEntries, setFilteredEntries] = useState<RopeEntry[]>([]);
   const [loading, setLoading] = useState(true);
+  const { userId } = useAuth();
 
   useEffect(() => {
-    const u = getOrCreateUser();
-    const all = getRopeEntries(u.id);
+    const all = getRopeEntries(userId || undefined);
     setEntries(all);
     setFilteredEntries(all);
     setLoading(false);
-  }, []);
+  }, [userId]);
 
   if (loading) return <div className="p-8 text-center text-muted font-serif italic">Loading history...</div>;
 

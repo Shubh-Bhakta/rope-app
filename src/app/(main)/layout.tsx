@@ -3,7 +3,8 @@
 import { useEffect, useState } from "react";
 import { usePathname } from "next/navigation";
 import Link from "next/link";
-import { getOrCreateUser, getDarkMode, setDarkMode, hasCompletedOnboarding, resetOnboarding, initializeStore } from "@/lib/store";
+import { useAuth } from "@clerk/nextjs";
+import { getDarkMode, setDarkMode, hasCompletedOnboarding, resetOnboarding, initializeStore } from "@/lib/store";
 import BottomNav from "@/components/BottomNav";
 import Onboarding from "@/components/Onboarding";
 import { OliveBranch } from "@/components/Accents";
@@ -108,14 +109,20 @@ const reflectionPrompts = [
 
 export default function MainLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
+  const { isLoaded, isSignedIn } = useAuth();
   const [ready, setReady] = useState(false);
   const [darkMode, setDarkModeState] = useState(false);
   const [showOnboarding, setShowOnboarding] = useState(false);
 
   useEffect(() => {
+    if (!isLoaded) return;
+
     async function init() {
-      await initializeStore();
-      getOrCreateUser();
+      try {
+        await initializeStore(isSignedIn || false);
+      } catch (e) {
+        console.error("Store initialization failed in layout", e);
+      }
       
       const initialDark = getDarkMode();
       setDarkModeState(initialDark);
@@ -146,7 +153,7 @@ export default function MainLayout({ children }: { children: React.ReactNode }) 
       mediaQuery.removeEventListener("change", handleSystemChange);
       window.removeEventListener("storage", handleStorageChange);
     };
-  }, []);
+  }, [isLoaded, isSignedIn]);
 
   function toggleDarkMode() {
     const next = !darkMode;
@@ -170,19 +177,11 @@ export default function MainLayout({ children }: { children: React.ReactNode }) 
     <div className={`min-h-screen bg-ivory ${darkMode ? "dark" : ""}`}>
       {/* Desktop sidebar */}
       <aside className="hidden md:flex md:fixed md:inset-y-0 md:left-0 md:w-64 md:flex-col bg-sidebar border-r border-brown/8 z-40">
-        {/* Brand area */}
-        <div className="px-6 py-8 relative">
-          <div className="flex items-center gap-2.5">
-            <svg width="18" height="26" viewBox="0 0 18 26" fill="none" className="text-brown/60 shrink-0">
-              <rect x="7" y="0" width="4" height="26" rx="1" fill="currentColor" />
-              <rect x="0" y="5.5" width="18" height="4" rx="1" fill="currentColor" />
-            </svg>
-            <h1 className="font-serif text-3xl font-bold text-brown tracking-wide">ROPE</h1>
-          </div>
-          <p className="text-muted text-[10px] mt-1.5 tracking-[0.2em] uppercase ml-[30px]">Bible Journaling</p>
+        {/* Brand area removed - handled by global Navbar */}
+        <div className="px-6 pt-20 pb-8 relative">
           <button
             onClick={() => { resetOnboarding(); setShowOnboarding(true); }}
-            className="absolute top-8 right-6 w-6 h-6 rounded-full bg-brown/8 flex items-center justify-center text-muted hover:text-brown hover:bg-brown/15 transition text-xs"
+            className="absolute top-10 right-4 w-7 h-7 rounded-full bg-brown/8 flex items-center justify-center text-muted hover:text-brown hover:bg-brown/15 transition text-xs shadow-sm"
             title="Show walkthrough"
           >
             ?
@@ -248,7 +247,7 @@ export default function MainLayout({ children }: { children: React.ReactNode }) 
       </aside>
 
       {/* Main content area */}
-      <main className="pb-24 md:pb-8 md:ml-64 xl:mr-[280px]">
+      <main className="pb-24 pt-16 md:pb-8 md:ml-64 xl:mr-[280px]">
         <div className="max-w-lg mx-auto md:max-w-2xl md:px-4">
           {children}
           
@@ -264,7 +263,7 @@ export default function MainLayout({ children }: { children: React.ReactNode }) 
       </main>
 
       {/* Devotional side rail — xl+ only */}
-      <aside className="hidden xl:flex xl:fixed xl:inset-y-0 xl:right-0 xl:w-[280px] xl:flex-col bg-cream-dark/50 border-l border-brown/6 z-40 px-6 py-10">
+      <aside className="hidden xl:flex xl:fixed xl:inset-y-0 xl:right-0 xl:w-[280px] xl:flex-col bg-cream-dark/50 border-l border-brown/6 z-40 px-6 pt-20 pb-10">
         {(() => {
           const pageContext = (() => {
             if (pathname.startsWith("/journal")) return {

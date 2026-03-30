@@ -1,7 +1,8 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { getPrayers, addPrayer, deletePrayer, markPrayerAnswered, getRopeEntries, getOrCreateUser, type PrayerItem, type RopeEntry } from "@/lib/store";
+import { useAuth } from "@clerk/nextjs";
+import { getPrayers, addPrayer, deletePrayer, markPrayerAnswered, getRopeEntries, type PrayerItem, type RopeEntry } from "@/lib/store";
 import { LampIcon, OliveBranch } from "@/components/Accents";
 
 export default function PrayersPage() {
@@ -17,12 +18,13 @@ export default function PrayersPage() {
   const [answerNote, setAnswerNote] = useState("");
   const [expandedId, setExpandedId] = useState<string | null>(null);
 
+  const { userId, isSignedIn } = useAuth();
+  
   useEffect(() => {
     setPrayers(getPrayers());
-    const u = getOrCreateUser();
-    setEntries(getRopeEntries(u.id));
+    setEntries(getRopeEntries(userId || undefined));
     setLoaded(true);
-  }, []);
+  }, [userId]);
 
   function handleAdd() {
     if (!text.trim()) return;

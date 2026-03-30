@@ -1,7 +1,8 @@
 "use client";
 
 import { useState, useEffect, useRef, useCallback } from "react";
-import { getOrCreateUser, addRopeEntry, suggestBooks, getStreak, getTranslation, setTranslation, getGatewayVersion, TRANSLATIONS, getPlanSuggestedVerse, advancePlan, getActivePlan, getReachedMilestone, getNextMilestone, addMemoryVerse, getMemoryVerses, fetchVerse, BIBLE_BOOKS } from "@/lib/store";
+import { useAuth } from "@clerk/nextjs";
+import { addRopeEntry, suggestBooks, getStreak, getTranslation, setTranslation, getGatewayVersion, TRANSLATIONS, getPlanSuggestedVerse, advancePlan, getActivePlan, getReachedMilestone, getNextMilestone, addMemoryVerse, getMemoryVerses, fetchVerse, BIBLE_BOOKS } from "@/lib/store";
 import { OliveBranch } from "@/components/Accents";
 import ShareCard from "@/components/ShareCard";
 import Breathing from "@/components/Breathing";
@@ -327,6 +328,7 @@ export default function JournalPage() {
   const [milestoneReached, setMilestoneReached] = useState<{ title: string; verse: string; ref: string } | null>(null);
   const [isMemoryVerse, setIsMemoryVerse] = useState(false);
 
+  const { isSignedIn } = useAuth();
   const { supported: speechSupported, startListening } = useSpeechRecognition();
 
   const today = new Date().toLocaleDateString("en-US", {
@@ -472,18 +474,15 @@ export default function JournalPage() {
   }
 
   function handleSave() {
-    const user = getOrCreateUser();
-    if (!verseRef.trim() || !observation.trim() || !prayer.trim() || !execution.trim()) return;
-
     addRopeEntry({
-      userId: user.id,
+      userId: "local", // This will be overridden by Clerk on the server if authenticated
       revelationVerse: verseRef.trim(),
       revelationText: verseText,
       revelationReflection: revelationReflection.trim(),
       observation: observation.trim(),
       prayer: prayer.trim(),
       execution: execution.trim(),
-    });
+    }, isSignedIn || false);
 
     // Advance reading plan if active
     if (getActivePlan()) {
@@ -491,7 +490,7 @@ export default function JournalPage() {
     }
 
     // Check for milestone
-    const currentStreak = getStreak(user.id);
+    const currentStreak = getStreak("local");
     const milestone = getReachedMilestone(currentStreak);
     if (milestone) {
       setMilestoneReached(milestone);
@@ -507,7 +506,7 @@ export default function JournalPage() {
   const allFilled = !!(verseRef.trim() && observation.trim() && prayer.trim() && execution.trim());
 
   if (saved) {
-    const currentStreak = getStreak(getOrCreateUser().id);
+    const currentStreak = getStreak("any"); // getStreak now ignores the userId parameter in many cases or we can pass a dummy
     const saveVerse = motivationalVerses[(savedCount - 1) % motivationalVerses.length];
 
     return (

@@ -107,7 +107,7 @@ export default function Onboarding({ onComplete }: { onComplete: () => void }) {
   return (
     <div
       ref={containerRef}
-      className="fixed inset-0 z-[100] flex items-center justify-center px-6"
+      className="fixed inset-0 z-[120] flex items-center justify-center px-6"
       style={{
         background: "rgba(0, 0, 0, 0.6)",
         backdropFilter: "blur(12px)",

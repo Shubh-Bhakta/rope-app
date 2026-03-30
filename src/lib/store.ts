@@ -1,12 +1,5 @@
 // ─── Types ───────────────────────────────────────────────────────────────────
 
-export interface User {
-  id: string;
-  name: string;
-  email: string;
-  anonymousAlias: string;
-}
-
 export type ExecutionStatus = "yes" | "partly" | "not_yet" | null;
 
 export interface RopeEntry {
@@ -142,70 +135,49 @@ function formatLocalDate(date: Date): string {
   return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
 }
 
-// ─── User ────────────────────────────────────────────────────────────────────
-
-export function getUser(): User | null {
-  if (typeof window === "undefined") return null;
-  const raw = localStorage.getItem("rope_user");
-  if (!raw) return null;
-  try {
-    return JSON.parse(raw) as User;
-  } catch {
-    return null;
-  }
-}
-
-/** Get existing user or auto-create a default one */
-export function getOrCreateUser(): User {
-  const existing = getUser();
-  if (existing) return existing;
-
-  const user: User = {
-    id: generateId(),
-    name: "Journaler",
-    email: "",
-    anonymousAlias: `Child of God #${generateAliasNumber()}`,
-  };
-  localStorage.setItem("rope_user", JSON.stringify(user));
-  return user;
-}
-
-export function setUser(name: string, email: string): User {
-  const existing = getUser();
-  if (existing && existing.email === email && email !== "") return existing;
-
-  const user: User = {
-    id: existing?.id || generateId(),
-    name,
-    email,
-    anonymousAlias: existing?.anonymousAlias || `Child of God #${generateAliasNumber()}`,
-  };
-  localStorage.setItem("rope_user", JSON.stringify(user));
-  return user;
-}
-
 // ─── Entry Store ──────────────────────────────────────────────────────────
 
 import { migrateFromLocalStorage, loadRopeEntries, saveRopeEntries } from "./db";
+import { getDbEntries, saveDbEntry, deleteDbEntry, syncEntries } from "./actions";
 
 let cachedEntries: RopeEntry[] | null = null;
 let storeInitialized = false;
 
 /**
- * Initializes the store by loading entries from IndexedDB.
+ * Initializes the store by loading entries from Postgres (if logged in) or IndexedDB.
  * Falls back to localStorage if IndexedDB is empty/unavailable.
  */
-export async function initializeStore() {
+export async function initializeStore(isAuthenticated: boolean = false) {
   if (typeof window === "undefined" || storeInitialized) return;
   
   try {
-    // 1. Check for migration
+    // 1. Check for migration from localStorage to IndexedDB
     if (!localStorage.getItem("rope_entries_migrated")) {
       await migrateFromLocalStorage();
     }
     
-    // 2. Load from IndexedDB
-    const entries = await loadRopeEntries();
+    let entries: RopeEntry[] = [];
+
+    if (isAuthenticated) {
+      // 2a. Fetch from Postgres if logged in
+      try {
+        entries = await getDbEntries();
+        // If we have local entries that aren't in the DB, we might want to sync them
+        const local = await loadRopeEntries();
+        if (local.length > 0 && !localStorage.getItem("rope_db_synced")) {
+          await syncEntries(local);
+          entries = await getDbEntries(); // Refresh
+          localStorage.setItem("rope_db_synced", "true");
+        }
+      } catch (e) {
+        console.error("Failed to fetch from DB, falling back to local", e);
+        entries = await loadRopeEntries();
+      }
+    } else {
+      // 2b. Load from IndexedDB
+      entries = await loadRopeEntries();
+    }
+
     cachedEntries = entries;
     storeInitialized = true;
   } catch (e) {
@@ -247,7 +219,8 @@ export function clearCache(): void {
 }
 
 export function addRopeEntry(
-  entry: Omit<RopeEntry, "id" | "createdAt" | "executionStatus" | "executionReflection">
+  entry: Omit<RopeEntry, "id" | "createdAt" | "executionStatus" | "executionReflection">,
+  isAuthenticated: boolean = false
 ): RopeEntry {
   const newEntry: RopeEntry = {
     ...entry,
@@ -263,17 +236,24 @@ export function addRopeEntry(
   // Sync to memory
   cachedEntries = updated;
   
-  // Async save to IndexedDB
+  // Async save to IndexedDB & Cloud
   if (typeof window !== "undefined") {
     saveRopeEntries(updated).catch(console.error);
-    // Backward compatibility: save to localStorage too
     localStorage.setItem("rope_entries", JSON.stringify(updated));
+    
+    if (isAuthenticated) {
+      saveDbEntry(newEntry).catch(console.error);
+    }
   }
 
   return newEntry;
 }
 
-export function updateRopeEntry(id: string, updates: Partial<RopeEntry>): RopeEntry | null {
+export function updateRopeEntry(
+  id: string, 
+  updates: Partial<RopeEntry>,
+  isAuthenticated: boolean = false
+): RopeEntry | null {
   const entries = getRopeEntries();
   const index = entries.findIndex((e) => e.id === id);
   if (index === -1) return null;
@@ -284,6 +264,10 @@ export function updateRopeEntry(id: string, updates: Partial<RopeEntry>): RopeEn
   if (typeof window !== "undefined") {
     saveRopeEntries(entries).catch(console.error);
     localStorage.setItem("rope_entries", JSON.stringify(entries));
+    
+    if (isAuthenticated) {
+      saveDbEntry(entries[index]).catch(console.error);
+    }
   }
   
   return entries[index];
@@ -303,7 +287,7 @@ export function getYesterdayEntry(userId: string): RopeEntry | null {
   );
 }
 
-export function deleteRopeEntry(id: string): boolean {
+export function deleteRopeEntry(id: string, isAuthenticated: boolean = false): boolean {
   const entries = getRopeEntries();
   const filtered = entries.filter((e) => e.id !== id);
   if (filtered.length === entries.length) return false;
@@ -313,6 +297,10 @@ export function deleteRopeEntry(id: string): boolean {
   if (typeof window !== "undefined") {
     saveRopeEntries(filtered).catch(console.error);
     localStorage.setItem("rope_entries", JSON.stringify(filtered));
+    
+    if (isAuthenticated) {
+      deleteDbEntry(id).catch(console.error);
+    }
   }
   
   return true;
