@@ -137,7 +137,7 @@ function formatLocalDate(date: Date): string {
 
 // ─── Entry Store ──────────────────────────────────────────────────────────
 
-import { migrateFromLocalStorage, loadRopeEntries, saveRopeEntries } from "./db";
+import { migrateFromLocalStorage, loadRopeEntries, saveRopeEntries, deleteRopeEntries } from "./db";
 import { 
   getDbEntries, saveDbEntry, deleteDbEntry, syncEntries,
   getDbPrayers, saveDbPrayer, deleteDbPrayer, syncPrayers,
@@ -145,7 +145,7 @@ import {
   getDbGratitude, saveDbGratitude, deleteDbGratitude, syncGratitude,
   getDbPlanProgress, saveDbPlanProgress,
   getDbMemoryVerses, saveDbMemoryVerse, deleteDbMemoryVerse, syncMemoryVerses,
-  getDbSettings, saveDbSettings
+  getDbSettings, saveDbSettings, clearAllDbData
 } from "./actions";
 
 let cachedEntries: RopeEntry[] | null = null;
@@ -1218,8 +1218,18 @@ export function importData(jsonString: string): { success: boolean; error?: stri
   }
 }
 
-export function clearAllData(): void {
+export async function clearAllData(cloud: boolean = false): Promise<void> {
   if (typeof window === "undefined") return;
+  
+  if (cloud) {
+    try {
+      await clearAllDbData();
+    } catch (e) {
+      console.error("Cloud wipe failed", e);
+      throw e;
+    }
+  }
+
   const keys = [
     "rope_user",
     "rope_entries",
@@ -1231,7 +1241,18 @@ export function clearAllData(): void {
     "rope_translation",
     "rope_dark_mode",
     "rope_onboarding_done",
-    "rope_alias_counter"
+    "rope_alias_counter",
+    "rope_bible_history",
+    "rope_full_db_synced",
+    "rope_entries_migrated"
   ];
   keys.forEach(key => localStorage.removeItem(key));
+  
+  // Clear indexedDB if needed
+  try {
+    const { deleteRopeEntries } = await import("./db");
+    await deleteRopeEntries();
+  } catch (e) { /* ignore */ }
+  
+  clearCache();
 }

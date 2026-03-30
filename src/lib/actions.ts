@@ -314,3 +314,20 @@ export async function saveDbSettings(s: { darkMode: boolean; translation: string
   await db.insert(userSettings).values(toSave).onConflictDoUpdate({ target: userSettings.userId, set: toSave });
   return true;
 }
+
+export async function clearAllDbData() {
+  const { userId } = await auth();
+  if (!userId) throw new Error("Unauthorized");
+
+  await db.transaction(async (tx) => {
+    await tx.delete(entries).where(eq(entries.userId, userId));
+    await tx.delete(prayersTable).where(eq(prayersTable.userId, userId));
+    await tx.delete(gratitudeTable).where(eq(gratitudeTable.userId, userId));
+    await tx.delete(highlightsTable).where(eq(highlightsTable.userId, userId));
+    await tx.delete(plansTable).where(eq(plansTable.userId, userId));
+    await tx.delete(memoryVerses).where(eq(memoryVerses.userId, userId));
+    await tx.delete(userSettings).where(eq(userSettings.userId, userId));
+  });
+
+  return true;
+}

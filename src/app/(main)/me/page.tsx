@@ -129,23 +129,41 @@ export default function MePage() {
       </div>
 
       {/* Settings */}
-      <div className="flex items-center justify-between p-3 bg-brown/[0.03] rounded-xl mb-4">
-        <span className="text-sm text-dark">Dark mode</span>
-        <button
-          onClick={() => {
-            const next = !isDark;
-            setIsDark(next);
-            setDarkMode(next);
-            // Trigger storage event for layout (layout.tsx)
-            window.dispatchEvent(new StorageEvent("storage", {
-              key: "rope_dark_mode",
-              newValue: next.toString(),
-            }));
-          }}
-          className={`relative w-11 h-6 rounded-full transition-colors ${isDark ? "bg-accent-gold" : "bg-brown/20"}`}
-        >
-          <div className={`absolute top-0.5 w-5 h-5 rounded-full bg-ivory shadow transition-transform ${isDark ? "translate-x-5.5 left-0" : "left-0.5"}`} />
-        </button>
+      <div className="space-y-3 mb-4">
+        <div className="flex items-center justify-between p-3 bg-brown/[0.03] rounded-xl">
+          <span className="text-sm text-dark font-medium">Dark mode</span>
+          <button
+            onClick={() => {
+              const next = !isDark;
+              setIsDark(next);
+              setDarkMode(next);
+              // Trigger storage event for layout (layout.tsx)
+              window.dispatchEvent(new StorageEvent("storage", {
+                key: "rope_dark_mode",
+                newValue: next.toString(),
+              }));
+            }}
+            className={`relative w-11 h-6 rounded-full transition-colors ${isDark ? "bg-accent-gold" : "bg-brown/20"}`}
+          >
+            <div className={`absolute top-0.5 w-5 h-5 rounded-full bg-ivory shadow transition-transform ${isDark ? "translate-x-5.5 left-0" : "left-0.5"}`} />
+          </button>
+        </div>
+
+        <div className="flex items-center justify-between p-3 bg-brown/[0.03] rounded-xl hover:bg-brown/[0.06] transition-colors group">
+          <div className="flex flex-col">
+            <span className="text-sm text-dark font-medium">Centering Exercise</span>
+            <span className="text-[10px] text-muted italic">Psalm 46:10 Stillness</span>
+          </div>
+          <button
+            onClick={() => {
+              sessionStorage.removeItem("rope-breathing-done");
+              window.location.href = "/journal";
+            }}
+            className="px-4 py-1.5 bg-brown/10 text-brown rounded-lg text-xs font-semibold hover:bg-brown hover:text-ivory transition-all active:scale-95"
+          >
+            Start Stillness
+          </button>
+        </div>
       </div>
 
       {/* Data privacy note */}

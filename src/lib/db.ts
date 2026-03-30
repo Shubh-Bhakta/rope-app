@@ -68,3 +68,14 @@ export async function migrateFromLocalStorage(): Promise<void> {
     console.error("Migration failed", e);
   }
 }
+
+export async function deleteRopeEntries(): Promise<void> {
+  const db = await initDB();
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction(STORE_NAME, "readwrite");
+    const store = tx.objectStore(STORE_NAME);
+    store.clear();
+    tx.oncomplete = () => resolve();
+    tx.onerror = () => reject(tx.error);
+  });
+}

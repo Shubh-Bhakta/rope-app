@@ -1,14 +1,12 @@
 import type { Metadata } from "next";
-import { ClerkProvider } from "@clerk/nextjs";
-import { dark } from "@clerk/themes";
 import "./globals.css";
+import ClerkThemeWrapper from "@/components/ClerkThemeWrapper";
+import Navbar from "@/components/Navbar";
 
 export const metadata: Metadata = {
   title: "ROPE — Bible Journaling",
   description: "A daily rhythm of Revelation, Observation, Prayer, and Execution.",
 };
-
-import Navbar from "@/components/Navbar";
 
 export default function RootLayout({
   children,
@@ -16,22 +14,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <ClerkProvider
-      appearance={{
-        layout: {
-          shimmer: true,
-          socialButtonsVariant: "blockButton",
-        },
-        variables: {
-          colorPrimary: "#5c4327", // Brown
-          colorText: "#2e2418", // Dark brown
-          colorBackground: "#f5efe3", // Ivory
-          colorInputBackground: "#ebe4d4", // Cream
-          colorInputText: "#2e2418",
-          borderRadius: "1rem",
-        },
-      }}
-    >
+    <ClerkThemeWrapper>
       <html lang="en" className="overflow-x-hidden" suppressHydrationWarning>
         <head>
           <link
@@ -61,6 +44,6 @@ export default function RootLayout({
           {children}
         </body>
       </html>
-    </ClerkProvider>
+    </ClerkThemeWrapper>
   );
 }

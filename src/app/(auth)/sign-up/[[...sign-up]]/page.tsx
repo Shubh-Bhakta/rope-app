@@ -18,19 +18,7 @@ export default function SignUpPage() {
 
         {/* Main Sign Up Card */}
         <div className="w-full flex justify-center">
-          <SignUp 
-            appearance={{
-              elements: {
-                rootBox: "w-full",
-                card: "w-full shadow-none border border-brown/10 rounded-2xl bg-ivory",
-                headerTitle: "font-serif text-2xl text-brown",
-                headerSubtitle: "text-muted",
-                socialButtonsBlockButton: "border-brown/10 hover:bg-brown/5",
-                formButtonPrimary: "bg-brown hover:bg-brown-light text-ivory transition-all",
-                footerActionLink: "text-brown hover:text-brown-light font-medium"
-              }
-            }}
-          />
+          <SignUp />
         </div>
 
         {/* Decorative Footer */}
