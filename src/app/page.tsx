@@ -401,8 +401,8 @@ export default function SplashPage() {
           <img
             src="/hand-god.jpg"
             alt="A hand reaching toward the hand of God"
-            className="absolute inset-0 w-full h-full object-cover object-center"
-            style={{ objectPosition: "center 30%" }}
+            className="absolute inset-0 w-full h-full"
+            style={{ objectFit: "contain", objectPosition: "center center" }}
           />
           {/* Fade top into cream */}
           <div
