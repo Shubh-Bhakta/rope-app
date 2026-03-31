@@ -946,6 +946,8 @@ export interface PrayerItem {
   createdAt: string;
   answeredAt: string | null;
   answeredNote: string;
+  isPublic: boolean;
+  publicAt: string | null;
 }
 
 export function getPrayers(): PrayerItem[] {
@@ -957,7 +959,7 @@ export function getPrayers(): PrayerItem[] {
 }
 
 export function addPrayer(text: string, verse: string): PrayerItem {
-  const prayer: PrayerItem = { id: generateId(), text, verse, createdAt: new Date().toISOString(), answeredAt: null, answeredNote: "" };
+  const prayer: PrayerItem = { id: generateId(), text, verse, createdAt: new Date().toISOString(), answeredAt: null, answeredNote: "", isPublic: false, publicAt: null };
   const prayers = getPrayers();
   prayers.unshift(prayer);
   if (storeInitialized && cachedPrayers) cachedPrayers = prayers;
@@ -972,6 +974,18 @@ export function markPrayerAnswered(id: string, note?: string): void {
   if (idx !== -1) {
     prayers[idx].answeredAt = new Date().toISOString();
     if (note !== undefined) prayers[idx].answeredNote = note;
+    if (storeInitialized && cachedPrayers) cachedPrayers = prayers;
+    localStorage.setItem("rope_prayers", JSON.stringify(prayers));
+    saveDbPrayer(prayers[idx]).catch(console.error);
+  }
+}
+
+export function setPrayerPublic(id: string, isPublic: boolean): void {
+  const prayers = getPrayers();
+  const idx = prayers.findIndex(p => p.id === id);
+  if (idx !== -1) {
+    prayers[idx].isPublic = isPublic;
+    prayers[idx].publicAt = isPublic ? new Date().toISOString() : null;
     if (storeInitialized && cachedPrayers) cachedPrayers = prayers;
     localStorage.setItem("rope_prayers", JSON.stringify(prayers));
     saveDbPrayer(prayers[idx]).catch(console.error);

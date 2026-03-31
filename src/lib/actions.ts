@@ -86,6 +86,7 @@ export async function getDbPrayers() {
     ...r,
     createdAt: r.createdAt.toISOString(),
     answeredAt: r.answeredAt?.toISOString() || null,
+    publicAt: r.publicAt?.toISOString() || null,
   })) as PrayerItem[];
 }
 
@@ -94,10 +95,15 @@ export async function saveDbPrayer(prayer: PrayerItem) {
   if (!userId) throw new Error("Unauthorized");
 
   const toSave = {
-    ...prayer,
+    id: prayer.id,
     userId,
+    text: prayer.text,
+    verse: prayer.verse,
+    answeredNote: prayer.answeredNote,
+    isPublic: prayer.isPublic,
     createdAt: new Date(prayer.createdAt),
     answeredAt: prayer.answeredAt ? new Date(prayer.answeredAt) : null,
+    publicAt: prayer.publicAt ? new Date(prayer.publicAt) : null,
   };
 
   await db.insert(prayersTable).values(toSave).onConflictDoUpdate({ target: prayersTable.id, set: toSave });
@@ -115,7 +121,17 @@ export async function syncPrayers(local: PrayerItem[]) {
   const { userId } = await auth();
   if (!userId) throw new Error("Unauthorized");
   for (const item of local) {
-    const toSave = { ...item, userId, createdAt: new Date(item.createdAt), answeredAt: item.answeredAt ? new Date(item.answeredAt) : null };
+    const toSave = { 
+      id: item.id,
+      userId,
+      text: item.text,
+      verse: item.verse,
+      answeredNote: item.answeredNote,
+      isPublic: item.isPublic,
+      createdAt: new Date(item.createdAt), 
+      answeredAt: item.answeredAt ? new Date(item.answeredAt) : null,
+      publicAt: item.publicAt ? new Date(item.publicAt) : null,
+    };
     await db.insert(prayersTable).values(toSave).onConflictDoUpdate({ target: prayersTable.id, set: toSave });
   }
   return true;

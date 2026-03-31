@@ -16,6 +16,9 @@ import {
   updateBibleHistory,
   type BibleHighlight 
 } from "@/lib/store";
+import { getPublicHighlights, addPublicHighlight } from "@/lib/community-actions";
+import VerseDiscussionDrawer from "@/components/VerseDiscussionDrawer";
+import { useAuth } from "@clerk/nextjs";
 
 const HIGHLIGHT_COLORS = [
   { id: "gold", bg: "rgba(196,162,101,0.2)", border: "rgba(196,162,101,0.4)", label: "Gold" },
@@ -40,10 +43,12 @@ function BibleContent() {
 
   const urlBook = searchParams.get("b");
   const urlChapter = parseInt(searchParams.get("c") || "1");
+  const urlMode = searchParams.get("m");
 
   const [book, setBook] = useState(urlBook || "John");
   const [chapter, setChapter] = useState(urlChapter || 1);
   const [translation, setTranslationState] = useState("kjv");
+  const [communityMode, setCommunityMode] = useState(urlMode === "community");
   const [verses, setVerses] = useState<VerseData[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -55,6 +60,9 @@ function BibleContent() {
   const [selectedForJournal, setSelectedForJournal] = useState<Set<number>>(new Set());
   const [history, setHistory] = useState<any[]>([]);
   const [chaptersExpanded, setChaptersExpanded] = useState(false);
+  const [showDiscussion, setShowDiscussion] = useState(false);
+  const [publicHighlightsData, setPublicHighlightsData] = useState<any[]>([]);
+  const { userId: currentUserId } = useAuth();
 
   const maxChapter = BOOK_CHAPTERS[book] || 1;
 
@@ -75,10 +83,11 @@ function BibleContent() {
   }, []);
 
   // Sync URL when state changes
-  const syncUrl = useCallback((newBook: string, newChapter: number) => {
+  const syncUrl = useCallback((newBook: string, newChapter: number, isCommunity: boolean) => {
     const params = new URLSearchParams(searchParams.toString());
     params.set("b", newBook);
     params.set("c", newChapter.toString());
+    params.set("m", isCommunity ? "community" : "personal");
     router.replace(`${pathname}?${params.toString()}`);
   }, [searchParams, pathname, router]);
 
@@ -94,6 +103,15 @@ function BibleContent() {
       const data = await fetchChapterVerses(book, chapter, translation);
       setVerses(data);
       setHighlights(getHighlightsForChapter(book, chapter));
+      
+      // Fetch public highlights if in community mode
+      if (communityMode) {
+        const ph = await getPublicHighlights(book, chapter.toString());
+        setPublicHighlightsData(ph);
+      } else {
+        setPublicHighlightsData([]);
+      }
+
       updateBibleHistory(book, chapter);
       setHistory(getBibleHistory());
     } catch {
@@ -102,7 +120,7 @@ function BibleContent() {
     } finally {
       setLoading(false);
     }
-  }, [book, chapter, translation]);
+  }, [book, chapter, translation, communityMode]);
 
   useEffect(() => {
     loadChapter();
@@ -111,9 +129,14 @@ function BibleContent() {
   function changePassage(newBook: string, newChapter: number) {
     setBook(newBook);
     setChapter(newChapter);
-    syncUrl(newBook, newChapter);
+    syncUrl(newBook, newChapter, communityMode);
     setShowBookPicker(false);
     setChaptersExpanded(false); // Reset expansion when changing book
+  }
+
+  function handleModeToggle(isCommunity: boolean) {
+    setCommunityMode(isCommunity);
+    syncUrl(book, chapter, isCommunity);
   }
 
   function handleHighlight(verseNum: number, color: string) {
@@ -190,6 +213,25 @@ function BibleContent() {
             <option key={t.id} value={t.id}>{t.label}</option>
           ))}
         </select>
+      </div>
+
+      {/* Community Toggle */}
+      <div className="flex items-center justify-center mb-6">
+        <div className="inline-flex p-1 bg-brown/5 rounded-2xl">
+          <button 
+            onClick={() => handleModeToggle(false)}
+            className={`px-6 py-2 text-[10px] uppercase font-bold tracking-widest rounded-xl transition ${!communityMode ? "bg-brown text-ivory shadow-lg shadow-brown/20" : "text-muted hover:text-brown"}`}
+          >
+            Personal
+          </button>
+          <button 
+            onClick={() => handleModeToggle(true)}
+            className={`px-6 py-2 text-[10px] uppercase font-bold tracking-widest rounded-xl transition ${communityMode ? "bg-brown text-ivory shadow-lg shadow-brown/20" : "text-muted hover:text-brown"}`}
+          >
+            Community
+            <span className="ml-1 opacity-50">✦</span>
+          </button>
+        </div>
       </div>
 
       {/* History / Pick up where you left off */}
@@ -332,7 +374,12 @@ function BibleContent() {
         <div className="space-y-0.5 mb-8">
           {verses.map(v => {
             const highlight = highlights.find(h => h.verse === v.verse);
-            const hStyle = highlight ? getHighlightStyle(highlight.color) : null;
+            // Public highlights aggregation
+            const pubHighlightCount = publicHighlightsData.filter(ph => ph.verse === v.verse.toString()).length;
+            const hStyle = communityMode 
+              ? (pubHighlightCount > 0 ? { bg: 'rgba(196,162,101,0.1)', border: 'rgba(196,162,101,0.3)' } : null)
+              : (highlight ? getHighlightStyle(highlight.color) : null);
+            
             const isSelected = selectedVerse === v.verse;
             const isJournalSelected = selectedForJournal.has(v.verse);
 
@@ -382,6 +429,16 @@ function BibleContent() {
                       {isJournalSelected ? "Selected" : "Journal"}
                     </button>
 
+                    <button
+                      onClick={(e) => { e.stopPropagation(); setShowDiscussion(true); }}
+                      className="flex items-center gap-1.5 px-3 py-1.5 text-[10px] font-semibold text-muted hover:text-brown bg-ivory border border-brown/10 rounded-xl transition shadow-sm"
+                    >
+                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 1 1-7.6-7.6 8.38 8.38 0 0 1 3.8.9L21 3z" />
+                      </svg>
+                      Discuss
+                    </button>
+
                     {highlight && (
                       <button
                         onClick={(e) => { e.stopPropagation(); removeBibleHighlight(book, chapter, v.verse); setHighlights(getHighlightsForChapter(book, chapter)); }}
@@ -395,16 +452,33 @@ function BibleContent() {
 
                 {/* Color picker */}
                 {isSelected && showColorPicker && (
-                  <div className="flex items-center gap-3 ml-4 mb-3" style={{ animation: "fadeIn 0.2s ease-out both" }}>
-                    {HIGHLIGHT_COLORS.map(c => (
-                      <button
-                        key={c.id}
-                        onClick={(e) => { e.stopPropagation(); handleHighlight(v.verse, c.id); }}
-                        className={`w-9 h-9 rounded-full border-2 transition-transform active:scale-90 ${highlight?.color === c.id ? "ring-2 ring-brown/30 ring-offset-2" : ""}`}
-                        style={{ backgroundColor: c.bg, borderColor: c.border }}
-                        title={c.label}
-                      />
-                    ))}
+                  <div className="flex flex-col gap-3 ml-4 mb-3" style={{ animation: "fadeIn 0.2s ease-out both" }}>
+                    <div className="flex items-center gap-3">
+                      {HIGHLIGHT_COLORS.map(c => (
+                        <button
+                          key={c.id}
+                          onClick={(e) => { e.stopPropagation(); handleHighlight(v.verse, c.id); }}
+                          className={`w-9 h-9 rounded-full border-2 transition-transform active:scale-90 ${highlight?.color === c.id ? "ring-2 ring-brown/30 ring-offset-2" : ""}`}
+                          style={{ backgroundColor: c.bg, borderColor: c.border }}
+                          title={c.label}
+                        />
+                      ))}
+                    </div>
+                    {!communityMode && (
+                      <button 
+                        onClick={async (e) => {
+                          e.stopPropagation();
+                          if (highlight) {
+                            await addPublicHighlight(book, chapter.toString(), v.verse.toString(), highlight.color);
+                            setShowColorPicker(false);
+                            loadChapter();
+                          }
+                        }}
+                        className="text-[9px] uppercase font-bold tracking-widest text-accent-gold hover:text-accent-gold/80 flex items-center gap-1 self-start ml-1"
+                      >
+                        <span className="text-sm">✦</span> Share to Community
+                      </button>
+                    )}
                   </div>
                 )}
               </div>
@@ -482,6 +556,16 @@ function BibleContent() {
             <span className="text-xs group-hover:translate-x-1 transition-transform">Chapter {chapter < maxChapter ? chapter + 1 : "Next"} →</span>
           </button>
         </div>
+      )}
+
+      {/* Discussion Drawer */}
+      {showDiscussion && selectedVerse && (
+        <VerseDiscussionDrawer
+          book={book}
+          chapter={chapter.toString()}
+          verse={selectedVerse.toString()}
+          onClose={() => setShowDiscussion(false)}
+        />
       )}
     </div>
   );
