@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useAuth } from "@clerk/nextjs";
-import { getPrayers, addPrayer, deletePrayer, markPrayerAnswered, getRopeEntries, type PrayerItem, type RopeEntry } from "@/lib/store";
+import { getPrayers, addPrayer, deletePrayer, markPrayerAnswered, setPrayerPublic, getRopeEntries, type PrayerItem, type RopeEntry } from "@/lib/store";
 import { LampIcon, OliveBranch } from "@/components/Accents";
 
 export default function PrayersPage() {
@@ -199,6 +199,17 @@ export default function PrayersPage() {
                       className="w-full px-3 py-2.5 bg-ivory border border-brown/10 rounded-xl text-dark text-sm resize-none focus:outline-none placeholder:text-muted/50 mb-3"
                       autoFocus
                     />
+                    <div className="flex items-center gap-2 mb-4 px-1">
+                      <input 
+                        type="checkbox" 
+                        id="share-toggle"
+                        className="w-4 h-4 rounded border-brown/20 text-accent-gold focus:ring-accent-gold/20"
+                      />
+                      <label htmlFor="share-toggle" className="text-[10px] text-muted uppercase font-bold tracking-wider cursor-pointer">
+                        Share with Community
+                      </label>
+                    </div>
+
                     <div className="flex gap-2 justify-end">
                       <button
                         onClick={() => { setAnsweringId(null); setAnswerNote(""); }}
@@ -207,7 +218,11 @@ export default function PrayersPage() {
                         Cancel
                       </button>
                       <button
-                        onClick={() => handleMarkAnswered(p.id)}
+                        onClick={() => {
+                          const checkbox = document.getElementById('share-toggle') as HTMLInputElement;
+                          handleMarkAnswered(p.id);
+                          if (checkbox?.checked) setPrayerPublic(p.id, true);
+                        }}
                         disabled={!answerNote.trim()}
                         className="text-xs bg-accent-gold/15 text-accent-gold px-4 py-1.5 rounded-lg font-medium disabled:opacity-40"
                       >
@@ -257,6 +272,26 @@ export default function PrayersPage() {
                     <span className="text-muted text-[10px]">
                       {p.answeredAt && new Date(p.answeredAt).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}
                     </span>
+                    
+                    {/* Public Toggle for existing answers */}
+                    <button 
+                      onClick={() => { 
+                        const next = !p.isPublic;
+                        // Optimistic update
+                        setPrayers(prev => prev.map(pr => pr.id === p.id ? { ...pr, isPublic: next } : pr));
+                        setPrayerPublic(p.id, next); 
+                      }}
+                      className={`ml-auto flex items-center gap-1.5 px-2 py-0.5 rounded-full border transition ${p.isPublic ? "bg-brown text-ivory border-brown" : "bg-transparent text-muted/60 border-brown/10 hover:border-brown/30"}`}
+                    >
+                      <span className="text-[9px] uppercase font-bold tracking-tighter">
+                        {p.isPublic ? "Shared" : "Private"}
+                      </span>
+                      {p.isPublic ? (
+                        <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+                      ) : (
+                        <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+                      )}
+                    </button>
                   </div>
 
                   <p className="text-dark text-sm leading-relaxed">{p.text}</p>

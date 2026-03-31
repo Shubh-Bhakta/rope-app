@@ -235,16 +235,6 @@ export default function MePage() {
         </div>
       )}
 
-      {/* Backup & Portability */}
-      <div className="mb-12">
-        <h2 className="font-serif text-lg text-brown mb-4 flex items-center gap-2">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="opacity-60">
-            <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
-          </svg>
-          Account & Data
-        </h2>
-        <DataManagement />
-      </div>
 
       <div className="mb-8">
         {/* View toggle */}
@@ -405,12 +395,10 @@ export default function MePage() {
                   {editingId === entry.id ? (
                     <div className="px-4 pb-4 space-y-3 border-t border-brown/8 pt-3">
                       {/* Revelation stays read-only */}
-                      {(entry.revelationText || entry.revelationReflection) && (
+                      {entry.revelationText && (
                         <div>
                           <p className="text-xs text-muted uppercase tracking-wide mb-1">Revelation</p>
-                          {entry.revelationText && (
-                            <p className="text-dark text-sm italic leading-relaxed">&ldquo;{entry.revelationText}&rdquo;</p>
-                          )}
+                          <p className="text-dark text-sm italic leading-relaxed">&ldquo;{entry.revelationText}&rdquo;</p>
                         </div>
                       )}
 
@@ -459,24 +447,14 @@ export default function MePage() {
                     </div>
                   ) : (
                     <div className="px-4 pb-4 space-y-3 border-t border-brown/8 pt-3">
-                      {(entry.revelationText || entry.revelationReflection) && (
+                      {entry.revelationText && (
                         <div>
                           <p className="text-xs text-muted uppercase tracking-wide mb-1">
                             Revelation
                           </p>
-                          {entry.revelationText && (
-                            <p className="text-dark text-sm italic leading-relaxed">
-                              &ldquo;{entry.revelationText}&rdquo;
-                            </p>
-                          )}
-                          {entry.revelationReflection && (
-                            <div className="mt-2 pt-2 border-t border-brown/6">
-                              <p className="text-[10px] text-muted uppercase tracking-wider mb-1">My Reflection</p>
-                              <p className="text-dark text-sm leading-relaxed border-l-2 border-accent-gold/20 pl-3">
-                                {entry.revelationReflection}
-                              </p>
-                            </div>
-                          )}
+                          <p className="text-dark text-sm italic leading-relaxed">
+                            &ldquo;{entry.revelationText}&rdquo;
+                          </p>
                         </div>
                       )}
                       <div>
@@ -556,6 +534,19 @@ export default function MePage() {
         )}
           </>
         )}
+      </div>
+
+      <div className="section-divider mb-10" />
+
+      {/* Backup & Portability */}
+      <div className="mb-12">
+        <h2 className="font-serif text-lg text-brown mb-4 flex items-center gap-2">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="opacity-60">
+            <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+          </svg>
+          Account & Data
+        </h2>
+        <DataManagement />
       </div>
 
       <div className="flex justify-center">

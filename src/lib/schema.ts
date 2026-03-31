@@ -8,7 +8,6 @@ export const entries = pgTable("entries", {
   createdAt: timestamp("created_at").defaultNow().notNull(),
   revelationVerse: text("revelation_verse").notNull(),
   revelationText: text("revelation_text").default("").notNull(),
-  revelationReflection: text("revelation_reflection").default("").notNull(),
   observation: text("observation").default("").notNull(),
   prayer: text("prayer").default("").notNull(),
   execution: text("execution").default("").notNull(),
@@ -24,6 +23,52 @@ export const prayers = pgTable("prayers", {
   createdAt: timestamp("created_at").defaultNow().notNull(),
   answeredAt: timestamp("answered_at"),
   answeredNote: text("answered_note").default("").notNull(),
+  isPublic: boolean("is_public").default(false).notNull(),
+  publicAt: timestamp("public_at"),
+});
+
+export const profiles = pgTable("profiles", {
+  userId: varchar("user_id", { length: 255 }).primaryKey(),
+  displayName: varchar("display_name", { length: 100 }).notNull(),
+  imageUrl: text("image_url"),
+  bio: text("bio").default("").notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+export const verseComments = pgTable("verse_comments", {
+  id: varchar("id", { length: 255 }).primaryKey(),
+  userId: varchar("user_id", { length: 255 }).notNull(),
+  book: varchar("book", { length: 100 }).notNull(),
+  chapter: varchar("chapter", { length: 20 }).notNull(),
+  verse: varchar("verse", { length: 20 }).notNull(),
+  content: text("content").notNull(),
+  verseText: text("verse_text").default("").notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export const commentVotes = pgTable("comment_votes", {
+  id: varchar("id", { length: 255 }).primaryKey(), // composite userId_commentId
+  userId: varchar("user_id", { length: 255 }).notNull(),
+  commentId: varchar("comment_id", { length: 255 }).notNull(),
+  voteType: varchar("vote_type", { length: 10 }).notNull(), // 'up' or 'down'
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export const forumPosts = pgTable("forum_posts", {
+  id: varchar("id", { length: 255 }).primaryKey(),
+  userId: varchar("user_id", { length: 255 }).notNull(),
+  title: varchar("title", { length: 255 }).notNull(),
+  content: text("content").notNull(),
+  category: varchar("category", { length: 100 }).default("General").notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export const forumReplies = pgTable("forum_replies", {
+  id: varchar("id", { length: 255 }).primaryKey(),
+  postId: varchar("post_id", { length: 255 }).notNull(),
+  userId: varchar("user_id", { length: 255 }).notNull(),
+  content: text("content").notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
 export const gratitude = pgTable("gratitude", {
@@ -69,4 +114,46 @@ export const userSettings = pgTable("user_settings", {
   onboardingComplete: boolean("onboarding_complete").default(false).notNull(),
   lastRead: text("last_read").default("[]").notNull(), // JSON history array
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+export const prayerAmens = pgTable("prayer_amens", {
+  id: varchar("id", { length: 255 }).primaryKey(), // userId_prayerId
+  userId: varchar("user_id", { length: 255 }).notNull(),
+  prayerId: varchar("prayer_id", { length: 255 }).notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export const postVotes = pgTable("post_votes", {
+  id: varchar("id", { length: 255 }).primaryKey(), // userId_postId
+  userId: varchar("user_id", { length: 255 }).notNull(),
+  postId: varchar("post_id", { length: 255 }).notNull(),
+  voteType: varchar("vote_type", { length: 10 }).default("up").notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export const publicHighlights = pgTable("public_highlights", {
+  id: varchar("id", { length: 255 }).primaryKey(),
+  userId: varchar("user_id", { length: 255 }).notNull(),
+  book: varchar("book", { length: 100 }).notNull(),
+  chapter: varchar("chapter", { length: 20 }).notNull(),
+  verse: varchar("verse", { length: 20 }).notNull(),
+  color: varchar("color", { length: 50 }).notNull(),
+  note: text("note").default("").notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export const prayerReplies = pgTable("prayer_replies", {
+  id: varchar("id", { length: 255 }).primaryKey(),
+  prayerId: varchar("prayer_id", { length: 255 }).notNull(),
+  userId: varchar("user_id", { length: 255 }).notNull(),
+  content: text("content").notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export const verseReplies = pgTable("verse_replies", {
+  id: varchar("id", { length: 255 }).primaryKey(),
+  verseCommentId: varchar("verse_comment_id", { length: 255 }).notNull(),
+  userId: varchar("user_id", { length: 255 }).notNull(),
+  content: text("content").notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
 });
