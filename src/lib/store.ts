@@ -852,12 +852,11 @@ export interface PlanProgress {
 
 export function getActivePlan(): PlanProgress | null {
   if (typeof window === "undefined") return null;
-  if (storeInitialized && cachedPlan) return cachedPlan;
   const raw = localStorage.getItem("rope_active_plan");
   if (!raw) return null;
   try { 
     const p = JSON.parse(raw);
-    if (p.isCompleted) return null; // Don't return as "active" if completed
+    if (p.isCompleted) return null; 
     return p;
   } catch { return null; }
 }
@@ -903,7 +902,7 @@ export function advancePlan(): { progress: PlanProgress | null; newlyAdvanced: b
     progress.completedDays.push(progress.currentDay);
   }
 
-  const today = new Date().toISOString().split("T")[0];
+  const today = new Date().toLocaleDateString("en-CA"); // YYYY-MM-DD
   const alreadyAdvancedToday = progress.lastAdvancedAt === today;
   let newlyAdvanced = false;
 
@@ -948,10 +947,17 @@ export function quitPlan(): void {
 }
 
 export function isPlanAdvancedToday(): boolean {
-  const progress = getActivePlan();
-  if (!progress) return false;
-  const today = new Date().toISOString().split("T")[0];
-  return progress.lastAdvancedAt === today;
+  const today = new Date().toLocaleDateString("en-CA"); // YYYY-MM-DD
+  
+  // Check active plan
+  const active = getActivePlan();
+  if (active && active.lastAdvancedAt === today) return true;
+
+  // Check history (for just-completed plans)
+  const history = getPlanHistory();
+  if (history.length > 0 && history[0].lastAdvancedAt === today) return true;
+
+  return false;
 }
 
 export function getPlanSuggestedVerse(): string | null {

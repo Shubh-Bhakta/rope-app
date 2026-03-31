@@ -347,6 +347,7 @@ export default function JournalPage() {
   const [isMemoryVerse, setIsMemoryVerse] = useState(false);
   const [showPlanCompletion, setShowPlanCompletion] = useState(false);
   const [completedPlan, setCompletedPlan] = useState<PlanProgress | null>(null);
+  const [planSuggestedVerse, setPlanSuggestedVerse] = useState<string | null>(null);
 
   const { isLoaded, isSignedIn } = useAuth();
   const { supported: speechSupported, startListening } = useSpeechRecognition();
@@ -402,6 +403,9 @@ export default function JournalPage() {
         if (trans) { setTranslationState(trans); setTranslation(trans); }
       }
     } catch { /* ignore */ }
+
+    // Update suggested verse
+    setPlanSuggestedVerse(getPlanSuggestedVerse());
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -697,41 +701,37 @@ export default function JournalPage() {
           </div>
 
           {/* Reading plan suggestion */}
-          {(() => {
-            const planVerse = getPlanSuggestedVerse();
-            if (!planVerse) return null;
-            return (
-              <div className="mb-3 p-3 bg-accent-gold/5 border border-accent-gold/10 rounded-xl flex items-center justify-between">
-                <div>
-                  <p className="text-[10px] text-accent-gold uppercase tracking-wider font-medium">Reading Plan</p>
-                  <p className="text-dark text-sm">{planVerse}</p>
-                </div>
-                <button
-                  onClick={async () => {
-                    setVerseRef(planVerse);
-                    setIsQuickEntry(true);
-                    setShowSuggestions(false);
-                    setLookingUp(true);
-                    setLookupError("");
-                    try {
-                      const text = await fetchVerse(planVerse, translation);
-                      setVerseText(text);
-                      setVerseLookedUp(true);
-                      const memVerses = getMemoryVerses();
-                      setIsMemoryVerse(memVerses.some(v => v.verse === planVerse));
-                    } catch (err: any) {
-                      setLookupError(err.message || "Could not find that verse.");
-                    } finally {
-                      setLookingUp(false);
-                    }
-                  }}
-                  className="px-3 py-1.5 text-xs text-accent-gold border border-accent-gold/20 rounded-lg hover:bg-accent-gold/5 transition shrink-0"
-                >
-                  Use this
-                </button>
+          {planSuggestedVerse && (
+            <div className="mb-3 p-3 bg-accent-gold/5 border border-accent-gold/10 rounded-xl flex items-center justify-between">
+              <div>
+                <p className="text-[10px] text-accent-gold uppercase tracking-wider font-medium">Reading Plan</p>
+                <p className="text-dark text-sm">{planSuggestedVerse}</p>
               </div>
-            );
-          })()}
+              <button
+                onClick={async () => {
+                  setVerseRef(planSuggestedVerse);
+                  setIsQuickEntry(true);
+                  setShowSuggestions(false);
+                  setLookingUp(true);
+                  setLookupError("");
+                  try {
+                    const text = await fetchVerse(planSuggestedVerse, translation);
+                    setVerseText(text);
+                    setVerseLookedUp(true);
+                    const memVerses = getMemoryVerses();
+                    setIsMemoryVerse(memVerses.some(v => v.verse === planSuggestedVerse));
+                  } catch (err: any) {
+                    setLookupError(err.message || "Could not find that verse.");
+                  } finally {
+                    setLookingUp(false);
+                  }
+                }}
+                className="px-3 py-1.5 text-xs text-accent-gold border border-accent-gold/20 rounded-lg hover:bg-accent-gold/5 transition shrink-0"
+              >
+                Use this
+              </button>
+            </div>
+          )}
 
           <div className="space-y-4">
             <div className="flex justify-end">
