@@ -275,7 +275,12 @@ export default function PrayersPage() {
                     
                     {/* Public Toggle for existing answers */}
                     <button 
-                      onClick={() => { setPrayerPublic(p.id, !p.isPublic); setPrayers(getPrayers()); }}
+                      onClick={() => { 
+                        const next = !p.isPublic;
+                        // Optimistic update
+                        setPrayers(prev => prev.map(pr => pr.id === p.id ? { ...pr, isPublic: next } : pr));
+                        setPrayerPublic(p.id, next); 
+                      }}
                       className={`ml-auto flex items-center gap-1.5 px-2 py-0.5 rounded-full border transition ${p.isPublic ? "bg-brown text-ivory border-brown" : "bg-transparent text-muted/60 border-brown/10 hover:border-brown/30"}`}
                     >
                       <span className="text-[9px] uppercase font-bold tracking-tighter">

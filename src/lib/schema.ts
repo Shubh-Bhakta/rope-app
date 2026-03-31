@@ -149,3 +149,11 @@ export const prayerReplies = pgTable("prayer_replies", {
   content: text("content").notNull(),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
+
+export const verseReplies = pgTable("verse_replies", {
+  id: varchar("id", { length: 255 }).primaryKey(),
+  verseCommentId: varchar("verse_comment_id", { length: 255 }).notNull(),
+  userId: varchar("user_id", { length: 255 }).notNull(),
+  content: text("content").notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});

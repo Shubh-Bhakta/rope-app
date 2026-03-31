@@ -2,7 +2,7 @@
 
 import { auth, currentUser } from "@clerk/nextjs/server";
 import { db } from "./server-db";
-import { profiles, verseComments, commentVotes, forumPosts, forumReplies, prayers as prayersTable, postVotes, prayerAmens, publicHighlights, prayerReplies } from "./schema";
+import { profiles, verseComments, commentVotes, forumPosts, forumReplies, prayers as prayersTable, postVotes, prayerAmens, publicHighlights, prayerReplies, verseReplies } from "./schema";
 import { eq, and, desc, sql as dSql, count } from "drizzle-orm";
 import profanity from "leo-profanity";
 
@@ -142,6 +142,57 @@ export async function deleteVerseComment(id: string) {
   const { userId } = await auth();
   if (!userId) throw new Error("Unauthorized");
   await db.delete(verseComments).where(and(eq(verseComments.id, id), eq(verseComments.userId, userId)));
+  // Delete associated replies
+  await db.delete(verseReplies).where(eq(verseReplies.verseCommentId, id));
+  return true;
+}
+
+export async function getVerseCommentWithReplies(id: string) {
+  const comment = await db.query.verseComments.findFirst({
+    where: eq(verseComments.id, id),
+  });
+
+  if (!comment) return null;
+
+  const profile = await getProfile(comment.userId);
+  const replies = await db.query.verseReplies.findMany({
+    where: eq(verseReplies.verseCommentId, id),
+    orderBy: [verseReplies.createdAt],
+  });
+
+  const enrichedReplies = await Promise.all(replies.map(async (r) => {
+    const rp = await getProfile(r.userId);
+    return { ...r, profile: rp };
+  }));
+
+  return { ...comment, profile, replies: enrichedReplies };
+}
+
+export async function postVerseReply(verseCommentId: string, content: string) {
+  const { userId } = await auth();
+  if (!userId) throw new Error("Unauthorized");
+
+  if (containsVulgarity(content)) {
+    throw new Error("Content contains inappropriate language. Please keep the conversation respectful.");
+  }
+
+  await syncProfile();
+
+  const id = crypto.randomUUID();
+  await db.insert(verseReplies).values({
+    id,
+    verseCommentId,
+    userId,
+    content,
+  });
+
+  return id;
+}
+
+export async function deleteVerseReply(id: string) {
+  const { userId } = await auth();
+  if (!userId) throw new Error("Unauthorized");
+  await db.delete(verseReplies).where(and(eq(verseReplies.id, id), eq(verseReplies.userId, userId)));
   return true;
 }
 
@@ -374,7 +425,11 @@ export async function getGlobalVerseDiscussions(limit: number = 50, offset: numb
     
     const score = Number(votes[0].up || 0) - Number(votes[0].down || 0);
 
-    return { ...c, profile, score, replyCount: 0 }; 
+    // Get reply count
+    const replyCountRes = await db.select({ count: dSql<number>`count(*)` }).from(verseReplies).where(eq(verseReplies.verseCommentId, c.id));
+    const replyCount = Number(replyCountRes[0].count);
+
+    return { ...c, profile, score, replyCount }; 
   }));
 }
 

@@ -1,14 +1,14 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
-import { 
-  getPublicPrayers, 
-  getForumPosts, 
-  createForumPost, 
-  amenPrayer, 
-  votePost, 
-  postReply, 
-  getForumPostWithReplies, 
+import {
+  getPublicPrayers,
+  getForumPosts,
+  createForumPost,
+  amenPrayer,
+  votePost,
+  postReply,
+  getForumPostWithReplies,
   togglePrayerPublic,
   getPrayerWithReplies,
   postPrayerReply,
@@ -16,7 +16,10 @@ import {
   deleteForumPost,
   deleteVerseComment,
   deleteForumReply,
-  deletePrayerReply
+  deletePrayerReply,
+  getVerseCommentWithReplies,
+  postVerseReply,
+  deleteVerseReply
 } from "@/lib/community-actions";
 import { useAuth } from "@clerk/nextjs";
 import { OliveBranch } from "@/components/Accents";
@@ -31,7 +34,7 @@ export default function CommunityPage() {
   const [feed, setFeed] = useState<any[]>([]);
   const [feedPage, setFeedPage] = useState(0);
   const [hasMoreFeed, setHasMoreFeed] = useState(true);
-  
+
   const [showCreatePost, setShowCreatePost] = useState(false);
   const [showHelp, setShowHelp] = useState(false);
   const [selectedPostId, setSelectedPostId] = useState<string | null>(null);
@@ -115,13 +118,23 @@ export default function CommunityPage() {
     if (!userId) return;
     setPrayers(prev => prev.map(p => {
       if (p.id === id) {
-        return { 
-          ...p, 
-          amenCount: p.userAmen ? p.amenCount - 1 : p.amenCount + 1, 
-          userAmen: !p.userAmen 
+        return {
+          ...p,
+          amenCount: p.userAmen ? p.amenCount - 1 : p.amenCount + 1,
+          userAmen: !p.userAmen
         };
       }
       return p;
+    }));
+    setFeed(prev => prev.map(item => {
+      if (item.id === id && item.type === 'prayer') {
+        return {
+          ...item,
+          amenCount: item.userAmen ? item.amenCount - 1 : item.amenCount + 1,
+          userAmen: !item.userAmen
+        };
+      }
+      return item;
     }));
     await amenPrayer(id);
   };
@@ -148,52 +161,102 @@ export default function CommunityPage() {
     }
   };
 
+  const handleDeletePrayer = async (id: string) => {
+    if (!confirm("Remove this testimony from the community feed?")) return;
+    try {
+      await togglePrayerPublic(id, false);
+      loadData();
+    } catch (err) {
+      console.error(err);
+      setErrorNotice("Could not remove testimony.");
+    }
+  };
+
+  const handleLike = async (id: string) => {
+    if (!userId) return;
+    setPosts(prev => prev.map(p => {
+      if (p.id === id) {
+        return {
+          ...p,
+          likeCount: p.userLiked ? p.likeCount - 1 : p.likeCount + 1,
+          userLiked: !p.userLiked
+        };
+      }
+      return p;
+    }));
+    setFeed(prev => prev.map(item => {
+      if (item.id === id && item.type === 'post') {
+        return {
+          ...item,
+          likeCount: item.userLiked ? item.likeCount - 1 : item.likeCount + 1,
+          userLiked: !item.userLiked
+        };
+      }
+      return item;
+    }));
+    await votePost(id);
+  };
+
+  const handleToggleExpand = (id: string) => {
+    setExpandedId(prev => prev === id ? null : id);
+  };
+
   return (
     <div className="px-5 pt-6 pb-20 max-w-2xl mx-auto relative min-h-screen" style={{ animation: "fadeIn 0.4s ease-out both" }}>
-      {/* Help icon - moved to global fixed position */}
-      <button 
-        onClick={() => setShowHelp(true)}
-        className="fixed right-6 top-1/2 -translate-y-1/2 z-40 w-10 h-10 rounded-full bg-ivory border border-brown/10 shadow-elevated flex items-center justify-center text-muted hover:text-brown hover:scale-110 active:scale-95 transition-all"
-        title="Community Help"
-      >
-        <span className="font-serif text-lg leading-none">?</span>
-      </button>
+      <div className="flex items-center justify-center gap-4 mb-6 relative">
+        <h1 className="font-serif text-3xl text-brown">Community</h1>
+        <button 
+          onClick={() => setShowHelp(true)}
+          className="w-8 h-8 rounded-full bg-brown/5 flex items-center justify-center text-muted hover:text-brown transition-all"
+          title="Community Help"
+        >
+          <span className="font-serif text-lg leading-none italic opacity-50">?</span>
+        </button>
+      </div>
 
       {errorNotice && (
         <div className="fixed top-6 left-5 right-5 z-[100] p-4 bg-red-500 text-white text-xs font-bold rounded-2xl shadow-lg animate-bounce">
           {errorNotice}
         </div>
       )}
-      <h1 className="font-serif text-3xl text-brown mb-2 text-center">Community</h1>
-      <div className="flex justify-center mb-6 relative">
+      <div className="flex justify-center mb-8 relative">
         <div className="inline-flex p-1 bg-brown/5 rounded-2xl relative">
-          <button 
+          <button
             onClick={() => setActiveTab('feed')}
             className={`px-6 py-2 text-[10px] uppercase font-bold tracking-widest rounded-xl transition ${activeTab === 'feed' ? "bg-brown text-ivory shadow-lg shadow-brown/20" : "text-muted hover:text-brown"}`}
           >
             Stream
           </button>
-          <button 
+          <button
             onClick={() => setActiveTab('forum')}
             className={`px-6 py-2 text-[10px] uppercase font-bold tracking-widest rounded-xl transition ${activeTab === 'forum' ? "bg-brown text-ivory shadow-lg shadow-brown/20" : "text-muted hover:text-brown"}`}
           >
-            Topics
+            Forum
           </button>
-          <button 
+          <button
             onClick={() => setActiveTab('prayers')}
             className={`px-6 py-2 text-[10px] uppercase font-bold tracking-widest rounded-xl transition ${activeTab === 'prayers' ? "bg-brown text-ivory shadow-lg shadow-brown/20" : "text-muted hover:text-brown"}`}
           >
             Prayers
           </button>
         </div>
-        
-        <button 
-          onClick={() => setShowHelp(true)}
-          className="absolute right-[-40px] top-1/2 -translate-y-1/2 w-8 h-8 flex items-center justify-center rounded-full bg-brown/5 text-muted hover:text-brown transition"
-          title="Community Guide"
+      </div>
+
+      {/* Support ROPE - Donation Section */}
+      <div className="mb-8 p-6 bg-accent-gold/5 border border-accent-gold/20 rounded-3xl text-center relative overflow-hidden group">
+        <div className="absolute top-0 right-0 w-32 h-32 bg-accent-gold/5 rounded-full -translate-y-1/2 translate-x-1/2 blur-2xl group-hover:bg-accent-gold/10 transition-colors" />
+        <h3 className="font-serif text-lg text-brown mb-2">Support the Mission</h3>
+        <p className="text-xs text-muted-dark/70 mb-4 max-w-sm mx-auto leading-relaxed">
+          ROPE is free and ad-free. If this tool has helped your walk with God, consider supporting its maintenance. All funds go to site maintenance.
+        </p>
+        <a
+          href="https://www.buymeacoffee.com/tlind"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="inline-flex items-center gap-2 px-6 py-2.5 bg-accent-gold text-dark-brown text-[10px] font-bold uppercase tracking-widest rounded-xl hover:bg-accent-gold/90 transition-all shadow-lg shadow-accent-gold/10"
         >
-          <span className="font-serif italic text-lg text-brown/40">?</span>
-        </button>
+          <span>☕</span> Support ROPE
+        </a>
       </div>
 
       {loading ? (
@@ -205,118 +268,122 @@ export default function CommunityPage() {
         <div className="space-y-8">
           {/* Stream Tab */}
           {activeTab === 'feed' && (
-            <div className="space-y-6" style={{ animation: "fadeInUp 0.4s ease-out both" }}>
+            <div className="space-y-6">
               <div className="p-6 bg-brown/[0.03] border border-brown/10 rounded-[2rem] text-center mb-8">
                 <p className="text-dark text-sm italic font-serif">"Encourage one another and build each other up."</p>
               </div>
-              
-              {feed.map((item) => {
-                if (item.type === 'discussion') {
-                  return <VerseDiscussionCard key={item.id} item={item} />;
-                }
-                return (
-                  <CommunityCard 
-                    key={item.id} 
-                    item={item} 
-                    type={item.type === 'post' ? 'post' : 'prayer'} 
-                    currentUserId={userId}
-                    onAmen={() => handleAmen(item.id)}
-                    onLike={() => handleLike(item.id)}
-                    onOpen={() => {
-                      if (item.type === 'post') setSelectedPostId(item.id);
-                      else setSelectedPrayerId(item.id);
-                    }}
-                    onUnshare={async () => {
-                      if (item.type === 'post') return;
-                      await togglePrayerPublic(item.id, false);
-                      loadData();
-                    }}
-                  />
-                );
-              })}
-
+              {feed.map((item) => (
+                <div key={item.id} className="space-y-2">
+                  {item.type === 'discussion' ? (
+                    <VerseDiscussionCard
+                      item={item}
+                      currentUserId={userId}
+                      onDelete={() => handleDeleteComment(item.id)}
+                      onToggleExpand={() => handleToggleExpand(item.id)}
+                      isExpanded={expandedId === item.id}
+                    />
+                  ) : (
+                    <CommunityCard
+                      item={item}
+                      type={item.type as any}
+                      onAmen={() => handleAmen(item.id)}
+                      onLike={() => handleLike(item.id)}
+                      onOpen={() => handleToggleExpand(item.id)}
+                      onUnshare={() => togglePrayerPublic(item.id, false).then(loadData)}
+                      onDelete={() => item.type === 'post' ? handleDeletePost(item.id) : handleDeletePrayer(item.id)}
+                      currentUserId={userId}
+                    />
+                  )}
+                  {expandedId === item.id && (
+                    <div className="ml-4 pl-4 border-l-2 border-brown/5 pt-2 pb-4 animate-in fade-in slide-in-from-top-2 duration-300">
+                      <DiscussionExpansion 
+                        postId={item.type === 'post' ? item.id : null}
+                        prayerId={item.type === 'prayer' ? item.id : null}
+                        verseCommentId={item.type === 'discussion' ? item.id : null}
+                        onClose={() => setExpandedId(null)}
+                      />
+                    </div>
+                  )}
+                </div>
+              ))}
               {hasMoreFeed && (
-                <button 
+                <button
                   onClick={loadMoreFeed}
                   disabled={loadingMore}
-                  className="w-full py-4 text-[10px] uppercase font-bold tracking-widest text-brown/40 border border-brown/10 rounded-2xl hover:bg-brown/5 transition-all"
+                  className="w-full py-4 text-[10px] text-brown/40 font-bold uppercase tracking-[0.2em] hover:text-brown transition-all"
                 >
-                  {loadingMore ? "Loading more..." : "Load More Stream"}
+                  {loadingMore ? "Gathering more..." : "Load more stream"}
                 </button>
               )}
             </div>
           )}
 
-          {/* Topics Tab */}
           {activeTab === 'forum' && (
-            <div className="space-y-6" style={{ animation: "fadeInUp 0.4s ease-out both" }}>
-              <div className="flex items-center justify-between mb-4 px-2">
-                <h2 className="text-[10px] text-muted uppercase tracking-[0.2em] font-bold">Discussion Threads</h2>
-                <button 
-                  onClick={() => setShowCreatePost(true)}
-                  className="px-4 py-1.5 bg-brown text-ivory text-[9px] uppercase font-bold tracking-widest rounded-xl shadow-md shadow-brown/10 hover:scale-105 transition"
-                >
-                  + New Topic
-                </button>
-              </div>
-              
-              {posts.length === 0 ? (
-                <div className="text-center py-12">
-                   <p className="text-sm text-muted italic">No topics yet. Start a conversation!</p>
-                </div>
-              ) : (
-                posts.map(p => (
-                  <CommunityCard 
-                    key={p.id} 
-                    item={p} 
-                    type="post" 
-                    onLike={() => handleLike(p.id)}
-                    onOpen={() => setSelectedPostId(p.id)} 
+            <div className="space-y-6">
+              <button
+                onClick={() => setShowCreatePost(true)}
+                className="w-full py-4 bg-brown/5 text-brown text-[10px] uppercase font-bold tracking-widest rounded-2xl hover:bg-brown/10 transition-all border border-brown/5"
+              >
+                + Start a New Discussion
+              </button>
+              {posts.map((post) => (
+                <div key={post.id} className="space-y-2">
+                  <CommunityCard
+                    item={post}
+                    type="post"
+                    onLike={() => handleLike(post.id)}
+                    onOpen={() => handleToggleExpand(post.id)}
+                    onDelete={() => handleDeletePost(post.id)}
+                    currentUserId={userId}
                   />
-                ))
-              )}
+                    {expandedId === post.id && (
+                      <div className="ml-4 pl-4 border-l-2 border-brown/5 pt-2 pb-4 animate-in fade-in slide-in-from-top-2 duration-300">
+                        <DiscussionExpansion 
+                          postId={post.id}
+                          prayerId={null}
+                          verseCommentId={null}
+                          onClose={() => setExpandedId(null)}
+                        />
+                      </div>
+                    )}
+                </div>
+              ))}
             </div>
           )}
 
-          {/* Prayers Tab */}
           {activeTab === 'prayers' && (
-            <div className="space-y-6" style={{ animation: "fadeInUp 0.4s ease-out both" }}>
-              <div className="p-4 bg-brown/5 border border-brown/10 rounded-2xl mb-6">
-                <p className="text-[10px] text-brown font-bold uppercase tracking-widest mb-1">How to Share</p>
-                <p className="text-xs text-muted leading-relaxed">
-                  Have a testimony? You can publish your answered prayers to this feed from your <span className="font-bold text-brown">Prayers &gt; Answered</span> page.
-                </p>
-              </div>
-              <h2 className="text-[10px] text-muted uppercase tracking-[0.2em] font-bold mb-4 ml-2">Public Answered Prayers</h2>
-              {prayers.length === 0 ? (
-                <div className="text-center py-12">
-                   <p className="text-sm text-muted italic">Share your answered prayers to inspire the community.</p>
-                </div>
-              ) : (
-                prayers.map(p => (
-                  <CommunityCard 
-                    key={p.id} 
-                    item={p} 
-                    type="prayer" 
+            <div className="space-y-6">
+              {prayers.map((prayer) => (
+                <div key={prayer.id} className="space-y-2">
+                  <CommunityCard
+                    item={prayer}
+                    type="prayer"
+                    onAmen={() => handleAmen(prayer.id)}
+                    onOpen={() => handleToggleExpand(prayer.id)}
+                    onUnshare={() => togglePrayerPublic(prayer.id, false).then(loadData)}
+                    onDelete={() => handleDeletePrayer(prayer.id)}
                     currentUserId={userId}
-                    onAmen={() => handleAmen(p.id)}
-                    onOpen={() => setSelectedPrayerId(p.id)}
-                    onUnshare={async () => {
-                      await togglePrayerPublic(p.id, false);
-                      loadData();
-                    }}
                   />
-                ))
-              )}
+                  {expandedId === prayer.id && (
+                    <div className="ml-4 pl-4 border-l-2 border-brown/5 pt-2 pb-4 animate-in fade-in slide-in-from-top-2 duration-300">
+                      <DiscussionExpansion 
+                        postId={null}
+                        prayerId={prayer.id}
+                        verseCommentId={null}
+                        onClose={() => setExpandedId(null)}
+                      />
+                    </div>
+                  )}
+                </div>
+              ))}
             </div>
           )}
         </div>
       )}
 
-      {/* Create Topic Modal Backdrop */}
       {showCreatePost && (
         <div className="fixed inset-0 z-50 flex items-end justify-center sm:items-center px-4 bg-black/20 backdrop-blur-sm animate-in fade-in duration-300">
-          <div 
+          <div
             className="w-full max-w-lg bg-ivory rounded-t-[2.5rem] sm:rounded-[2.5rem] p-8 shadow-2xl animate-in slide-in-from-bottom-10"
           >
             <div className="flex justify-between items-center mb-6">
@@ -324,13 +391,13 @@ export default function CommunityPage() {
               <button onClick={() => setShowCreatePost(false)} className="text-muted hover:text-brown transition">✕</button>
             </div>
             <div className="space-y-4">
-              <input 
+              <input
                 value={newPost.title}
                 onChange={(e) => setNewPost({ ...newPost, title: e.target.value })}
                 placeholder="Title"
                 className="w-full px-4 py-3 bg-brown/5 border border-brown/10 rounded-xl text-dark text-sm focus:outline-none focus:ring-1 focus:ring-brown/30"
               />
-              <textarea 
+              <textarea
                 value={newPost.content}
                 onChange={(e) => setNewPost({ ...newPost, content: e.target.value })}
                 placeholder="What's on your heart?"
@@ -338,13 +405,13 @@ export default function CommunityPage() {
                 className="w-full px-4 py-3 bg-brown/5 border border-brown/10 rounded-xl text-dark text-sm focus:outline-none focus:ring-1 focus:ring-brown/30 resize-none"
               />
               <div className="flex justify-end gap-3 pt-2">
-                <button 
+                <button
                   onClick={() => setShowCreatePost(false)}
                   className="px-6 py-2 text-[10px] uppercase font-bold tracking-widest text-muted hover:text-brown transition"
                 >
                   Cancel
                 </button>
-                <button 
+                <button
                   onClick={handleCreatePost}
                   disabled={posting || !newPost.title || !newPost.content}
                   className="px-8 py-2 bg-brown text-ivory text-[10px] uppercase font-bold tracking-widest rounded-xl shadow-lg shadow-brown/20 hover:scale-105 active:scale-95 transition disabled:opacity-50"
@@ -357,15 +424,6 @@ export default function CommunityPage() {
         </div>
       )}
 
-      {(selectedPostId || selectedPrayerId) && (
-        <ForumPostDrawer 
-          postId={selectedPostId} 
-          prayerId={selectedPrayerId}
-          onClose={() => { setSelectedPostId(null); setSelectedPrayerId(null); }}
-        />
-      )}
-
-      {/* Standardized Help Modal */}
       {showHelp && (
         <CommunityHelpModal onClose={() => setShowHelp(false)} />
       )}
@@ -374,84 +432,98 @@ export default function CommunityPage() {
 }
 
 function CommunityHelpModal({ onClose }: { onClose: () => void }) {
-  const modalRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    function handleClickOutside(e: MouseEvent) {
-      if (modalRef.current && !modalRef.current.contains(e.target as Node)) onClose();
-    }
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, [onClose]);
-
   return (
-    <div className="fixed inset-0 z-[150] flex items-center justify-center p-6 bg-black/60 backdrop-blur-md animate-in fade-in duration-300">
-      <div 
-        ref={modalRef}
-        className="max-w-md w-full bg-ivory border border-brown/15 shadow-2xl rounded-[3rem] overflow-hidden animate-in fade-in zoom-in duration-400"
-      >
-        <div className="bg-brown/5 px-8 py-6 border-b border-brown/10 flex items-center justify-between">
-          <h2 className="font-serif text-xl font-bold text-brown">Community Compass</h2>
-          <button onClick={onClose} className="w-8 h-8 rounded-full flex items-center justify-center text-muted hover:bg-brown/10 hover:text-brown transition-colors">
-            ✕
-          </button>
-        </div>
+    <div className="fixed inset-0 z-[200] overflow-y-auto">
+      <div
+        className="fixed inset-0 bg-black/40 backdrop-blur-3xl animate-in fade-in duration-700"
+        onClick={onClose}
+      />
 
-        <div className="p-8 space-y-6">
-          <div className="space-y-6">
-            <div className="flex gap-4">
-              <div className="w-10 h-10 rounded-full bg-brown/10 flex items-center justify-center shrink-0 text-lg">✨</div>
-              <div>
-                <p className="text-sm font-bold text-dark mb-1">The Stream</p>
-                <p className="text-xs text-muted leading-relaxed">A living chronological record of what God is doing. See discussion posts, topics, and public testimonies as they happen.</p>
-              </div>
-            </div>
+      <div className="flex min-h-full items-start justify-center p-6 pt-12 sm:pt-24">
+        <div
+          className="relative w-full max-w-xl bg-ivory/90 rounded-[2.5rem] shadow-2xl border border-brown/10 p-10 md:p-14 animate-in fade-in zoom-in-95 duration-500"
+          style={{ backgroundImage: "radial-gradient(circle at top right, rgba(163, 137, 72, 0.05) 0%, transparent 70%)" }}
+        >
+          <div className="text-center mb-10">
+            <h2 className="font-serif text-4xl text-brown mb-3">Community Life</h2>
+            <p className="text-muted-dark/50 text-[10px] uppercase tracking-[0.2em] font-bold">A guide to ROPE collective wisdom</p>
+          </div>
 
-            <div className="flex gap-4">
-              <div className="w-10 h-10 rounded-full bg-brown/10 flex items-center justify-center shrink-0 text-lg">💬</div>
-              <div>
-                <p className="text-sm font-bold text-dark mb-1">Topics</p>
-                <p className="text-xs text-muted leading-relaxed">Deeper dives into specific themes or questions. Join a thread to explore truths withothers.</p>
-              </div>
-            </div>
+          <div className="space-y-10">
+            <div className="grid gap-8 sm:grid-cols-2">
+              <section className="space-y-3">
+                <div className="w-8 h-8 rounded-full bg-brown/5 flex items-center justify-center mb-4">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 1 1-7.6-7.6 8.38 8.38 0 0 1 3.8.9L21 3z" /></svg>
+                </div>
+                <h3 className="font-serif text-lg text-brown leading-none">Shared Discussions</h3>
+                <p className="text-xs text-muted-dark/70 leading-relaxed">
+                  Every verse has a global conversation. When you share a discussion post from the Bible reader, it appears here and anchored to that specific verse for others to read and respond.
+                </p>
+              </section>
 
-            <div className="flex gap-4">
-              <div className="w-10 h-10 rounded-full bg-brown/10 flex items-center justify-center shrink-0 text-lg">🙏</div>
-              <div>
-                <p className="text-sm font-bold text-dark mb-1">Public Prayers</p>
-                <p className="text-xs text-muted leading-relaxed">Testimonies of answered prayer. Share yours from your prayer journal to encourage the body of Christ.</p>
-              </div>
+              <section className="space-y-3">
+                <div className="w-8 h-8 rounded-full bg-brown/5 flex items-center justify-center mb-4">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><circle cx="12" cy="12" r="10" /><polyline points="12 6 12 12 16 14" /></svg>
+                </div>
+                <h3 className="font-serif text-lg text-brown leading-none">Public Testimony</h3>
+                <p className="text-xs text-muted-dark/70 leading-relaxed">
+                  Answered prayers can be shared with the community. These testimonies serve to encourage others on their journey. Use the "Amen" button to join in gratitude.
+                </p>
+              </section>
+
+              <section className="space-y-3">
+                <div className="w-8 h-8 rounded-full bg-brown/5 flex items-center justify-center mb-4">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" /><circle cx="9" cy="7" r="4" /><path d="M23 21v-2a4 4 0 0 0-3-3.87" /><path d="M16 3.13a4 4 0 0 1 0 7.75" /></svg>
+                </div>
+                <h3 className="font-serif text-lg text-brown leading-none">The Forum</h3>
+                <p className="text-xs text-muted-dark/70 leading-relaxed">
+                  The Forum is for general spiritual topics, questions, and community-wide dialogue. Anyone can start a topic or reply to existing ones.
+                </p>
+              </section>
+
+              <section className="space-y-3">
+                <div className="w-8 h-8 rounded-full bg-brown/5 flex items-center justify-center mb-4">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" /></svg>
+                </div>
+                <h3 className="font-serif text-lg text-brown leading-none">Moderation</h3>
+                <p className="text-xs text-muted-dark/70 leading-relaxed">
+                  We maintain a clean environment through automated filters and community standards. You can always delete your own posts if you wish to remove them from public view.
+                </p>
+              </section>
             </div>
           </div>
 
-          <button 
-            onClick={onClose}
-            className="w-full py-4 bg-brown text-ivory rounded-2xl font-bold text-sm hover:bg-brown/90 shadow-lg shadow-brown/20 transition-all active:scale-[0.98]"
-          >
-            I Understand
-          </button>
+          <div className="mt-12 text-center">
+            <button
+              onClick={onClose}
+              className="px-10 py-3.5 bg-brown text-ivory rounded-2xl font-bold text-xs uppercase tracking-widest hover:bg-brown/90 shadow-xl shadow-brown/20 transition-all active:scale-[0.98]"
+            >
+              Continue Journey
+            </button>
+          </div>
         </div>
       </div>
     </div>
   );
 }
 
-function CommunityCard({ item, type, onAmen, onLike, onOpen, onUnshare, currentUserId }: { 
-  item: any; 
-  type: 'prayer' | 'post'; 
-  onAmen?: () => void; 
-  onLike?: () => void; 
+function CommunityCard({ item, type, onAmen, onLike, onOpen, onUnshare, onDelete, currentUserId }: {
+  item: any;
+  type: 'prayer' | 'post';
+  onAmen?: () => void;
+  onLike?: () => void;
   onOpen?: () => void;
   onUnshare?: () => void;
+  onDelete?: () => void;
   currentUserId?: string | null;
 }) {
   const isAmen = item.userAmen;
   const isLiked = item.userLiked;
   const isOwner = currentUserId && item.userId === currentUserId;
   const replyCount = item.replyCount || 0;
-  
+
   return (
-    <div 
+    <div
       className="card-surface rounded-2xl p-5 border-l-3 border-l-transparent hover:border-l-brown/30 transition-all duration-300 group cursor-pointer"
       onClick={onOpen}
     >
@@ -478,32 +550,136 @@ function CommunityCard({ item, type, onAmen, onLike, onOpen, onUnshare, currentU
         </div>
       </div>
 
-      <div className="mb-5 pl-13">
+      <div className="mb-5 pl-13 space-y-4">
         {item.title && <h3 className="font-serif text-lg text-brown mb-2 leading-snug">{item.title}</h3>}
-        <p className="text-sm text-dark leading-relaxed line-clamp-3 select-none">{item.content}</p>
+        {type === 'prayer' ? (
+          <div className="space-y-4">
+            <div className="relative">
+              <p className="text-sm text-dark leading-relaxed whitespace-pre-wrap italic opacity-80">{item.text}</p>
+              <div className="absolute -left-4 top-0 bottom-0 w-0.5 bg-brown/10" />
+            </div>
+            {item.answeredNote && (
+              <div className="p-4 bg-accent-gold/5 rounded-2xl border border-accent-gold/10">
+                <p className="text-[10px] text-accent-gold uppercase font-bold tracking-[0.2em] mb-2">The Provision</p>
+                <p className="text-sm text-dark-brown/90 leading-relaxed font-serif">{item.answeredNote}</p>
+              </div>
+            )}
+          </div>
+        ) : (
+          <p className="text-sm text-dark leading-relaxed line-clamp-3 select-none whitespace-pre-wrap">{item.content}</p>
+        )}
       </div>
 
       <div className="flex items-center gap-4 pt-4 border-t border-brown/5 pl-13">
-        <button 
+        <button
           onClick={(e) => { e.stopPropagation(); type === 'prayer' ? onAmen?.() : onLike?.(); }}
           className={`flex items-center gap-1.5 text-[10px] uppercase font-bold tracking-widest transition-colors ${(type === 'prayer' ? isAmen : isLiked) ? "text-accent-gold" : "text-muted hover:text-brown"}`}
         >
-          <svg width="14" height="14" viewBox="0 0 24 24" fill={(type === 'prayer' ? isAmen : isLiked) ? "currentColor" : "none"} stroke="currentColor" strokeWidth="2.5"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
+          <svg width="14" height="14" viewBox="0 0 24 24" fill={(type === 'prayer' ? isAmen : isLiked) ? "currentColor" : "none"} stroke="currentColor" strokeWidth="2.5"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" /></svg>
           {type === 'prayer' ? (item.amenCount || 0) : (item.likeCount || 0)} {type === 'prayer' ? "Amen" : "Like"}
         </button>
-        <button 
+        <button
           onClick={(e) => { e.stopPropagation(); onOpen?.(); }}
           className="flex items-center gap-1.5 text-[10px] uppercase font-bold tracking-widest text-muted hover:text-brown transition-colors"
         >
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 1 1-7.6-7.6 8.38 8.38 0 0 1 3.8.9L21 3z"/></svg>
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 1 1-7.6-7.6 8.38 8.38 0 0 1 3.8.9L21 3z" /></svg>
           {replyCount} Replies
         </button>
-        {type === 'prayer' && isOwner && (
-          <button 
-            onClick={(e) => { e.stopPropagation(); if(confirm("Make this prayer private again?")) onUnshare?.(); }}
+        {isOwner && (
+          <div className="ml-auto flex items-center gap-4">
+            {type === 'prayer' && (
+              <button
+                onClick={(e) => { e.stopPropagation(); if (confirm("Make this prayer private again?")) onUnshare?.(); }}
+                className="text-[9px] uppercase font-bold tracking-widest text-muted/40 hover:text-muted transition-colors underline underline-offset-4"
+              >
+                Unshare
+              </button>
+            )}
+            <button
+              onClick={(e) => { e.stopPropagation(); onDelete?.(); }}
+              className="text-[9px] uppercase font-bold tracking-widest text-red-400/60 hover:text-red-400 transition-colors"
+            >
+              Delete
+            </button>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function VerseDiscussionCard({ item, currentUserId, onDelete, onToggleExpand, isExpanded }: { item: any; currentUserId?: string | null; onDelete?: () => void; onToggleExpand?: () => void; isExpanded?: boolean }) {
+  const isOwner = currentUserId && item.userId === currentUserId;
+  const [verseText, setVerseText] = useState(item.verseText || "");
+  const [loadingText, setLoadingText] = useState(false);
+
+  useEffect(() => {
+    if (!verseText && item.book && item.chapter && item.verse) {
+      setLoadingText(true);
+      fetchVerse(`${item.book} ${item.chapter}:${item.verse}`, 'kjv')
+        .then(text => setVerseText(text))
+        .finally(() => setLoadingText(false));
+    }
+  }, [item.id, verseText]);
+
+  return (
+    <div
+      className="card-surface rounded-2xl p-5 border-l-3 border-l-accent-gold/20 hover:border-l-accent-gold/50 transition-all duration-300 group cursor-pointer"
+      onClick={onToggleExpand}
+    >
+      <div className="flex items-center gap-3 mb-4">
+        <div className="w-10 h-10 rounded-full bg-accent-gold/5 flex-shrink-0 overflow-hidden ring-2 ring-ivory group-hover:ring-accent-gold/10 transition-all">
+          {item.profile?.imageUrl ? (
+            <img src={item.profile.imageUrl} alt="" className="w-full h-full object-cover" />
+          ) : (
+            <div className="w-full h-full flex items-center justify-center text-xs font-bold text-accent-gold/40">
+              {item.profile?.displayName?.charAt(0) || "?"}
+            </div>
+          )}
+        </div>
+        <div className="flex-1">
+          <p className="text-xs font-bold text-brown leading-tight">{item.profile?.displayName || "Anonymous"}</p>
+          <div className="flex items-center gap-1.5 mt-0.5">
+            <span className="text-[9px] text-accent-gold uppercase font-bold tracking-widest">Shared Discussion</span>
+            <span className="w-1 h-1 bg-brown/10 rounded-full" />
+            <span className="text-[9px] text-muted-dark/40 font-medium">{item.book} {item.chapter}:{item.verse}</span>
+          </div>
+        </div>
+        <div className="text-right">
+          <span className="text-[9px] text-muted-dark/30 font-medium">
+            {new Date(item.createdAt).toLocaleDateString()}
+          </span>
+        </div>
+      </div>
+
+      <div className="mb-5 pl-13 space-y-3">
+        <div className="p-4 bg-brown/[0.02] border border-brown/5 rounded-xl border-l-2 border-l-brown/10 relative overflow-hidden">
+          {loadingText ? (
+            <div className="h-4 w-3/4 bg-brown/5 animate-pulse rounded" />
+          ) : (
+            <p className="text-xs text-muted-dark italic leading-relaxed">&ldquo;{verseText || "(Reference recorded)"}&rdquo;</p>
+          )}
+          <div className="absolute top-0 right-0 p-1 opacity-10">
+            <svg width="40" height="40" viewBox="0 0 24 24" fill="currentColor"><path d="M14.017 21v-7.391c0-5.704 3.731-9.57 8.983-10.609l.995 2.151c-2.432.917-3.995 3.638-3.995 5.849h4v10h-9.983zm-14.017 0v-7.391c0-5.704 3.748-9.57 9-10.609l.996 2.151c-2.433.917-3.996 3.638-3.996 5.849h3.983v10h-9.983z" /></svg>
+          </div>
+        </div>
+        <p className="text-sm text-dark leading-relaxed whitespace-pre-wrap">{item.content}</p>
+      </div>
+
+      <div className="flex items-center gap-4 pt-4 border-t border-brown/5 pl-13">
+        <button
+          onClick={(e) => { e.stopPropagation(); onToggleExpand?.(); }}
+          className="flex items-center gap-1.5 text-[10px] uppercase font-bold tracking-widest text-muted hover:text-brown transition-colors"
+        >
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 1 1-7.6-7.6 8.38 8.38 0 0 1 3.8.9L21 3z" /></svg>
+          View Context & Replies
+        </button>
+        {isOwner && (
+          <button
+            onClick={(e) => { e.stopPropagation(); onDelete?.(); }}
             className="ml-auto text-[9px] uppercase font-bold tracking-widest text-red-400/60 hover:text-red-400 transition-colors"
           >
-            Unshare
+            Delete
           </button>
         )}
       </div>
@@ -511,13 +687,14 @@ function CommunityCard({ item, type, onAmen, onLike, onOpen, onUnshare, currentU
   );
 }
 
-function ForumPostDrawer({ postId, prayerId, onClose }: { postId: string | null; prayerId: string | null; onClose: () => void }) {
+function DiscussionExpansion({ postId, prayerId, verseCommentId, onClose }: { postId: string | null; prayerId: string | null; verseCommentId: string | null; onClose: () => void }) {
   const [data, setData] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [reply, setReply] = useState("");
   const [posting, setPosting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const { userId } = useAuth();
+  const [deletingId, setDeletingId] = useState<string | null>(null);
 
   const loadData = async () => {
     setLoading(true);
@@ -528,6 +705,9 @@ function ForumPostDrawer({ postId, prayerId, onClose }: { postId: string | null;
       } else if (prayerId) {
         const d = await getPrayerWithReplies(prayerId);
         setData(d);
+      } else if (verseCommentId) {
+        const d = await getVerseCommentWithReplies(verseCommentId);
+        setData(d);
       }
     } catch (err) {
       console.error(err);
@@ -536,7 +716,7 @@ function ForumPostDrawer({ postId, prayerId, onClose }: { postId: string | null;
     }
   };
 
-  useEffect(() => { loadData(); }, [postId, prayerId]);
+  useEffect(() => { loadData(); }, [postId, prayerId, verseCommentId]);
 
   async function handlePostReply() {
     if (!reply.trim() || !userId) return;
@@ -545,6 +725,7 @@ function ForumPostDrawer({ postId, prayerId, onClose }: { postId: string | null;
     try {
       if (postId) await postReply(postId, reply);
       else if (prayerId) await postPrayerReply(prayerId, reply);
+      else if (verseCommentId) await postVerseReply(verseCommentId, reply);
       setReply("");
       loadData();
     } catch (err: any) {
@@ -554,137 +735,77 @@ function ForumPostDrawer({ postId, prayerId, onClose }: { postId: string | null;
     }
   }
 
+  const handleDeleteReply = async (replyId: string) => {
+    if (!confirm("Delete this reply?")) return;
+    setDeletingId(replyId);
+    try {
+      if (postId) await deleteForumReply(replyId);
+      else if (prayerId) await deletePrayerReply(replyId);
+      else if (verseCommentId) await deleteVerseReply(replyId);
+      loadData();
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setDeletingId(null);
+    }
+  };
+
+  if (loading) return (
+    <div className="py-8 text-center animate-pulse">
+      <div className="w-6 h-6 border-2 border-brown/10 border-t-brown rounded-full animate-spin mx-auto mb-2" />
+      <p className="text-[10px] text-muted-dark/40 uppercase tracking-widest">Gathering replies...</p>
+    </div>
+  );
+
   return (
-    <div 
-      className="fixed inset-x-0 bottom-0 z-50 flex flex-col max-h-[90vh] bg-ivory rounded-t-[3rem] shadow-[0_-10px_40px_rgba(0,0,0,0.15)] border-t border-brown/5 overflow-hidden"
-      style={{ animation: "slideUp 0.4s cubic-bezier(0.16, 1, 0.3, 1) both" }}
-    >
-      <div className="flex justify-center p-4">
-        <div className="w-10 h-1 bg-brown/10 rounded-full" />
-      </div>
-
-      <div className="px-6 pb-4 flex items-center justify-between border-b border-brown/5 relative">
-        <div>
-          <h2 className="font-serif text-lg text-dark">{prayerId ? "Testimony Discussion" : "Forum Thread"}</h2>
-          {error && (
-            <div className="absolute top-1/2 -translate-y-1/2 right-12 px-3 py-1.5 bg-red-500 text-white text-[10px] uppercase font-bold tracking-widest rounded-lg shadow-lg animate-pulse z-[110]">
-              {error}
+    <div className="space-y-6">
+      <div className="space-y-4 max-h-[30rem] overflow-y-auto px-1 custom-scrollbar">
+        {data?.replies?.map((r: any) => (
+          <div key={r.id} className="flex gap-3 group/reply animate-in fade-in slide-in-from-left-2 duration-300">
+            <div className="w-8 h-8 rounded-full bg-brown/5 shrink-0 overflow-hidden ring-1 ring-brown/5">
+              {r.profile?.imageUrl ? <img src={r.profile.imageUrl} alt="" className="w-full h-full object-cover" /> : r.profile?.displayName?.charAt(0) || "?"}
             </div>
-          )}
-        </div>
-        <button onClick={onClose} className="w-8 h-8 flex items-center justify-center rounded-full bg-brown/5 text-muted hover:text-brown transition">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>
-        </button>
-      </div>
-
-      <div className="flex-1 overflow-y-auto px-6 py-6 custom-scrollbar">
-        {loading ? (
-          <div className="py-20 text-center">
-            <div className="w-8 h-8 border-2 border-brown/20 border-t-brown rounded-full animate-spin mx-auto mb-4" />
-            <p className="text-xs text-muted italic">Gathering discussions...</p>
-          </div>
-        ) : (
-          <div className="space-y-8 pb-10">
-            <div className="space-y-3">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-full bg-brown/10 ring-2 ring-brown/5 flex items-center justify-center text-brown/40 font-bold overflow-hidden">
-                  {data?.profile?.imageUrl ? <img src={data.profile.imageUrl} alt="" className="w-full h-full object-cover" /> : data?.profile?.displayName?.charAt(0) || "?"}
+            <div className="flex-1 space-y-1">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <span className="text-[11px] font-bold text-brown">{r.profile?.displayName}</span>
+                  <span className="text-[9px] text-muted/50">{new Date(r.createdAt).toLocaleDateString()}</span>
                 </div>
-                <div>
-                  <h3 className="font-serif text-xl text-brown leading-tight">{data?.title || "Public Testimony"}</h3>
-                  <p className="text-[10px] text-muted uppercase tracking-widest">{data?.profile?.displayName || "Anonymous"} • {new Date(data?.createdAt || data?.publicAt).toLocaleDateString()}</p>
-                </div>
+                {userId && r.userId === userId && (
+                  <button
+                    onClick={() => handleDeleteReply(r.id)}
+                    disabled={deletingId === r.id}
+                    className="opacity-0 group-hover/reply:opacity-100 transition-opacity text-[8px] uppercase tracking-widest text-red-400/60 hover:text-red-400"
+                  >
+                    {deletingId === r.id ? "..." : "Delete"}
+                  </button>
+                )}
               </div>
-              <p className="text-sm text-dark leading-relaxed pl-[3.25rem] whitespace-pre-wrap">{data?.content}</p>
-            </div>
-
-            <div className="h-px bg-brown/5" />
-
-            <div className="space-y-6">
-              <h4 className="text-[10px] text-muted uppercase tracking-widest font-bold">Replies ({data?.replies?.length || 0})</h4>
-              {data?.replies?.map((r: any) => (
-                <div key={r.id} className="flex gap-4">
-                  <div className="w-8 h-8 rounded-full bg-brown/5 shrink-0 overflow-hidden ring-1 ring-brown/5">
-                    {r.profile?.imageUrl ? <img src={r.profile.imageUrl} alt="" className="w-full h-full object-cover" /> : r.profile?.displayName?.charAt(0) || "?"}
-                  </div>
-                  <div className="flex-1 space-y-1">
-                    <div className="flex items-center gap-2">
-                      <span className="text-[11px] font-bold text-brown">{r.profile?.displayName}</span>
-                      <span className="text-[9px] text-muted">{new Date(r.createdAt).toLocaleDateString()}</span>
-                    </div>
-                    <p className="text-sm text-dark leading-relaxed">{r.content}</p>
-                  </div>
-                </div>
-              ))}
+              <p className="text-xs text-dark leading-relaxed">{r.content}</p>
             </div>
           </div>
+        ))}
+        {(!data?.replies || data.replies.length === 0) && (
+          <p className="text-[10px] text-muted-dark/30 italic">No replies yet. Be the first to start the conversation.</p>
         )}
       </div>
 
-      <div className="p-6 bg-ivory border-t border-brown/5 safe-bottom">
-        <div className="flex gap-3">
-          <textarea 
-            value={reply}
-            onChange={(e) => setReply(e.target.value)}
-            placeholder="Build them up..."
-            className="flex-1 px-4 py-3 bg-brown/5 border border-brown/10 rounded-2xl text-sm text-dark focus:outline-none focus:ring-1 focus:ring-brown/20 resize-none"
-            rows={2}
-          />
-          <button 
-            onClick={handlePostReply}
-            disabled={posting || !reply.trim() || !userId}
-            className="w-12 h-12 flex items-center justify-center bg-brown text-ivory rounded-2xl transition shadow-lg shadow-brown/10 disabled:opacity-30"
-          >
-            {posting ? "..." : "✈"}
-          </button>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-function VerseDiscussionCard({ item }: { item: any }) {
-  return (
-    <div className="card-surface rounded-2xl p-5 border-l-3 border-l-accent-gold/30 hover:border-l-accent-gold transition-all duration-300 group">
-      <div className="flex items-center gap-3 mb-4">
-        <div className="w-8 h-8 rounded-full bg-brown/5 flex items-center justify-center text-[10px] font-bold text-brown/40 shrink-0 overflow-hidden ring-2 ring-ivory group-hover:ring-brown/10 transition-all">
-          {item.profile?.imageUrl ? <img src={item.profile.imageUrl} alt="" className="w-full h-full object-cover" /> : item.profile?.displayName?.charAt(0) || "?"}
-        </div>
-        <div className="flex-1">
-          <p className="text-[11px] font-bold text-brown leading-tight">{item.profile?.displayName || "Anonymous"}</p>
-          <p className="text-[9px] text-muted-dark/40 uppercase tracking-tighter">Shared a Discussion Post</p>
-        </div>
-        <div className="text-right">
-          <p className="text-[9px] font-bold text-accent-gold uppercase tracking-widest">{item.book} {item.chapter}:{item.verse}</p>
-        </div>
-      </div>
-
-      {/* Bibical Context */}
-      <div className="mb-4 bg-brown/[0.04] border-l-2 border-brown/10 p-3 rounded-r-xl">
-        <p className="text-[10px] text-brown font-bold uppercase tracking-widest mb-1 opacity-50">Referenced Verse</p>
-        <p className="text-xs text-dark/70 italic leading-relaxed">
-          {item.verseText || "(Reference recorded)"}
-        </p>
-      </div>
-
-      <div className="space-y-3 mb-4">
-        <p className="text-sm text-dark leading-relaxed font-serif bg-brown/[0.02] p-3 rounded-xl border border-brown/5">
-          "{item.content}"
-        </p>
-        <a 
-          href={`/bible?b=${item.book}&c=${item.chapter}&m=community`}
-          className="inline-flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-widest text-muted hover:text-brown transition-colors"
+      <div className="flex gap-2">
+        <input
+          value={reply}
+          onChange={(e) => setReply(e.target.value)}
+          placeholder="Write a respectful reply..."
+          className="flex-1 px-4 py-2 bg-ivory/50 border border-brown/10 rounded-xl text-xs text-dark focus:outline-none focus:ring-1 focus:ring-brown/20"
+        />
+        <button
+          onClick={handlePostReply}
+          disabled={posting || !reply.trim()}
+          className="px-4 bg-brown text-ivory text-[10px] font-bold uppercase tracking-widest rounded-xl disabled:opacity-30 transition-all hover:scale-105 active:scale-95"
         >
-          Read in Context →
-        </a>
+          {posting ? "..." : "Reply"}
+        </button>
       </div>
-
-      <div className="flex items-center gap-4 pt-4 border-t border-brown/5">
-        <div className="flex items-center gap-1.5 text-[10px] font-bold text-accent-gold">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" strokeWidth="2.5"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
-          {item.score || 0}
-        </div>
-      </div>
+      {error && <p className="text-[10px] text-red-500 italic mt-1">{error}</p>}
     </div>
   );
 }

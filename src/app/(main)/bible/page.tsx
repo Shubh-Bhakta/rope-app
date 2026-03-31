@@ -104,16 +104,11 @@ function BibleContent() {
       setVerses(data);
       setHighlights(getHighlightsForChapter(book, chapter));
       
-      // Fetch previews and public highlights if in community mode
+      // Fetch previews if in community mode
       if (communityMode) {
-        const [ph, cp] = await Promise.all([
-          getPublicHighlights(book, chapter.toString()),
-          getChapterCommentPreviews(book, chapter.toString())
-        ]);
-        setPublicHighlightsData(ph);
+        const cp = await getChapterCommentPreviews(book, chapter.toString());
         setCommentPreviews(cp);
       } else {
-        setPublicHighlightsData([]);
         setCommentPreviews({});
       }
 
@@ -379,11 +374,7 @@ function BibleContent() {
         <div className="space-y-0.5 mb-8">
           {verses.map(v => {
             const highlight = highlights.find(h => h.verse === v.verse);
-            // Public highlights aggregation
-            const pubHighlightCount = publicHighlightsData.filter(ph => ph.verse === v.verse.toString()).length;
-            const hStyle = communityMode 
-              ? (pubHighlightCount > 0 ? { bg: 'rgba(196,162,101,0.1)', border: 'rgba(196,162,101,0.3)' } : null)
-              : (highlight ? getHighlightStyle(highlight.color) : null);
+            const hStyle = !communityMode && highlight ? getHighlightStyle(highlight.color) : null;
             
             const isSelected = selectedVerse === v.verse;
             const isJournalSelected = selectedForJournal.has(v.verse);
@@ -450,15 +441,6 @@ function BibleContent() {
                       </svg>
                       {showDiscussion ? "Close Discussion" : "Discuss"}
                     </button>
-
-                    {highlight && (
-                      <button
-                        onClick={(e) => { e.stopPropagation(); removeBibleHighlight(book, chapter, v.verse); setHighlights(getHighlightsForChapter(book, chapter)); }}
-                        className="px-2 py-1.5 text-[10px] font-medium text-red-400 hover:text-red-500 transition"
-                      >
-                        Clear
-                      </button>
-                    )}
                   </div>
                 )}
 
@@ -475,27 +457,22 @@ function BibleContent() {
                           title={c.label}
                         />
                       ))}
-                    </div>
-                    {!communityMode && (
-                      <div className="flex flex-col gap-2">
-                        <button 
-                          onClick={async (e) => {
-                            e.stopPropagation();
-                            if (highlight) {
-                              await addPublicHighlight(book, chapter.toString(), v.verse.toString(), highlight.color);
-                              setShowColorPicker(false);
-                              loadChapter();
-                            }
+                      {highlight && (
+                        <button
+                          onClick={(e) => { 
+                            e.stopPropagation(); 
+                            removeBibleHighlight(book, chapter, v.verse); 
+                            setHighlights(getHighlightsForChapter(book, chapter)); 
+                            setShowColorPicker(false);
+                            setSelectedVerse(null);
                           }}
-                          className="text-[9px] uppercase font-bold tracking-widest text-accent-gold hover:text-accent-gold/80 flex items-center gap-1 self-start ml-1"
+                          className="w-9 h-9 rounded-full border border-red-400/20 flex items-center justify-center text-red-400 hover:bg-red-400/10 transition"
+                          title="Remove Highlight"
                         >
-                          <span className="text-sm">✦</span> Share to Community
+                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3"><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>
                         </button>
-                        <p className="text-[8px] text-muted-dark/40 italic ml-1 max-w-[200px]">
-                          This adds your highlight to the "Collective Wisdom" view for all users.
-                        </p>
-                      </div>
-                    )}
+                      )}
+                    </div>
                   </div>
                 )}
 
