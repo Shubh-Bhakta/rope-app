@@ -437,10 +437,10 @@ export default function SplashPage() {
           </div>
         </div>
 
-        {/* ═══ Coming Soon — Community Features ═══ */}
+        {/* ═══ The Experience — Live Features ═══ */}
         <div
           ref={sComing.ref}
-          className="max-w-3xl mx-auto px-6 mt-20 md:mt-28 transition-all duration-700 ease-out"
+          className="max-w-4xl mx-auto px-6 mt-20 md:mt-28 transition-all duration-700 ease-out"
           style={{
             opacity: sComing.visible ? 1 : 0,
             transform: sComing.visible ? "translateY(0)" : "translateY(20px)",
@@ -448,77 +448,88 @@ export default function SplashPage() {
         >
           <div className="text-center mb-12">
             <p className="text-xs tracking-[0.4em] uppercase mb-3 font-medium" style={{ color: "#c4a265" }}>
-              Coming Soon
+              The Experience
             </p>
-            <h2 className="font-serif text-xl md:text-2xl font-semibold leading-snug" style={{ color: "#1a1714" }}>
+            <h2 className="font-serif text-2xl md:text-3xl font-semibold leading-snug" style={{ color: "#1a1714" }}>
               Faith is better together.
             </h2>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            {/* Community Conversations */}
-            <div className="rounded-2xl p-5 text-center" style={{ border: "1px solid rgba(196,162,101,0.2)", background: "rgba(255,255,255,0.5)" }}>
-              <div className="w-10 h-10 mx-auto mb-3 rounded-full flex items-center justify-center" style={{ border: "1px solid rgba(196,162,101,0.3)", background: "rgba(196,162,101,0.08)" }}>
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#8a7a5a" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+            {/* Global fellowship */}
+            <div className="rounded-2xl p-6 text-center" style={{ border: "1px solid rgba(196,162,101,0.2)", background: "rgba(255,255,255,0.5)" }}>
+              <div className="w-12 h-12 mx-auto mb-4 rounded-full flex items-center justify-center" style={{ border: "1px solid rgba(196,162,101,0.3)", background: "rgba(196,162,101,0.08)" }}>
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#8a7a5a" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" /><circle cx="9" cy="7" r="4" /><path d="M23 21v-2a4 4 0 0 0-3-3.87" /><path d="M16 3.13a4 4 0 0 1 0 7.75" />
                 </svg>
               </div>
-              <h3 className="font-serif text-sm font-semibold mb-2" style={{ color: "#1a1714" }}>Community Conversations</h3>
+              <h3 className="font-serif text-base font-semibold mb-2" style={{ color: "#1a1714" }}>Global Fellowship</h3>
               <p className="text-xs leading-relaxed" style={{ color: "#6a6058" }}>
-                Discuss verses with others on the same journey. Share what God is teaching you.
+                Discuss any verse with the global ROPE community. Share what God is teaching you.
               </p>
             </div>
 
             {/* Testimonials */}
-            <div className="rounded-2xl p-5 text-center" style={{ border: "1px solid rgba(196,162,101,0.2)", background: "rgba(255,255,255,0.5)" }}>
-              <div className="w-10 h-10 mx-auto mb-3 rounded-full flex items-center justify-center" style={{ border: "1px solid rgba(196,162,101,0.3)", background: "rgba(196,162,101,0.08)" }}>
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#8a7a5a" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+            <div className="rounded-2xl p-6 text-center" style={{ border: "1px solid rgba(196,162,101,0.2)", background: "rgba(255,255,255,0.5)" }}>
+              <div className="w-12 h-12 mx-auto mb-4 rounded-full flex items-center justify-center" style={{ border: "1px solid rgba(196,162,101,0.3)", background: "rgba(196,162,101,0.08)" }}>
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#8a7a5a" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
                   <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
                 </svg>
               </div>
-              <h3 className="font-serif text-sm font-semibold mb-2" style={{ color: "#1a1714" }}>Testimonials Wall</h3>
+              <h3 className="font-serif text-base font-semibold mb-2" style={{ color: "#1a1714" }}>Public Testimony</h3>
               <p className="text-xs leading-relaxed" style={{ color: "#6a6058" }}>
-                Share answered prayers publicly. Let your testimony encourage someone else&apos;s faith.
+                Share answered prayers. Let your testimony encourage someone else&apos;s faith.
               </p>
             </div>
 
-            {/* Accountability Groups */}
-            <div className="rounded-2xl p-5 text-center" style={{ border: "1px solid rgba(196,162,101,0.2)", background: "rgba(255,255,255,0.5)" }}>
-              <div className="w-10 h-10 mx-auto mb-3 rounded-full flex items-center justify-center" style={{ border: "1px solid rgba(196,162,101,0.3)", background: "rgba(196,162,101,0.08)" }}>
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#8a7a5a" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
-                  <circle cx="9" cy="7" r="4" />
-                  <path d="M23 21v-2a4 4 0 0 0-3-3.87" />
-                  <path d="M16 3.13a4 4 0 0 1 0 7.75" />
+            {/* Reading Plans */}
+            <div className="rounded-2xl p-6 text-center" style={{ border: "1px solid rgba(196,162,101,0.2)", background: "rgba(255,255,255,0.5)" }}>
+              <div className="w-12 h-12 mx-auto mb-4 rounded-full flex items-center justify-center" style={{ border: "1px solid rgba(196,162,101,0.3)", background: "rgba(196,162,101,0.08)" }}>
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#8a7a5a" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20" /><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z" />
                 </svg>
               </div>
-              <h3 className="font-serif text-sm font-semibold mb-2" style={{ color: "#1a1714" }}>Accountability Groups</h3>
+              <h3 className="font-serif text-base font-semibold mb-2" style={{ color: "#1a1714" }}>Guided Journeys</h3>
               <p className="text-xs leading-relaxed" style={{ color: "#6a6058" }}>
-                Journal alongside friends. See each other&apos;s streaks and cheer one another on.
+                Structured reading plans to help you master themes and books of the Bible.
+              </p>
+            </div>
+
+            {/* Sacred Stillness */}
+            <div className="rounded-2xl p-6 text-center" style={{ border: "1px solid rgba(196,162,101,0.2)", background: "rgba(255,255,255,0.5)" }}>
+              <div className="w-12 h-12 mx-auto mb-4 rounded-full flex items-center justify-center" style={{ border: "1px solid rgba(196,162,101,0.3)", background: "rgba(196,162,101,0.08)" }}>
+                <span className="text-xl">🌬️</span>
+              </div>
+              <h3 className="font-serif text-base font-semibold mb-2" style={{ color: "#1a1714" }}>Sacred Stillness</h3>
+              <p className="text-xs leading-relaxed" style={{ color: "#6a6058" }}>
+                Quiet your heart with a guided breathing practice designed to help you focus before opening the Word.
               </p>
             </div>
           </div>
 
-          {/* Additional features row */}
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mt-4">
-            {[
-              { icon: "🔔", label: "Daily Reminders" },
-              { icon: "📖", label: "Shared Reading Plans" },
-              { icon: "🤝", label: "Prayer Partners" },
-              { icon: "🌍", label: "Global Prayer Map" },
-            ].map((f) => (
-              <div key={f.label} className="rounded-xl px-3 py-3 text-center" style={{ border: "1px solid rgba(196,162,101,0.15)", background: "rgba(255,255,255,0.35)" }}>
-                <span className="text-lg block mb-1">{f.icon}</span>
-                <p className="text-[10px] font-medium tracking-wide" style={{ color: "#6a6058" }}>{f.label}</p>
-              </div>
-            ))}
+          {/* Coming Soon roadmap row */}
+          <div className="mt-12 p-6 bg-brown/5 rounded-3xl border border-brown/10">
+            <p className="text-[10px] text-accent-gold uppercase tracking-[0.3em] font-medium mb-4 text-center">Roadmap & Coming Soon</p>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+              {[
+                { icon: "👥", label: "Accountability Groups" },
+                { icon: "🤝", label: "Prayer Partners" },
+                { icon: "🌍", label: "Global Prayer Map" },
+                { icon: "📅", label: "Collaborative Study" },
+              ].map((f) => (
+                <div key={f.label} className="text-center group">
+                  <span className="text-xl block mb-1 group-hover:scale-110 transition-transform">{f.icon}</span>
+                  <p className="text-[10px] font-medium tracking-wide" style={{ color: "#6a6058" }}>{f.label}</p>
+                </div>
+              ))}
+            </div>
           </div>
         </div>
 
         {/* Closing CTA */}
         <div
           ref={sCta.ref}
-          className="flex flex-col items-center mt-16 md:mt-20 transition-all duration-700 ease-out"
+          className="flex flex-col items-center mt-16 md:mt-24 transition-all duration-700 ease-out"
           style={{
             opacity: sCta.visible ? 1 : 0,
             transform: sCta.visible ? "translateY(0)" : "translateY(16px)",
@@ -532,15 +543,29 @@ export default function SplashPage() {
           <button
             onClick={handleEnter}
             disabled={exiting}
-            className="group relative px-10 py-4 font-medium text-base rounded-xl transition-all duration-300 ease-out hover:shadow-lg active:scale-[0.98] disabled:opacity-50"
-            style={{ border: "1px solid #c4a265", color: "#1a1714", background: "rgba(196,162,101,0.1)" }}
+            className="group relative px-12 py-5 font-medium text-lg rounded-2xl transition-all duration-300 ease-out hover:shadow-xl active:scale-[0.98] disabled:opacity-50"
+            style={{ border: "1.5px solid #c4a265", color: "#1a1714", background: "rgba(196,162,101,0.05)" }}
           >
-            <span className="tracking-wide">Enter today&#39;s ROPE</span>
+            <span className="tracking-wide font-serif">Enter today&#39;s ROPE</span>
+            <div className="absolute inset-0 bg-accent-gold/5 opacity-0 group-hover:opacity-100 transition-opacity rounded-[calc(1rem-1.5px)]" />
           </button>
 
-          <p className="text-xs mt-8 tracking-wide italic" style={{ color: "#8a7a5a" }}>
-            Open source &middot; Free forever
-          </p>
+          <div className="mt-10 flex flex-col items-center gap-4">
+            <a 
+              href="https://github.com/Shubh-Bhakta/rope-app"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center gap-2 text-xs text-brown/60 hover:text-brown transition-colors group"
+            >
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" className="group-hover:scale-110 transition-transform">
+                <path d="M12 .297c-6.63 0-12 5.373-12 12 0 5.303 3.438 9.8 8.205 11.385.6.113.82-.258.82-.577 0-.285-.01-1.04-.015-2.04-3.338.724-4.042-1.61-4.042-1.61C4.422 18.07 3.633 17.7 3.633 17.7c-1.087-.744.084-.729.084-.729 1.205.084 1.838 1.236 1.838 1.236 1.07 1.835 2.809 1.305 3.495.998.108-.776.417-1.305.76-1.605-2.665-.3-5.466-1.332-5.466-5.93 0-1.31.465-2.38 1.235-3.22-.135-.303-.54-1.523.105-3.176 0 0 1.005-.322 3.3 1.23.96-.267 1.98-.399 3-.405 1.02.006 2.04.138 3 .405 2.28-1.552 3.285-1.23 3.285-1.23.645 1.653.24 2.873.12 3.176.765.84 1.23 1.91 1.23 3.22 0 4.61-2.805 5.625-5.475 5.92.42.36.81 1.096.81 2.22 0 1.606-.015 2.896-.015 3.286 0 .315.21.69.825.57C20.565 22.092 24 17.592 24 12.297c0-6.627-5.373-12-12-12" />
+              </svg>
+              <span>View Source on GitHub</span>
+            </a>
+            <p className="text-[10px] tracking-widest uppercase text-brown/30 font-medium">
+              Free &middot; Private &middot; Open Source
+            </p>
+          </div>
         </div>
       </section>
     </div>

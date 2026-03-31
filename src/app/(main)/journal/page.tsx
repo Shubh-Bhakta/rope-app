@@ -2,10 +2,30 @@
 
 import { useState, useEffect, useRef, useCallback } from "react";
 import { useAuth } from "@clerk/nextjs";
-import { addRopeEntry, suggestBooks, getStreak, getTranslation, setTranslation, getGatewayVersion, TRANSLATIONS, getPlanSuggestedVerse, advancePlan, getActivePlan, getReachedMilestone, getNextMilestone, addMemoryVerse, getMemoryVerses, getBibleHistory, fetchVerse, BIBLE_BOOKS } from "@/lib/store";
+import { 
+  addRopeEntry, 
+  suggestBooks, 
+  getStreak, 
+  getTranslation, 
+  setTranslation, 
+  getGatewayVersion, 
+  TRANSLATIONS, 
+  getPlanSuggestedVerse, 
+  advancePlan, 
+  getActivePlan, 
+  getReachedMilestone, 
+  getNextMilestone, 
+  addMemoryVerse, 
+  getMemoryVerses, 
+  getBibleHistory, 
+  fetchVerse, 
+  BIBLE_BOOKS,
+  PlanProgress
+} from "@/lib/store";
 import { OliveBranch } from "@/components/Accents";
 import ShareCard from "@/components/ShareCard";
 import Breathing from "@/components/Breathing";
+import PlanCompletionModal from "@/components/PlanCompletionModal";
 
 const steps = [
   { letter: "R", word: "Revelation", placeholder: "" },
@@ -325,6 +345,8 @@ export default function JournalPage() {
   });
   const [milestoneReached, setMilestoneReached] = useState<{ title: string; verse: string; ref: string } | null>(null);
   const [isMemoryVerse, setIsMemoryVerse] = useState(false);
+  const [showPlanCompletion, setShowPlanCompletion] = useState(false);
+  const [completedPlan, setCompletedPlan] = useState<PlanProgress | null>(null);
 
   const { isLoaded, isSignedIn } = useAuth();
   const { supported: speechSupported, startListening } = useSpeechRecognition();
@@ -497,8 +519,12 @@ export default function JournalPage() {
       setMilestoneReached(milestone);
     }
 
-    // Clear draft after successful save
-    localStorage.removeItem(todayKey);
+    // Reading Plan Advancement
+    const { progress: planProgress, newlyAdvanced } = advancePlan();
+    if (newlyAdvanced && planProgress?.isCompleted) {
+      setCompletedPlan(planProgress);
+      setShowPlanCompletion(true);
+    }
 
     setSavedCount((c) => c + 1);
     setSaved(true);
@@ -1067,6 +1093,12 @@ export default function JournalPage() {
           Your words are kept safely on this device
         </p>
       </div>
+
+      <PlanCompletionModal 
+        isOpen={showPlanCompletion} 
+        onClose={() => setShowPlanCompletion(false)} 
+        progress={completedPlan} 
+      />
     </div>
   );
 }

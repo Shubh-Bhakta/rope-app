@@ -845,6 +845,9 @@ export interface PlanProgress {
   startedAt: string;
   completedDays: number[];
   paused: boolean;
+  isCompleted?: boolean;
+  completedAt?: string | null;
+  lastAdvancedAt?: string | null;
 }
 
 export function getActivePlan(): PlanProgress | null {
@@ -852,7 +855,27 @@ export function getActivePlan(): PlanProgress | null {
   if (storeInitialized && cachedPlan) return cachedPlan;
   const raw = localStorage.getItem("rope_active_plan");
   if (!raw) return null;
-  try { return JSON.parse(raw); } catch { return null; }
+  try { 
+    const p = JSON.parse(raw);
+    if (p.isCompleted) return null; // Don't return as "active" if completed
+    return p;
+  } catch { return null; }
+}
+
+export function getPlanHistory(): PlanProgress[] {
+  if (typeof window === "undefined") return [];
+  const raw = localStorage.getItem("rope_plan_history");
+  if (!raw) return [];
+  try { return JSON.parse(raw); } catch { return []; }
+}
+
+function addToPlanHistory(progress: PlanProgress) {
+  const history = getPlanHistory();
+  // Avoid duplicates
+  if (!history.some(h => h.planId === progress.planId && h.startedAt === progress.startedAt)) {
+    history.unshift(progress);
+    localStorage.setItem("rope_plan_history", JSON.stringify(history.slice(0, 50)));
+  }
 }
 
 export function startPlan(planId: string): PlanProgress {
@@ -869,21 +892,43 @@ export function startPlan(planId: string): PlanProgress {
   return progress;
 }
 
-export function advancePlan(): PlanProgress | null {
+export function advancePlan(): { progress: PlanProgress | null; newlyAdvanced: boolean } {
   const progress = getActivePlan();
-  if (!progress) return null;
+  if (!progress) return { progress: null, newlyAdvanced: false };
   const plan = READING_PLANS.find(p => p.id === progress.planId);
-  if (!plan) return null;
+  if (!plan) return { progress, newlyAdvanced: false };
+
+  // Add the current day to completed list if not already there
   if (!progress.completedDays.includes(progress.currentDay)) {
     progress.completedDays.push(progress.currentDay);
   }
-  if (progress.currentDay < plan.days - 1) {
-    progress.currentDay++;
+
+  const today = new Date().toISOString().split("T")[0];
+  const alreadyAdvancedToday = progress.lastAdvancedAt === today;
+  let newlyAdvanced = false;
+
+  if (!alreadyAdvancedToday) {
+    if (progress.currentDay < plan.days - 1) {
+      progress.currentDay++;
+      progress.lastAdvancedAt = today;
+      newlyAdvanced = true;
+    } else {
+      // Completion Logic
+      progress.isCompleted = true;
+      progress.completedAt = new Date().toISOString();
+      progress.lastAdvancedAt = today;
+      newlyAdvanced = true;
+      addToPlanHistory(progress);
+      // We keep the object in 'rope_active_plan' but it will be filtered out by getActivePlan()
+      // This allows the UI to still "see" the final state for the celebration modal
+    }
   }
+
   if (storeInitialized) cachedPlan = progress;
   localStorage.setItem("rope_active_plan", JSON.stringify(progress));
   saveDbPlanProgress(progress).catch(console.error);
-  return progress;
+  
+  return { progress, newlyAdvanced };
 }
 
 export function pausePlan(): void {
@@ -902,9 +947,19 @@ export function quitPlan(): void {
   // For now, removing local is enough to stop the UI from showing it.
 }
 
+export function isPlanAdvancedToday(): boolean {
+  const progress = getActivePlan();
+  if (!progress) return false;
+  const today = new Date().toISOString().split("T")[0];
+  return progress.lastAdvancedAt === today;
+}
+
 export function getPlanSuggestedVerse(): string | null {
   const progress = getActivePlan();
   if (!progress || progress.paused) return null;
+  // If already advanced today, don't suggest the next verse yet
+  if (isPlanAdvancedToday()) return null;
+  
   const plan = READING_PLANS.find(p => p.id === progress.planId);
   if (!plan) return null;
   return plan.verses[progress.currentDay] || null;
