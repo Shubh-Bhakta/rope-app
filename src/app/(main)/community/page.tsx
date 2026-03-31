@@ -443,7 +443,7 @@ function CommunityHelpModal({ onClose }: { onClose: () => void }) {
   return (
     <div className="fixed inset-0 z-[200] overflow-y-auto">
       <div
-        className="fixed inset-0 bg-black/40 backdrop-blur-3xl animate-in fade-in duration-700"
+        className="fixed inset-0 animate-in fade-in duration-700"
         onClick={onClose}
       />
 
