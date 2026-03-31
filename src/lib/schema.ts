@@ -8,7 +8,7 @@ export const entries = pgTable("entries", {
   createdAt: timestamp("created_at").defaultNow().notNull(),
   revelationVerse: text("revelation_verse").notNull(),
   revelationText: text("revelation_text").default("").notNull(),
-  revelationReflection: text("revelation_reflection").default("").notNull(),
+  heartReflection: text("heart_reflection").default("").notNull(),
   observation: text("observation").default("").notNull(),
   prayer: text("prayer").default("").notNull(),
   execution: text("execution").default("").notNull(),

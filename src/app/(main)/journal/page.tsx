@@ -299,7 +299,7 @@ export default function JournalPage() {
   const [verseLookedUp, setVerseLookedUp] = useState(false);
   const [lookingUp, setLookingUp] = useState(false);
   const [lookupError, setLookupError] = useState("");
-  const [revelationReflection, setRevelationReflection] = useState("");
+  const [heartReflection, setHeartReflection] = useState("");
   const [observation, setObservation] = useState("");
   const [prayer, setPrayer] = useState("");
   const [execution, setExecution] = useState("");
@@ -364,7 +364,7 @@ export default function JournalPage() {
         const d = JSON.parse(raw);
         if (d.verseRef) setVerseRef(d.verseRef);
         if (d.verseText) { setVerseText(d.verseText); setVerseLookedUp(true); }
-        if (d.revelationReflection) setRevelationReflection(d.revelationReflection);
+        if (d.heartReflection) setHeartReflection(d.heartReflection);
         if (d.observation) setObservation(d.observation);
         if (d.prayer) setPrayer(d.prayer);
         if (d.execution) setExecution(d.execution);
@@ -390,14 +390,14 @@ export default function JournalPage() {
   useEffect(() => {
     if (saved) return; // don't save after explicit save
     const timer = setTimeout(() => {
-      const draft = { verseRef, verseText, revelationReflection, observation, prayer, execution };
+      const draft = { verseRef, verseText, heartReflection, observation, prayer, execution };
       // Only save if there's actual content
       if (verseRef || observation || prayer || execution) {
         localStorage.setItem(todayKey, JSON.stringify(draft));
       }
     }, 500);
     return () => clearTimeout(timer);
-  }, [verseRef, verseText, revelationReflection, observation, prayer, execution, todayKey, saved]);
+  }, [verseRef, verseText, heartReflection, observation, prayer, execution, todayKey, saved]);
 
   // Keyboard shortcuts: Cmd+Enter to save, Cmd+L to focus verse lookup
   const canSave = !!(verseRef.trim() && observation.trim() && prayer.trim() && execution.trim());
@@ -483,7 +483,7 @@ export default function JournalPage() {
       userId: "local", // This will be overridden by Clerk on the server if authenticated
       revelationVerse: verseRef.trim(),
       revelationText: verseText,
-      revelationReflection: revelationReflection.trim(),
+      heartReflection: heartReflection.trim(),
       observation: observation.trim(),
       prayer: prayer.trim(),
       execution: execution.trim(),
@@ -511,7 +511,7 @@ export default function JournalPage() {
   const allFilled = !!(verseRef.trim() && observation.trim() && prayer.trim() && execution.trim());
 
   if (saved) {
-    const currentStreak = getStreak("any"); // getStreak now ignores the userId parameter in many cases or we can pass a dummy
+    const currentStreak = getStreak("any"); 
     const saveVerse = motivationalVerses[(savedCount - 1) % motivationalVerses.length];
 
     return (
@@ -588,7 +588,7 @@ export default function JournalPage() {
             setVerseRef("");
             setVerseText("");
             setVerseLookedUp(false);
-            setRevelationReflection("");
+            setHeartReflection("");
             setObservation("");
             setPrayer("");
             setExecution("");
@@ -606,7 +606,7 @@ export default function JournalPage() {
           <ShareCard
             verse={verseText}
             reference={verseRef}
-            reflection={revelationReflection || undefined}
+            reflection={heartReflection || undefined}
             onClose={() => setShowShare(false)}
           />
         )}
@@ -632,7 +632,7 @@ export default function JournalPage() {
         {["R", "O", "P", "E"].map((letter, i) => {
           const filled =
             (i === 0 && (verseLookedUp || verseRef.trim())) ||
-            (i === 1 && observation.trim()) ||
+            (i === 1 && (observation.trim() || heartReflection.trim())) ||
             (i === 2 && prayer.trim()) ||
             (i === 3 && execution.trim());
           return (
@@ -904,16 +904,6 @@ export default function JournalPage() {
                   </div>
                 </div>
               </div>
-              <div className="mt-4 px-2">
-                <p className="text-[10px] uppercase tracking-[0.2em] text-muted font-medium mb-2.5 opacity-60 ml-2">Heart Reflection</p>
-                <textarea
-                  value={revelationReflection}
-                  onChange={(e) => setRevelationReflection(e.target.value)}
-                  placeholder="What is the Holy Spirit highlighting for you in this verse? Record your initial impressions here..."
-                  rows={3}
-                  className="w-full px-4 py-3 bg-ivory border border-brown/10 rounded-xl text-dark text-sm placeholder:text-muted/30 focus:outline-none resize-none leading-relaxed italic"
-                />
-              </div>
             </div>
           )}
         </section>
@@ -927,21 +917,35 @@ export default function JournalPage() {
             <div className="step-badge">O</div>
             <h2 className="font-serif text-lg text-dark">Observation</h2>
           </div>
-          <div className="relative">
-            <textarea
-              value={observation}
-              onChange={(e) => setObservation(e.target.value)}
-              placeholder={steps[1].placeholder}
-              rows={4}
-              className="w-full px-4 py-3 bg-ivory border border-brown/10 rounded-xl text-dark placeholder:text-muted/50 focus:outline-none text-sm leading-relaxed resize-none min-h-[120px]"
-            />
-            <MicButton
-              supported={speechSupported}
-              startListening={startListening}
-              onTranscript={(text) =>
-                setObservation((prev) => (prev ? prev + " " + text : text))
-              }
-            />
+          <div className="space-y-4">
+            <div className="relative">
+              <textarea
+                value={observation}
+                onChange={(e) => setObservation(e.target.value)}
+                placeholder={steps[1].placeholder}
+                rows={4}
+                className="w-full px-4 py-3 bg-ivory border border-brown/10 rounded-xl text-dark placeholder:text-muted/50 focus:outline-none text-sm leading-relaxed resize-none min-h-[120px]"
+              />
+              <MicButton
+                supported={speechSupported}
+                startListening={startListening}
+                onTranscript={(text) =>
+                  setObservation((prev) => (prev ? prev + " " + text : text))
+                }
+              />
+            </div>
+
+            {/* Heart Reflection moved here */}
+            <div className="px-2">
+              <p className="text-[10px] uppercase tracking-[0.2em] text-muted font-medium mb-2.5 opacity-60 ml-2">Heart Reflection</p>
+              <textarea
+                value={heartReflection}
+                onChange={(e) => setHeartReflection(e.target.value)}
+                placeholder="What is the Holy Spirit highlighting for you in this verse? Record your initial impressions here..."
+                rows={3}
+                className="w-full px-4 py-3 bg-ivory border border-brown/10 rounded-xl text-dark text-sm placeholder:text-muted/30 focus:outline-none resize-none leading-relaxed italic"
+              />
+            </div>
           </div>
         </section>
 

@@ -54,6 +54,7 @@ function BibleContent() {
   const [bookSearch, setBookSearch] = useState("");
   const [selectedForJournal, setSelectedForJournal] = useState<Set<number>>(new Set());
   const [history, setHistory] = useState<any[]>([]);
+  const [chaptersExpanded, setChaptersExpanded] = useState(false);
 
   const maxChapter = BOOK_CHAPTERS[book] || 1;
 
@@ -112,6 +113,7 @@ function BibleContent() {
     setChapter(newChapter);
     syncUrl(newBook, newChapter);
     setShowBookPicker(false);
+    setChaptersExpanded(false); // Reset expansion when changing book
   }
 
   function handleHighlight(verseNum: number, color: string) {
@@ -281,18 +283,33 @@ function BibleContent() {
         </div>
       )}
 
-      {/* Chapter quick-jump (Refactored for touch) */}
+      {/* Chapter quick-jump (Collapsible for many chapters) */}
       {maxChapter > 1 && !showBookPicker && (
-        <div className="flex flex-wrap gap-2 mb-6 p-1">
-          {Array.from({ length: maxChapter }, (_, i) => i + 1).map(ch => (
+        <div className="mb-6">
+          <div className={`flex flex-wrap gap-2 p-1 overflow-hidden transition-all duration-500 relative ${!chaptersExpanded && maxChapter > 30 ? "max-h-[100px]" : "max-h-[2000px]"}`}>
+            {Array.from({ length: maxChapter }, (_, i) => i + 1).map(ch => (
+              <button
+                key={ch}
+                onClick={() => changePassage(book, ch)}
+                className={`min-w-[40px] h-10 text-xs rounded-xl transition ${ch === chapter ? "bg-brown text-ivory font-medium shadow-md shadow-brown/20" : "text-muted bg-ivory border border-brown/10 hover:border-brown/30 hover:text-brown"}`}
+              >
+                {ch}
+              </button>
+            ))}
+            
+            {!chaptersExpanded && maxChapter > 30 && (
+              <div className="absolute bottom-0 left-0 right-0 h-12 bg-gradient-to-t from-cream/90 to-transparent pointer-events-none" />
+            )}
+          </div>
+          
+          {maxChapter > 30 && (
             <button
-              key={ch}
-              onClick={() => changePassage(book, ch)}
-              className={`min-w-[40px] h-10 text-xs rounded-xl transition ${ch === chapter ? "bg-brown text-ivory font-medium shadow-md shadow-brown/20" : "text-muted bg-ivory border border-brown/10 hover:border-brown/30 hover:text-brown"}`}
+              onClick={() => setChaptersExpanded(!chaptersExpanded)}
+              className="w-full mt-2 py-2 text-[10px] text-brown bg-brown/5 rounded-xl uppercase tracking-widest font-bold hover:bg-brown/10 transition"
             >
-              {ch}
+              {chaptersExpanded ? "Collapse chapters" : `Show all ${maxChapter} chapters`}
             </button>
-          ))}
+          )}
         </div>
       )}
 

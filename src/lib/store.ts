@@ -8,7 +8,7 @@ export interface RopeEntry {
   createdAt: string;
   revelationVerse: string;
   revelationText: string;
-  revelationReflection: string;
+  heartReflection: string;
   observation: string;
   prayer: string;
   execution: string;
