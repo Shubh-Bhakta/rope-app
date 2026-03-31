@@ -392,10 +392,38 @@ export default function SplashPage() {
           })}
         </div>
 
-        {/* ═══ Scripture interlude ═══ */}
+        {/* ═══ Hand of God image ═══ */}
         <div
           ref={sVerse.ref}
-          className="max-w-xl mx-auto px-6 mt-20 md:mt-28 text-center transition-all duration-700 ease-out"
+          className="relative w-full mt-20 md:mt-28 overflow-hidden"
+          style={{ height: "480px" }}
+        >
+          <img
+            src="/hand-god.jpg"
+            alt="A hand reaching toward the hand of God"
+            className="absolute inset-0 w-full h-full object-cover object-center"
+            style={{ objectPosition: "center 30%" }}
+          />
+          {/* Fade top into cream */}
+          <div
+            className="absolute inset-x-0 top-0 h-32 pointer-events-none"
+            style={{ background: "linear-gradient(180deg, #f5efe3 0%, transparent 100%)" }}
+          />
+          {/* Fade bottom into cream */}
+          <div
+            className="absolute inset-x-0 bottom-0 h-32 pointer-events-none"
+            style={{ background: "linear-gradient(0deg, #f5efe3 0%, transparent 100%)" }}
+          />
+          {/* Subtle dark vignette on sides */}
+          <div
+            className="absolute inset-0 pointer-events-none"
+            style={{ background: "radial-gradient(ellipse 80% 100% at 50% 50%, transparent 50%, rgba(245,239,227,0.3) 100%)" }}
+          />
+        </div>
+
+        {/* ═══ Scripture interlude ═══ */}
+        <div
+          className="max-w-xl mx-auto px-6 mt-16 md:mt-20 text-center transition-all duration-700 ease-out"
           style={{
             opacity: sVerse.visible ? 1 : 0,
             transform: sVerse.visible ? "translateY(0)" : "translateY(16px)",
