@@ -1,12 +1,5 @@
 // ─── Types ───────────────────────────────────────────────────────────────────
 
-export interface User {
-  id: string;
-  name: string;
-  email: string;
-  anonymousAlias: string;
-}
-
 export type ExecutionStatus = "yes" | "partly" | "not_yet" | null;
 
 export interface RopeEntry {
@@ -138,65 +131,151 @@ function generateAliasNumber(): number {
   return next;
 }
 
-// ─── User ────────────────────────────────────────────────────────────────────
+function formatLocalDate(date: Date): string {
+  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+}
 
-export function getUser(): User | null {
-  if (typeof window === "undefined") return null;
-  const raw = localStorage.getItem("rope_user");
-  if (!raw) return null;
+// ─── Entry Store ──────────────────────────────────────────────────────────
+
+import { migrateFromLocalStorage, loadRopeEntries, saveRopeEntries, deleteRopeEntries } from "./db";
+import { 
+  getDbEntries, saveDbEntry, deleteDbEntry, syncEntries,
+  getDbPrayers, saveDbPrayer, deleteDbPrayer, syncPrayers,
+  getDbHighlights, saveDbHighlight, deleteDbHighlight, syncHighlights,
+  getDbGratitude, saveDbGratitude, deleteDbGratitude, syncGratitude,
+  getDbPlanProgress, saveDbPlanProgress,
+  getDbMemoryVerses, saveDbMemoryVerse, deleteDbMemoryVerse, syncMemoryVerses,
+  getDbSettings, saveDbSettings, clearAllDbData
+} from "./actions";
+
+let cachedEntries: RopeEntry[] | null = null;
+let cachedPrayers: PrayerItem[] | null = null;
+let cachedHighlights: BibleHighlight[] | null = null;
+let cachedGratitude: GratitudeItem[] | null = null;
+let cachedPlan: PlanProgress | null = null;
+let cachedMemoryVerses: { verse: string; text: string; addedAt: string }[] | null = null;
+let cachedSettings: { darkMode: boolean; translation: string; onboardingComplete: boolean; lastRead: any[] } | null = null;
+let storeInitialized = false;
+
+/**
+ * Initializes the store by loading entries from Postgres (if logged in) or IndexedDB.
+ * Falls back to localStorage if IndexedDB is empty/unavailable.
+ */
+export async function initializeStore(isAuthenticated: boolean = false) {
+  if (typeof window === "undefined" || storeInitialized) return;
+  
   try {
-    return JSON.parse(raw) as User;
-  } catch {
-    return null;
+    if (!localStorage.getItem("rope_entries_migrated")) {
+      await migrateFromLocalStorage();
+    }
+    
+    if (isAuthenticated) {
+      // 1. Initial Sync if needed
+      const needsSync = !localStorage.getItem("rope_full_db_synced");
+      if (needsSync) {
+        const localEntries = await loadRopeEntries();
+        const localPrayers = getPrayers();
+        const localGratitude = getGratitudeItems();
+        const localHighlights = getBibleHighlights();
+        const localMemoryVerses = getMemoryVerses();
+        
+        await Promise.all([
+          syncEntries(localEntries).catch(console.error),
+          syncPrayers(localPrayers).catch(console.error),
+          syncGratitude(localGratitude).catch(console.error),
+          syncHighlights(localHighlights).catch(console.error),
+          syncMemoryVerses(localMemoryVerses).catch(console.error)
+        ]);
+        localStorage.setItem("rope_full_db_synced", "true");
+      }
+
+      // 2. Load all data from Postgres
+      const [entries, prayers, gratitude, highlights, plan, mvs, settings] = await Promise.all([
+        getDbEntries(),
+        getDbPrayers(),
+        getDbGratitude(),
+        getDbHighlights(),
+        getDbPlanProgress(),
+        getDbMemoryVerses(),
+        getDbSettings()
+      ]);
+
+      cachedEntries = entries;
+      cachedPrayers = prayers;
+      cachedGratitude = gratitude;
+      cachedHighlights = highlights;
+      cachedPlan = plan;
+      cachedMemoryVerses = mvs;
+      cachedSettings = settings || {
+        darkMode: getDarkMode(),
+        translation: getTranslation(),
+        onboardingComplete: hasCompletedOnboarding(),
+        lastRead: getBibleHistory()
+      };
+      // If we got settings from cloud, hydrate local storage
+      if (settings) {
+        localStorage.setItem("rope_dark_mode", settings.darkMode ? "true" : "false");
+        localStorage.setItem("rope_translation", settings.translation);
+        localStorage.setItem("rope_onboarding_done", settings.onboardingComplete ? "true" : "false");
+        localStorage.setItem("rope_bible_history", JSON.stringify(settings.lastRead));
+        // Force theme update
+        if (settings.darkMode) document.documentElement.classList.add('dark');
+        else document.documentElement.classList.remove('dark');
+      }
+    } else {
+      cachedEntries = await loadRopeEntries();
+      cachedPrayers = JSON.parse(localStorage.getItem("rope_prayers") || "[]");
+      cachedGratitude = JSON.parse(localStorage.getItem("rope_gratitude") || "[]");
+      cachedHighlights = JSON.parse(localStorage.getItem("rope_bible_highlights") || "[]");
+      cachedPlan = JSON.parse(localStorage.getItem("rope_active_plan") || "null");
+      cachedMemoryVerses = JSON.parse(localStorage.getItem("rope_memory_verses") || "[]");
+      cachedSettings = {
+        darkMode: getDarkMode(),
+        translation: getTranslation(),
+        onboardingComplete: hasCompletedOnboarding(),
+        lastRead: getBibleHistory()
+      };
+    }
+
+    storeInitialized = true;
+  } catch (e) {
+    console.error("Store initialization failed", e);
   }
 }
-
-/** Get existing user or auto-create a default one */
-export function getOrCreateUser(): User {
-  const existing = getUser();
-  if (existing) return existing;
-
-  const user: User = {
-    id: generateId(),
-    name: "Journaler",
-    email: "",
-    anonymousAlias: `Child of God #${generateAliasNumber()}`,
-  };
-  localStorage.setItem("rope_user", JSON.stringify(user));
-  return user;
-}
-
-export function setUser(name: string, email: string): User {
-  const existing = getUser();
-  if (existing && existing.email === email && email !== "") return existing;
-
-  const user: User = {
-    id: existing?.id || generateId(),
-    name,
-    email,
-    anonymousAlias: existing?.anonymousAlias || `Child of God #${generateAliasNumber()}`,
-  };
-  localStorage.setItem("rope_user", JSON.stringify(user));
-  return user;
-}
-
-// ─── ROPE Entries ────────────────────────────────────────────────────────────
 
 export function getRopeEntries(userId?: string): RopeEntry[] {
   if (typeof window === "undefined") return [];
-  const raw = localStorage.getItem("rope_entries");
-  if (!raw) return [];
-  try {
-    const entries = JSON.parse(raw) as RopeEntry[];
-    if (userId) return entries.filter((e) => e.userId === userId);
-    return entries;
-  } catch {
-    return [];
+
+  let entries: RopeEntry[] = [];
+  
+  if (storeInitialized && cachedEntries) {
+    entries = cachedEntries;
+  } else {
+    // Fallback until initialized
+    const raw = localStorage.getItem("rope_entries");
+    if (raw) {
+      try {
+        entries = JSON.parse(raw);
+      } catch (e) {
+        entries = [];
+      }
+    }
   }
+
+  const sorted = [...entries].sort(
+    (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+  );
+
+  return userId ? sorted.filter((e) => e.userId === userId) : sorted;
+}
+
+export function clearCache(): void {
+  cachedEntries = null;
 }
 
 export function addRopeEntry(
-  entry: Omit<RopeEntry, "id" | "createdAt" | "executionStatus" | "executionReflection">
+  entry: Omit<RopeEntry, "id" | "createdAt" | "executionStatus" | "executionReflection">,
+  isAuthenticated: boolean = false
 ): RopeEntry {
   const newEntry: RopeEntry = {
     ...entry,
@@ -205,18 +284,47 @@ export function addRopeEntry(
     executionStatus: null,
     executionReflection: "",
   };
-  const entries = getRopeEntries();
-  entries.unshift(newEntry);
-  localStorage.setItem("rope_entries", JSON.stringify(entries));
+  
+  const existing = getRopeEntries();
+  const updated = [newEntry, ...existing];
+  
+  // Sync to memory
+  cachedEntries = updated;
+  
+  // Async save to IndexedDB & Cloud
+  if (typeof window !== "undefined") {
+    saveRopeEntries(updated).catch(console.error);
+    localStorage.setItem("rope_entries", JSON.stringify(updated));
+    
+    if (isAuthenticated) {
+      saveDbEntry(newEntry).catch(console.error);
+    }
+  }
+
   return newEntry;
 }
 
-export function updateRopeEntry(id: string, updates: Partial<RopeEntry>): RopeEntry | null {
+export function updateRopeEntry(
+  id: string, 
+  updates: Partial<RopeEntry>,
+  isAuthenticated: boolean = false
+): RopeEntry | null {
   const entries = getRopeEntries();
   const index = entries.findIndex((e) => e.id === id);
   if (index === -1) return null;
+  
   entries[index] = { ...entries[index], ...updates };
-  localStorage.setItem("rope_entries", JSON.stringify(entries));
+  cachedEntries = entries;
+  
+  if (typeof window !== "undefined") {
+    saveRopeEntries(entries).catch(console.error);
+    localStorage.setItem("rope_entries", JSON.stringify(entries));
+    
+    if (isAuthenticated) {
+      saveDbEntry(entries[index]).catch(console.error);
+    }
+  }
+  
   return entries[index];
 }
 
@@ -224,22 +332,32 @@ export function getYesterdayEntry(userId: string): RopeEntry | null {
   const entries = getRopeEntries(userId);
   const yesterday = new Date();
   yesterday.setDate(yesterday.getDate() - 1);
-  const yStr = `${yesterday.getFullYear()}-${String(yesterday.getMonth() + 1).padStart(2, '0')}-${String(yesterday.getDate()).padStart(2, '0')}`;
+  const yStr = formatLocalDate(yesterday);
 
   return (
     entries.find((e) => {
       const d = new Date(e.createdAt);
-      const eStr = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
-      return eStr === yStr;
+      return formatLocalDate(d) === yStr;
     }) ?? null
   );
 }
 
-export function deleteRopeEntry(id: string): boolean {
+export function deleteRopeEntry(id: string, isAuthenticated: boolean = false): boolean {
   const entries = getRopeEntries();
   const filtered = entries.filter((e) => e.id !== id);
   if (filtered.length === entries.length) return false;
-  localStorage.setItem("rope_entries", JSON.stringify(filtered));
+  
+  cachedEntries = filtered;
+  
+  if (typeof window !== "undefined") {
+    saveRopeEntries(filtered).catch(console.error);
+    localStorage.setItem("rope_entries", JSON.stringify(filtered));
+    
+    if (isAuthenticated) {
+      deleteDbEntry(id).catch(console.error);
+    }
+  }
+  
   return true;
 }
 
@@ -257,10 +375,7 @@ export function getStreak(userId: string): number {
 
   // Get unique LOCAL dates (sorted descending)
   const dates = Array.from(
-    new Set(entries.map((e) => {
-      const d = new Date(e.createdAt);
-      return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
-    }))
+    new Set(entries.map((e) => formatLocalDate(new Date(e.createdAt))))
   ).sort((a, b) => b.localeCompare(a));
 
   let streak = 0;
@@ -382,43 +497,60 @@ const TRANSLATIONS = [
 ];
 
 // bolls.life translation ID mapping (their API uses numeric IDs)
-const BOLLS_TRANSLATION_MAP: Record<string, number> = {
-  kjv: 1,
-  niv: 111,
-  esv: 59,
-  nlt: 116,
-  nasb: 100,
-  nkjv: 114,
-  amp: 12,
-  msg: 97,
-  web: 206,
-  bbe: 15,
+const BOLLS_TRANSLATION_MAP: Record<string, string> = {
+  kjv: "KJV",
+  niv: "NIV",
+  esv: "ESV",
+  nlt: "NLT",
+  nasb: "NASB",
+  nkjv: "NKJV",
+  amp: "AMP",
+  msg: "MSG",
+  web: "WEB",
+  bbe: "BBE",
 };
 
 /**
  * Parse a verse reference into book + chapter + verse(s) for the bolls.life API.
- * Returns { book, chapter, verseStart, verseEnd } or null.
+ * Supports: "John 3:16", "John 3:16-18", "John 3:16,18", "John 3"
+ * Returns { bookNum, chapter, verses: number[] } or null.
  */
-export function parseVerseRef(ref: string): { bookNum: number; chapter: number; verseStart?: number; verseEnd?: number } | null {
+export function parseVerseRef(ref: string): { bookNum: number; chapter: number; verses: number[] } | null {
   const trimmed = ref.trim();
-  // Match: "Book Chapter:Verse-Verse" or "Book Chapter:Verse" or "Book Chapter"
-  const match = trimmed.match(/^(.+?)\s+(\d+)(?::(\d+)(?:-(\d+))?)?$/);
+  // Match: "Book Chapter:VerseStuff" or "Book Chapter VerseStuff" (space/colon/comma)
+  const match = trimmed.match(/^(.+?)\s+(\d+)(?:[ :]+(.+))?$/);
   if (!match) return null;
 
   const bookName = match[1].trim().toLowerCase();
   const chapter = parseInt(match[2]);
-  const verseStart = match[3] ? parseInt(match[3]) : undefined;
-  const verseEnd = match[4] ? parseInt(match[4]) : verseStart;
+  const verseStuff = match[3] ? match[3].trim() : "";
 
   // Map book name to bolls.life book number (1-66)
   const bookIndex = BIBLE_BOOKS.findIndex(b => {
     const nameLower = b.name.toLowerCase();
-    if (nameLower === bookName) return true;
-    return b.abbrevs.some(a => a === bookName);
+    return nameLower === bookName || b.abbrevs.some(a => a === bookName);
   });
 
   if (bookIndex === -1) return null;
-  return { bookNum: bookIndex + 1, chapter, verseStart, verseEnd };
+
+  const verses: number[] = [];
+  if (verseStuff) {
+    // Parse complex ranges like "1-3,5,7-9"
+    const parts = verseStuff.split(",");
+    for (const part of parts) {
+      if (part.includes("-")) {
+        const [start, end] = part.split("-").map(v => parseInt(v.trim()));
+        if (!isNaN(start) && !isNaN(end)) {
+          for (let i = start; i <= end; i++) verses.push(i);
+        }
+      } else {
+        const v = parseInt(part.trim());
+        if (!isNaN(v)) verses.push(v);
+      }
+    }
+  }
+
+  return { bookNum: bookIndex + 1, chapter, verses };
 }
 
 /**
@@ -426,14 +558,15 @@ export function parseVerseRef(ref: string): { bookNum: number; chapter: number; 
  * Uses bible-api.com for KJV/WEB/BBE, bolls.life for all others.
  */
 export async function fetchVerse(verseRef: string, translationId: string): Promise<string> {
-  if (BIBLE_API_TRANSLATIONS.has(translationId)) {
-    // Use bible-api.com
-    const res = await fetch(`https://bible-api.com/${encodeURIComponent(verseRef)}?translation=${translationId}`);
-    if (!res.ok) throw new Error("Verse not found");
-    const data = await res.json();
-    if (data.text) return data.text.trim();
-    throw new Error("No text returned");
-  }
+  try {
+    if (BIBLE_API_TRANSLATIONS.has(translationId)) {
+      // Use bible-api.com
+      const res = await fetch(`https://bible-api.com/${encodeURIComponent(verseRef)}?translation=${translationId}`);
+      if (!res.ok) throw new Error(`Reference "${verseRef}" not found in ${translationId.toUpperCase()}.`);
+      const data = await res.json();
+      if (data.text) return data.text.trim();
+      throw new Error("No text found for this reference.");
+    }
 
   // Use bolls.life for NIV, ESV, NLT, NASB, NKJV, AMP, MSG
   const bollsId = BOLLS_TRANSLATION_MAP[translationId];
@@ -442,35 +575,32 @@ export async function fetchVerse(verseRef: string, translationId: string): Promi
   const parsed = parseVerseRef(verseRef);
   if (!parsed) throw new Error("Could not parse verse reference");
 
-  const { bookNum, chapter, verseStart, verseEnd } = parsed;
+  const { bookNum, chapter, verses } = parsed;
 
-  if (verseStart !== undefined) {
+  if (verses.length > 0) {
     // Fetch specific verse(s)
-    const url = `https://bolls.life/get-verse/${bollsId}/${bookNum}/${chapter}/${verseStart}/`;
-
-    if (verseEnd && verseEnd > verseStart) {
-      // Range of verses — fetch each and combine
-      const promises = [];
-      for (let v = verseStart; v <= verseEnd; v++) {
-        promises.push(
-          fetch(`https://bolls.life/get-verse/${bollsId}/${bookNum}/${chapter}/${v}/`)
-            .then(r => r.json())
-            .then(d => ({ verse: v, text: (d.text || "").replace(/<[^>]*>/g, "").trim() }))
-        );
-      }
-      const results = await Promise.all(promises);
-      const combined = results.sort((a, b) => a.verse - b.verse).map(r => r.text).join(" ");
-      if (!combined) throw new Error("No text returned");
-      return combined;
-    }
-
-    // Single verse
-    const res = await fetch(url);
-    if (!res.ok) throw new Error("Verse not found");
-    const data = await res.json();
-    const text = (data.text || "").replace(/<[^>]*>/g, "").trim();
-    if (!text) throw new Error("No text returned");
-    return text;
+    const promises = verses.map(v => 
+      fetch(`https://bolls.life/get-verse/${bollsId}/${bookNum}/${chapter}/${v}/`)
+        .then(async r => {
+          if (!r.ok) return { verse: v, text: "" };
+          const d = await r.json();
+          // Clean text and handle clumping
+          let clean = (d.text || "").replace(/<[^>]*>/g, "").trim();
+          // Fix [a-z][A-Z] clumping (section headers)
+          clean = clean.replace(/([a-z])([A-Z])/g, '$1 $2');
+          return { verse: v, text: clean };
+        })
+    );
+    
+    const results = await Promise.all(promises);
+    const combined = results
+      .filter(r => r.text)
+      .sort((a, b) => a.verse - b.verse)
+      .map(r => r.text)
+      .join(" ");
+      
+    if (!combined) throw new Error("No text returned for these verses");
+    return combined;
   }
 
   // Whole chapter — fetch chapter text
@@ -483,11 +613,18 @@ export async function fetchVerse(verseRef: string, translationId: string): Promi
     if (!combined) throw new Error("No text returned");
     return combined;
   }
-  throw new Error("Unexpected response format");
+    throw new Error("Unexpected response format from Bible API.");
+  } catch (err: any) {
+    if (err instanceof Error && err.message.includes("Failed to fetch")) {
+      throw new Error("Connection failed. Please check your internet.");
+    }
+    throw err;
+  }
 }
 
 export function getTranslation(): string {
   if (typeof window === "undefined") return "kjv";
+  if (storeInitialized && cachedSettings) return cachedSettings.translation;
   const saved = localStorage.getItem("rope_translation") || "kjv";
   if (!TRANSLATIONS.some(t => t.id === saved)) return "kjv";
   return saved;
@@ -499,17 +636,32 @@ export function getGatewayVersion(translationId: string): string {
 }
 
 export function setTranslation(t: string): void {
+  if (storeInitialized && cachedSettings) cachedSettings.translation = t;
   localStorage.setItem("rope_translation", t);
+  saveSettings();
 }
 
 export { TRANSLATIONS };
 
 /**
- * Fetch a full chapter as individual verses from bolls.life.
- * Returns array of { verse: number, text: string }.
+ * Fetch a full chapter as individual verses.
+ * Uses bible-api.com for KJV/WEB/BBE, bolls.life for all others.
  */
 export async function fetchChapterVerses(bookName: string, chapter: number, translationId: string): Promise<{ verse: number; text: string }[]> {
-  // Map translation ID to bolls.life translation name
+  if (BIBLE_API_TRANSLATIONS.has(translationId)) {
+    // Use bible-api.com for chapter fetch
+    const res = await fetch(`https://bible-api.com/${encodeURIComponent(bookName + ' ' + chapter)}?translation=${translationId}`);
+    if (!res.ok) throw new Error("Chapter not found");
+    const data = await res.json();
+    if (!data.verses || !Array.isArray(data.verses)) throw new Error("Unexpected response");
+    
+    return data.verses.map((v: { verse: number; text: string }) => ({
+      verse: v.verse,
+      text: (v.text || "").replace(/([a-z])([A-Z])/g, '$1 $2').trim(),
+    }));
+  }
+
+  // Use bolls.life translation name
   const BOLLS_NAMES: Record<string, string> = {
     kjv: "KJV", niv: "NIV", esv: "ESV", nlt: "NLT", nasb: "NASB",
     nkjv: "NKJV", amp: "AMP", msg: "MSG", web: "WEB", bbe: "BBE",
@@ -527,16 +679,78 @@ export async function fetchChapterVerses(bookName: string, chapter: number, tran
 
   if (!Array.isArray(data)) throw new Error("Unexpected response");
 
-  return data.map((v: { verse: number; text: string }) => ({
-    verse: v.verse,
-    text: (v.text || "").replace(/<S>\d+<\/S>/g, "").replace(/<[^>]*>/g, "").trim(),
-  })).filter((v: { text: string }) => v.text.length > 0);
+  // Advanced cleaning for bolls.life metadata/headers
+  // often returns headers like "Psalm 43" or "BOOK I" in the first verse
+  return data.map((v: { verse: number; text: string }) => {
+    let cleanText = (v.text || "")
+      .replace(/<S>\d+<\/S>/g, "")
+      .replace(/<[^>]*>/g, "")
+      .replace(/([a-z])([A-Z])/g, '$1 $2')
+      .trim();
+
+    if (v.verse === 1) {
+      // Remove leading Psalm/Book headers if they clump into verse 1
+      // e.g. "Psalm 43Vindicate me" -> "Vindicate me"
+      const psalmMatch = cleanText.match(new RegExp(`^Psalm\\s*\\d+\\s*`, 'i'));
+      if (psalmMatch) cleanText = cleanText.substring(psalmMatch[0].length).trim();
+      
+      const bookMatch = cleanText.match(/^BOOK\s+[IVXLCDM]+\s*/i);
+      if (bookMatch) cleanText = cleanText.substring(bookMatch[0].length).trim();
+
+      // Remove specific clumping like "Psalms 1–41Psalm 1"
+      const multiMatch = cleanText.match(/^[A-Za-z]+\s+\d+[-–]\d+[A-Za-z]+\s+\d+/i);
+      if (multiMatch) cleanText = cleanText.substring(multiMatch[0].length).trim();
+
+      // Remove Hebrew letter headers for Psalm 119
+      if (bookName.toLowerCase() === 'psalms' && chapter === 119) {
+        cleanText = cleanText.replace(/^[א-ת]\s+\w+\s+/i, "").trim();
+      }
+    }
+
+    return {
+      verse: v.verse,
+      text: cleanText,
+    };
+  }).filter((v: { text: string }) => v.text.length > 0);
+}
+
+// ─── Bible History ──────────────────────────────────────────────────────────
+
+export interface BibleHistoryItem {
+  book: string;
+  chapter: number;
+  lastRead: string; // ISO date
+}
+
+export function getBibleHistory(): BibleHistoryItem[] {
+  if (typeof window === "undefined") return [];
+  if (storeInitialized && cachedSettings) return cachedSettings.lastRead;
+  const raw = localStorage.getItem("rope_bible_history");
+  if (!raw) return [];
+  try {
+    return (JSON.parse(raw) as BibleHistoryItem[]).sort((a, b) => 
+      new Date(b.lastRead).getTime() - new Date(a.lastRead).getTime()
+    );
+  } catch {
+    return [];
+  }
+}
+
+export function updateBibleHistory(book: string, chapter: number): void {
+  const history = getBibleHistory();
+  const existing = history.filter(h => !(h.book === book && h.chapter === chapter));
+  existing.unshift({ book, chapter, lastRead: new Date().toISOString() });
+  const final = existing.slice(0, 5);
+  if (storeInitialized && cachedSettings) cachedSettings.lastRead = final;
+  localStorage.setItem("rope_bible_history", JSON.stringify(final));
+  saveSettings();
 }
 
 // ─── Dark Mode ──────────────────────────────────────────────────────────────
 
 export function getDarkMode(): boolean {
   if (typeof window === "undefined") return false;
+  if (storeInitialized && cachedSettings) return cachedSettings.darkMode;
   const saved = localStorage.getItem("rope_dark_mode");
   if (saved !== null) return saved === "true";
   // Auto-detect system preference
@@ -544,22 +758,35 @@ export function getDarkMode(): boolean {
 }
 
 export function setDarkMode(dark: boolean): void {
+  if (storeInitialized && cachedSettings) cachedSettings.darkMode = dark;
   localStorage.setItem("rope_dark_mode", dark ? "true" : "false");
+  saveSettings();
 }
 
 // ─── Onboarding ─────────────────────────────────────────────────────────────
 
 export function hasCompletedOnboarding(): boolean {
   if (typeof window === "undefined") return true;
+  if (storeInitialized && cachedSettings) return cachedSettings.onboardingComplete;
   return localStorage.getItem("rope_onboarding_done") === "true";
 }
 
 export function completeOnboarding(): void {
+  if (storeInitialized && cachedSettings) cachedSettings.onboardingComplete = true;
   localStorage.setItem("rope_onboarding_done", "true");
+  saveSettings();
 }
 
 export function resetOnboarding(): void {
+  if (storeInitialized && cachedSettings) cachedSettings.onboardingComplete = false;
   localStorage.removeItem("rope_onboarding_done");
+  saveSettings();
+}
+
+/** Internal helper to background-sync settings */
+function saveSettings() {
+  if (!storeInitialized || !cachedSettings) return;
+  saveDbSettings(cachedSettings).catch(console.error);
 }
 
 // ─── Reading Plans ──────────────────────────────────────────────────────────
@@ -623,6 +850,7 @@ export interface PlanProgress {
 
 export function getActivePlan(): PlanProgress | null {
   if (typeof window === "undefined") return null;
+  if (storeInitialized && cachedPlan) return cachedPlan;
   const raw = localStorage.getItem("rope_active_plan");
   if (!raw) return null;
   try { return JSON.parse(raw); } catch { return null; }
@@ -636,7 +864,9 @@ export function startPlan(planId: string): PlanProgress {
     completedDays: [],
     paused: false,
   };
+  if (storeInitialized) cachedPlan = progress;
   localStorage.setItem("rope_active_plan", JSON.stringify(progress));
+  saveDbPlanProgress(progress).catch(console.error);
   return progress;
 }
 
@@ -651,7 +881,9 @@ export function advancePlan(): PlanProgress | null {
   if (progress.currentDay < plan.days - 1) {
     progress.currentDay++;
   }
+  if (storeInitialized) cachedPlan = progress;
   localStorage.setItem("rope_active_plan", JSON.stringify(progress));
+  saveDbPlanProgress(progress).catch(console.error);
   return progress;
 }
 
@@ -659,11 +891,16 @@ export function pausePlan(): void {
   const progress = getActivePlan();
   if (!progress) return;
   progress.paused = !progress.paused;
+  if (storeInitialized) cachedPlan = progress;
   localStorage.setItem("rope_active_plan", JSON.stringify(progress));
+  saveDbPlanProgress(progress).catch(console.error);
 }
 
 export function quitPlan(): void {
+  if (storeInitialized) cachedPlan = null;
   localStorage.removeItem("rope_active_plan");
+  // We don't delete from DB, just null it out or we could add a 'delete' action
+  // For now, removing local is enough to stop the UI from showing it.
 }
 
 export function getPlanSuggestedVerse(): string | null {
@@ -713,6 +950,7 @@ export interface PrayerItem {
 
 export function getPrayers(): PrayerItem[] {
   if (typeof window === "undefined") return [];
+  if (storeInitialized && cachedPrayers) return cachedPrayers;
   const raw = localStorage.getItem("rope_prayers");
   if (!raw) return [];
   try { return JSON.parse(raw) as PrayerItem[]; } catch { return []; }
@@ -722,7 +960,9 @@ export function addPrayer(text: string, verse: string): PrayerItem {
   const prayer: PrayerItem = { id: generateId(), text, verse, createdAt: new Date().toISOString(), answeredAt: null, answeredNote: "" };
   const prayers = getPrayers();
   prayers.unshift(prayer);
+  if (storeInitialized && cachedPrayers) cachedPrayers = prayers;
   localStorage.setItem("rope_prayers", JSON.stringify(prayers));
+  saveDbPrayer(prayer).catch(console.error);
   return prayer;
 }
 
@@ -732,13 +972,17 @@ export function markPrayerAnswered(id: string, note?: string): void {
   if (idx !== -1) {
     prayers[idx].answeredAt = new Date().toISOString();
     if (note !== undefined) prayers[idx].answeredNote = note;
+    if (storeInitialized && cachedPrayers) cachedPrayers = prayers;
     localStorage.setItem("rope_prayers", JSON.stringify(prayers));
+    saveDbPrayer(prayers[idx]).catch(console.error);
   }
 }
 
 export function deletePrayer(id: string): void {
   const prayers = getPrayers().filter(p => p.id !== id);
+  if (storeInitialized && cachedPrayers) cachedPrayers = prayers;
   localStorage.setItem("rope_prayers", JSON.stringify(prayers));
+  deleteDbPrayer(id).catch(console.error);
 }
 
 // ─── Gratitude List ─────────────────────────────────────────────────────────
@@ -752,6 +996,7 @@ export interface GratitudeItem {
 
 export function getGratitudeItems(): GratitudeItem[] {
   if (typeof window === "undefined") return [];
+  if (storeInitialized && cachedGratitude) return cachedGratitude;
   const raw = localStorage.getItem("rope_gratitude");
   if (!raw) return [];
   try { return JSON.parse(raw) as GratitudeItem[]; } catch { return []; }
@@ -766,34 +1011,44 @@ export function addGratitudeItem(text: string, verse?: string): GratitudeItem {
   };
   const items = getGratitudeItems();
   items.unshift(item);
+  if (storeInitialized && cachedGratitude) cachedGratitude = items;
   localStorage.setItem("rope_gratitude", JSON.stringify(items));
+  saveDbGratitude(item).catch(console.error);
   return item;
 }
 
 export function deleteGratitudeItem(id: string): void {
   const items = getGratitudeItems().filter(i => i.id !== id);
+  if (storeInitialized && cachedGratitude) cachedGratitude = items;
   localStorage.setItem("rope_gratitude", JSON.stringify(items));
+  deleteDbGratitude(id).catch(console.error);
 }
 
 // ─── Memory Verses ──────────────────────────────────────────────────────────
 
 export function getMemoryVerses(): { verse: string; text: string; addedAt: string }[] {
   if (typeof window === "undefined") return [];
+  if (storeInitialized && cachedMemoryVerses) return cachedMemoryVerses;
   const raw = localStorage.getItem("rope_memory_verses");
   if (!raw) return [];
   try { return JSON.parse(raw); } catch { return []; }
 }
 
 export function addMemoryVerse(verse: string, text: string): void {
+  const item = { verse, text, addedAt: new Date().toISOString() };
   const verses = getMemoryVerses();
   if (verses.some(v => v.verse === verse)) return;
-  verses.unshift({ verse, text, addedAt: new Date().toISOString() });
+  verses.unshift(item);
+  if (storeInitialized && cachedMemoryVerses) cachedMemoryVerses = verses;
   localStorage.setItem("rope_memory_verses", JSON.stringify(verses));
+  saveDbMemoryVerse(item).catch(console.error);
 }
 
 export function removeMemoryVerse(verse: string): void {
   const verses = getMemoryVerses().filter(v => v.verse !== verse);
+  if (storeInitialized && cachedMemoryVerses) cachedMemoryVerses = verses;
   localStorage.setItem("rope_memory_verses", JSON.stringify(verses));
+  deleteDbMemoryVerse(verse).catch(console.error);
 }
 
 // ─── Bible Highlights ───────────────────────────────────────────────────────
@@ -809,6 +1064,7 @@ export interface BibleHighlight {
 
 export function getBibleHighlights(): BibleHighlight[] {
   if (typeof window === "undefined") return [];
+  if (storeInitialized && cachedHighlights) return cachedHighlights;
   const raw = localStorage.getItem("rope_bible_highlights");
   if (!raw) return [];
   try { return JSON.parse(raw) as BibleHighlight[]; } catch { return []; }
@@ -816,15 +1072,20 @@ export function getBibleHighlights(): BibleHighlight[] {
 
 export function addBibleHighlight(book: string, chapter: number, verse: number, color: string, note?: string): void {
   const highlights = getBibleHighlights();
+  const highlight: BibleHighlight = { book, chapter, verse, color, note: note || "", createdAt: new Date().toISOString() };
   // Remove existing highlight for same verse
   const filtered = highlights.filter(h => !(h.book === book && h.chapter === chapter && h.verse === verse));
-  filtered.push({ book, chapter, verse, color, note: note || "", createdAt: new Date().toISOString() });
+  filtered.push(highlight);
+  if (storeInitialized && cachedHighlights) cachedHighlights = filtered;
   localStorage.setItem("rope_bible_highlights", JSON.stringify(filtered));
+  saveDbHighlight(highlight).catch(console.error);
 }
 
 export function removeBibleHighlight(book: string, chapter: number, verse: number): void {
   const highlights = getBibleHighlights().filter(h => !(h.book === book && h.chapter === chapter && h.verse === verse));
+  if (storeInitialized && cachedHighlights) cachedHighlights = highlights;
   localStorage.setItem("rope_bible_highlights", JSON.stringify(highlights));
+  deleteDbHighlight(book, chapter, verse).catch(console.error);
 }
 
 export function getHighlightsForChapter(book: string, chapter: number): BibleHighlight[] {
@@ -906,4 +1167,92 @@ export function getThemes(userId: string): string[] {
     .sort((a, b) => b[1] - a[1])
     .slice(0, 5)
     .map(([theme]) => theme);
+}
+
+// ─── Data Export / Import ──────────────────────────────────────────────────
+
+export function exportData(): string {
+  if (typeof window === "undefined") return "{}";
+  const data: Record<string, string | null> = {};
+  const keys = [
+    "rope_user",
+    "rope_entries",
+    "rope_prayers",
+    "rope_gratitude",
+    "rope_memory_verses",
+    "rope_bible_highlights",
+    "rope_active_plan",
+    "rope_translation",
+    "rope_dark_mode",
+    "rope_onboarding_done",
+    "rope_alias_counter"
+  ];
+
+  for (const key of keys) {
+    data[key] = localStorage.getItem(key);
+  }
+
+  return JSON.stringify({
+    version: "1.0",
+    timestamp: new Date().toISOString(),
+    data
+  }, null, 2);
+}
+
+export function importData(jsonString: string): { success: boolean; error?: string } {
+  try {
+    const parsed = JSON.parse(jsonString);
+    if (!parsed.data || typeof parsed.data !== "object") {
+      return { success: false, error: "Invalid data format" };
+    }
+
+    Object.entries(parsed.data).forEach(([key, value]) => {
+      if (typeof value === "string") {
+        localStorage.setItem(key, value);
+      }
+    });
+
+    return { success: true };
+  } catch (e) {
+    return { success: false, error: e instanceof Error ? e.message : "Unknown error" };
+  }
+}
+
+export async function clearAllData(cloud: boolean = false): Promise<void> {
+  if (typeof window === "undefined") return;
+  
+  if (cloud) {
+    try {
+      await clearAllDbData();
+    } catch (e) {
+      console.error("Cloud wipe failed", e);
+      throw e;
+    }
+  }
+
+  const keys = [
+    "rope_user",
+    "rope_entries",
+    "rope_prayers",
+    "rope_gratitude",
+    "rope_memory_verses",
+    "rope_bible_highlights",
+    "rope_active_plan",
+    "rope_translation",
+    "rope_dark_mode",
+    "rope_onboarding_done",
+    "rope_alias_counter",
+    "rope_bible_history",
+    "rope_full_db_synced",
+    "rope_entries_migrated"
+  ];
+  keys.forEach(key => localStorage.removeItem(key));
+  
+  // Clear indexedDB if needed
+  try {
+    const { deleteRopeEntries } = await import("./db");
+    await deleteRopeEntries();
+  } catch (e) { /* ignore */ }
+  
+  clearCache();
 }

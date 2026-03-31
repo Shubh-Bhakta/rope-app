@@ -213,7 +213,7 @@ textarea:focus, input:focus {
   --color-brown: #c4a265;
   --color-brown-light: #d4b87a;
   --color-dark: #e8e0d4;
-  --color-muted: #8a7e6a;
+  --color-muted: #a39683; /* Lightened for better contrast */
   --color-muted-light: #6b6050;
   --color-sidebar: #1e1b16;
   --color-accent-gold: #c4a265;

@@ -1,11 +1,13 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { usePathname } from "next/navigation";
 import Link from "next/link";
-import { getOrCreateUser, getDarkMode, setDarkMode, hasCompletedOnboarding, resetOnboarding } from "@/lib/store";
+import { useAuth } from "@clerk/nextjs";
+import { getDarkMode, setDarkMode, hasCompletedOnboarding, resetOnboarding, initializeStore } from "@/lib/store";
 import BottomNav from "@/components/BottomNav";
 import Onboarding from "@/components/Onboarding";
+import HelpCenter from "@/components/HelpCenter";
 import { OliveBranch } from "@/components/Accents";
 
 const navItems = [
@@ -108,22 +110,78 @@ const reflectionPrompts = [
 
 export default function MainLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
+  const { isLoaded, isSignedIn } = useAuth();
   const [ready, setReady] = useState(false);
   const [darkMode, setDarkModeState] = useState(false);
   const [showOnboarding, setShowOnboarding] = useState(false);
 
   useEffect(() => {
-    getOrCreateUser();
-    setDarkModeState(getDarkMode());
-    if (!hasCompletedOnboarding()) setShowOnboarding(true);
-    setReady(true);
-  }, []);
+    if (!isLoaded) return;
+
+    async function init() {
+      try {
+        await initializeStore(isSignedIn || false);
+      } catch (e) {
+        console.error("Store initialization failed in layout", e);
+      }
+      
+      const initialDark = getDarkMode();
+      setDarkModeState(initialDark);
+      
+      if (!hasCompletedOnboarding()) setShowOnboarding(true);
+      setReady(true);
+    }
+    init();
+
+    // Listen for system theme changes
+    const mediaQuery = window.matchMedia("(prefers-color-scheme: dark)");
+    const handleSystemChange = (e: MediaQueryListEvent) => {
+      if (localStorage.getItem("rope_dark_mode") === null) {
+        setDarkModeState(e.matches);
+      }
+    };
+    
+    // Listen for manual changes in other tabs/components
+    const handleStorageChange = (e: StorageEvent) => {
+      if (e.key === "rope_dark_mode") {
+        setDarkModeState(e.newValue === "true");
+      }
+    };
+
+    // Listen for custom event within the same tab
+    const handleCustomChange = (e: any) => {
+      setDarkModeState(e.detail.darkMode);
+    };
+ 
+    mediaQuery.addEventListener("change", handleSystemChange);
+    window.addEventListener("storage", handleStorageChange);
+    window.addEventListener("rope-theme-toggle", handleCustomChange as any);
+    return () => {
+      mediaQuery.removeEventListener("change", handleSystemChange);
+      window.removeEventListener("storage", handleStorageChange);
+      window.removeEventListener("rope-theme-toggle", handleCustomChange as any);
+    };
+  }, [isLoaded, isSignedIn]);
+
+  // Sync darkMode state with document root for instant theme switching
+  useEffect(() => {
+    if (darkMode) {
+      document.documentElement.classList.add("dark");
+    } else {
+      document.documentElement.classList.remove("dark");
+    }
+  }, [darkMode]);
 
   function toggleDarkMode() {
     const next = !darkMode;
     setDarkModeState(next);
-    setDarkMode(next);
+    setDarkMode(next); // Saves to localStorage, overriding system
+    
+    // Notify other components in the same tab
+    window.dispatchEvent(new CustomEvent("rope-theme-toggle", { detail: { darkMode: next } }));
   }
+
+  const [showHelpCenter, setShowHelpCenter] = useState(false);
 
   if (!ready) {
     return (
@@ -138,25 +196,22 @@ export default function MainLayout({ children }: { children: React.ReactNode }) 
   const todayPrompt = reflectionPrompts[dayIndex];
 
   return (
-    <div className={`min-h-screen bg-ivory ${darkMode ? "dark" : ""}`}>
+    <div className="min-h-screen bg-ivory">
       {/* Desktop sidebar */}
       <aside className="hidden md:flex md:fixed md:inset-y-0 md:left-0 md:w-64 md:flex-col bg-sidebar border-r border-brown/8 z-40">
-        {/* Brand area */}
-        <div className="px-6 py-8 relative">
-          <div className="flex items-center gap-2.5">
-            <svg width="18" height="26" viewBox="0 0 18 26" fill="none" className="text-brown/60 shrink-0">
-              <rect x="7" y="0" width="4" height="26" rx="1" fill="currentColor" />
-              <rect x="0" y="5.5" width="18" height="4" rx="1" fill="currentColor" />
-            </svg>
-            <h1 className="font-serif text-3xl font-bold text-brown tracking-wide">ROPE</h1>
-          </div>
-          <p className="text-muted text-[10px] mt-1.5 tracking-[0.2em] uppercase ml-[30px]">Bible Journaling</p>
+        {/* Help/Quick Guide Area */}
+        <div className="px-3 pt-20 pb-4">
           <button
-            onClick={() => { resetOnboarding(); setShowOnboarding(true); }}
-            className="absolute top-8 right-6 w-6 h-6 rounded-full bg-brown/8 flex items-center justify-center text-muted hover:text-brown hover:bg-brown/15 transition text-xs"
-            title="Show walkthrough"
+            onClick={() => setShowHelpCenter(true)}
+            className="flex items-center gap-3 w-full px-4 py-3 rounded-xl text-sm font-medium transition-all text-muted hover:text-brown hover:bg-cream/50 group"
+            aria-label="Help and info"
           >
-            ?
+            <span className="w-5 h-5 flex items-center justify-center rounded-full bg-brown/5 text-muted group-hover:bg-brown/10 group-hover:text-brown transition-colors">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                <circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/>
+              </svg>
+            </span>
+            Quick Guide
           </button>
         </div>
 
@@ -219,12 +274,23 @@ export default function MainLayout({ children }: { children: React.ReactNode }) 
       </aside>
 
       {/* Main content area */}
-      <main className="pb-24 md:pb-8 md:ml-64 xl:mr-[280px]">
-        <div className="max-w-lg mx-auto md:max-w-2xl md:px-4">{children}</div>
+      <main className="pb-24 pt-16 md:pb-8 md:ml-64 xl:mr-[280px]">
+        <div className="max-w-lg mx-auto md:max-w-2xl md:px-4">
+          {children}
+          
+          {/* Creator Credit Footer */}
+          <footer className="mt-12 py-8 border-t border-brown/5 text-center px-4">
+            <p className="text-muted/30 text-[10px] uppercase tracking-[0.2em] font-medium leading-loose">
+              Created by <span className="text-muted/40">Shubh Bhakta</span> & <span className="text-muted/40">Tiernan Lindauer</span>
+              <br />
+              ROPE Bible Journaling &copy; {new Date().getFullYear()}
+            </p>
+          </footer>
+        </div>
       </main>
 
       {/* Devotional side rail — xl+ only */}
-      <aside className="hidden xl:flex xl:fixed xl:inset-y-0 xl:right-0 xl:w-[280px] xl:flex-col bg-cream-dark/50 border-l border-brown/6 z-40 px-6 py-10">
+      <aside className="hidden xl:flex xl:fixed xl:inset-y-0 xl:right-0 xl:w-[280px] xl:flex-col bg-cream-dark/50 border-l border-brown/6 z-40 px-6 pt-20 pb-10">
         {(() => {
           const pageContext = (() => {
             if (pathname.startsWith("/journal")) return {
@@ -311,6 +377,13 @@ export default function MainLayout({ children }: { children: React.ReactNode }) 
       <BottomNav />
 
       {showOnboarding && <Onboarding onComplete={() => setShowOnboarding(false)} />}
+      
+      {showHelpCenter && (
+        <HelpCenter 
+          onClose={() => setShowHelpCenter(false)} 
+          onRestartWalkthrough={() => { resetOnboarding(); setShowOnboarding(true); }} 
+        />
+      )}
     </div>
   );
 }

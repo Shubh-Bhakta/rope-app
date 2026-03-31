@@ -1,11 +1,30 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { getOrCreateUser, getRopeEntries, getStreak, getUniqueBooksCount, getMostCommonBook, getThemes, getBookFrequency, deleteRopeEntry, updateRopeEntry, getDarkMode, setDarkMode, getMemoryVerses, removeMemoryVerse, getPrayers, type User, type RopeEntry, type PrayerItem } from "@/lib/store";
 import { LampIcon, OliveBranch } from "@/components/Accents";
+import DataManagement from "@/components/DataManagement";
+import { useAuth, useUser, UserButton } from "@clerk/nextjs";
+import { 
+  getRopeEntries, 
+  getStreak, 
+  getUniqueBooksCount, 
+  getMostCommonBook, 
+  getThemes, 
+  getDarkMode, 
+  setDarkMode,
+  getMemoryVerses, 
+  removeMemoryVerse,
+  getBookFrequency, 
+  getPrayers, 
+  updateRopeEntry, 
+  deleteRopeEntry,
+  type RopeEntry,
+  type PrayerItem
+} from "@/lib/store";
 
 export default function MePage() {
-  const [user, setUserState] = useState<User | null>(null);
+  const { isLoaded, isSignedIn, userId } = useAuth();
+  const { user: clerkUser } = useUser();
   const [entries, setEntries] = useState<RopeEntry[]>([]);
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [streak, setStreakVal] = useState(0);
@@ -23,18 +42,27 @@ export default function MePage() {
   const [answeredPrayers, setAnsweredPrayers] = useState<PrayerItem[]>([]);
 
   useEffect(() => {
-    const u = getOrCreateUser();
-    setUserState(u);
-    setEntries(getRopeEntries(u.id));
-    setStreakVal(getStreak(u.id));
-    setUniqueBooks(getUniqueBooksCount(u.id));
-    setTopBook(getMostCommonBook(u.id));
-    setThemes(getThemes(u.id));
+    if (!isLoaded) return;
+    const currentUserId = userId || "local";
+    setEntries(getRopeEntries(currentUserId));
+    setStreakVal(getStreak(currentUserId));
+    setUniqueBooks(getUniqueBooksCount(currentUserId));
+    setTopBook(getMostCommonBook(currentUserId));
+    setThemes(getThemes(currentUserId));
     setIsDark(getDarkMode());
     setMemoryVerses(getMemoryVerses());
-    setBookFreq(getBookFrequency(u.id));
+    setBookFreq(getBookFrequency(currentUserId));
     setAnsweredPrayers(getPrayers().filter(p => !!p.answeredAt));
-  }, []);
+
+    const handleCustomChange = (e: any) => {
+      setIsDark(e.detail.darkMode);
+    };
+
+    window.addEventListener("rope-theme-toggle", handleCustomChange as any);
+    return () => {
+      window.removeEventListener("rope-theme-toggle", handleCustomChange as any);
+    };
+  }, [isLoaded, userId]);
 
   function formatDate(dateStr: string): string {
     const d = new Date(dateStr);
@@ -67,21 +95,20 @@ export default function MePage() {
       observation: editFields.observation.trim(),
       prayer: editFields.prayer.trim(),
       execution: editFields.execution.trim(),
-    });
-    const u = getOrCreateUser();
-    setEntries(getRopeEntries(u.id));
+    }, isSignedIn || false);
+    setEntries(getRopeEntries(userId || "local"));
     setEditingId(null);
   }
 
   function handleDelete(id: string) {
     if (confirm("Are you sure you want to delete this entry? This cannot be undone.")) {
-      deleteRopeEntry(id);
+      deleteRopeEntry(id, isSignedIn || false);
       setEntries(entries.filter(e => e.id !== id));
       if (expandedId === id) setExpandedId(null);
     }
   }
 
-  if (!user) {
+  if (!isLoaded) {
     return (
       <div className="min-h-[80vh] flex items-center justify-center">
         <p className="text-muted font-serif">Loading...</p>
@@ -91,45 +118,74 @@ export default function MePage() {
 
   return (
     <div className="px-5 pt-6 pb-8" style={{ animation: "fadeIn 0.4s ease-out both" }}>
-      <div className="text-center mb-8">
-        <div className="w-20 h-20 bg-brown/10 rounded-full flex items-center justify-center mx-auto mb-4 ring-2 ring-brown/10 ring-offset-2 ring-offset-ivory">
-          <span className="font-serif text-2xl text-brown font-bold">
-            {user.name.charAt(0).toUpperCase()}
-          </span>
+      <div className="text-center mb-8 flex flex-col items-center">
+        <div className="mb-4">
+          <UserButton 
+            appearance={{
+              elements: {
+                userButtonAvatarBox: "w-20 h-20 ring-2 ring-brown/10 ring-offset-2 ring-offset-ivory"
+              }
+            }}
+          />
         </div>
-        <h1 className="font-serif text-2xl text-dark">{user.name}</h1>
-        {user.email && <p className="text-muted text-sm">{user.email}</p>}
-        <p className="text-muted/60 text-xs mt-1">{user.anonymousAlias}</p>
+        <h1 className="font-serif text-2xl text-dark">{clerkUser?.fullName || "Journaler"}</h1>
+        {clerkUser?.primaryEmailAddress && <p className="text-muted text-sm">{clerkUser.primaryEmailAddress.emailAddress}</p>}
+        {isSignedIn ? (
+          <p className="text-accent-gold text-[10px] uppercase tracking-wider font-medium mt-1">Cloud Synced &bull; Secure</p>
+        ) : (
+          <p className="text-muted/60 text-xs mt-1 italic">Guest Mode &bull; Local Only</p>
+        )}
       </div>
 
       {/* Settings */}
-      <div className="flex items-center justify-between p-3 bg-brown/[0.03] rounded-xl mb-4">
-        <span className="text-sm text-dark">Dark mode</span>
-        <button
-          onClick={() => {
-            const next = !isDark;
-            setIsDark(next);
-            setDarkMode(next);
-            // Toggle class on nearest .dark ancestor
-            const root = document.querySelector('[class*="min-h-screen"]');
-            if (root) {
-              if (next) root.classList.add("dark");
-              else root.classList.remove("dark");
-            }
-          }}
-          className={`relative w-11 h-6 rounded-full transition-colors ${isDark ? "bg-accent-gold" : "bg-brown/20"}`}
-        >
-          <div className={`absolute top-0.5 w-5 h-5 rounded-full bg-ivory shadow transition-transform ${isDark ? "translate-x-5.5 left-0" : "left-0.5"}`} />
-        </button>
+      <div className="space-y-3 mb-4">
+        <div className="flex items-center justify-between p-3 bg-brown/[0.03] rounded-xl">
+          <span className="text-sm text-dark font-medium">Dark mode</span>
+          <button
+            onClick={() => {
+              const next = !isDark;
+              setIsDark(next);
+              setDarkMode(next);
+              
+              // Notify other components (like MainLayout) in the same tab
+              window.dispatchEvent(new CustomEvent("rope-theme-toggle", { detail: { darkMode: next } }));
+              
+              // Still dispatch storage event for other tabs to stay in sync
+              window.dispatchEvent(new StorageEvent("storage", {
+                key: "rope_dark_mode",
+                newValue: next.toString(),
+              }));
+            }}
+            className={`relative w-11 h-6 rounded-full transition-colors ${isDark ? "bg-accent-gold" : "bg-brown/20"}`}
+          >
+            <div className={`absolute top-0.5 w-5 h-5 rounded-full bg-ivory shadow transition-transform ${isDark ? "translate-x-5.5 left-0" : "left-0.5"}`} />
+          </button>
+        </div>
+
+        <div className="flex items-center justify-between p-3 bg-brown/[0.03] rounded-xl hover:bg-brown/[0.06] transition-colors group">
+          <div className="flex flex-col">
+            <span className="text-sm text-dark font-medium">Centering Exercise</span>
+            <span className="text-[10px] text-muted italic">Psalm 46:10 Stillness</span>
+          </div>
+          <button
+            onClick={() => {
+              sessionStorage.removeItem("rope-breathing-done");
+              window.location.href = "/journal";
+            }}
+            className="px-4 py-1.5 bg-brown/10 text-brown rounded-lg text-xs font-semibold hover:bg-brown hover:text-ivory transition-all active:scale-95"
+          >
+            Start Stillness
+          </button>
+        </div>
       </div>
 
       {/* Data privacy note */}
       <div className="flex items-center gap-2 px-3 py-2.5 bg-brown/[0.03] rounded-xl mb-4 text-muted text-xs">
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="shrink-0">
-          <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
-          <path d="M7 11V7a5 5 0 0 1 10 0v4" />
+          <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+          <path d="M12 8a3 3 0 0 0-3 3"/>
         </svg>
-        <span>All data is stored locally on your device. Nothing is sent to any server.</span>
+        <span>{isSignedIn ? "Your data is synced securely to the cloud." : "You're in Guest Mode. Data is stored only on this device."}</span>
       </div>
 
       {/* Walk Snapshot */}
@@ -178,6 +234,17 @@ export default function MePage() {
           </div>
         </div>
       )}
+
+      {/* Backup & Portability */}
+      <div className="mb-12">
+        <h2 className="font-serif text-lg text-brown mb-4 flex items-center gap-2">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="opacity-60">
+            <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+          </svg>
+          Account & Data
+        </h2>
+        <DataManagement />
+      </div>
 
       <div className="mb-8">
         {/* View toggle */}

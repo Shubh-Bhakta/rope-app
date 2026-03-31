@@ -1,7 +1,8 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { getOrCreateUser, getYesterdayEntry, updateRopeEntry, getStreak, type RopeEntry, type ExecutionStatus } from "@/lib/store";
+import { useAuth } from "@clerk/nextjs";
+import { getYesterdayEntry, updateRopeEntry, getStreak, type RopeEntry, type ExecutionStatus } from "@/lib/store";
 import { LampIcon, OliveBranch, VerseBlock } from "@/components/Accents";
 
 export default function CheckinPage() {
@@ -12,22 +13,25 @@ export default function CheckinPage() {
   const [saved, setSaved] = useState(false);
   const [streak, setStreakVal] = useState(0);
 
+  const { isLoaded, isSignedIn } = useAuth();
+
   useEffect(() => {
-    const user = getOrCreateUser();
-    const yesterday = getYesterdayEntry(user.id);
+    if (!isLoaded) return;
+    const userId = "any"; 
+    const yesterday = getYesterdayEntry(userId);
     if (yesterday && yesterday.executionStatus === null) {
       setEntry(yesterday);
     }
-    setStreakVal(getStreak(user.id));
+    setStreakVal(getStreak(userId));
     setLoaded(true);
-  }, []);
+  }, [isLoaded]);
 
   function handleSave() {
     if (!entry || !status) return;
     updateRopeEntry(entry.id, {
       executionStatus: status,
       executionReflection: reflection.trim(),
-    });
+    }, isSignedIn || false);
     setSaved(true);
   }
 

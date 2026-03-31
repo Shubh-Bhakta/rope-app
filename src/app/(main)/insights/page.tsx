@@ -1,8 +1,8 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { useAuth } from "@clerk/nextjs";
 import {
-  getOrCreateUser,
   getRopeEntries,
   getStreak,
   getBookFrequency,
@@ -15,12 +15,12 @@ import {
   getRecommendedVerses,
   getPrayers,
   type RopeEntry,
-  type User,
 } from "@/lib/store";
 import { LampIcon, OliveBranch, VerseBlock } from "@/components/Accents";
+import Link from "next/link";
 
 export default function InsightsPage() {
-  const [user, setUserState] = useState<User | null>(null);
+  const { isLoaded, isSignedIn, userId } = useAuth();
   const [entries, setEntries] = useState<RopeEntry[]>([]);
   const [streak, setStreakVal] = useState(0);
   const [bookFreq, setBookFreq] = useState<{ book: string; count: number }[]>([]);
@@ -34,19 +34,19 @@ export default function InsightsPage() {
   const [prayerStats, setPrayerStats] = useState({ total: 0, answered: 0, avgDays: 0 });
 
   useEffect(() => {
-    const u = getOrCreateUser();
-    setUserState(u);
-    setEntries(getRopeEntries(u.id));
-    setStreakVal(getStreak(u.id));
-    setBookFreq(getBookFrequency(u.id));
-    setExecRate(getExecutionRate(u.id));
-    setTopBook(getMostCommonBook(u.id));
-    setRopeBalance(getRopeBalance(u.id));
-    setThemes(getThemes(u.id));
-    const s = getStreak(u.id);
+    if (!isLoaded) return;
+    const currentUserId = userId || "local";
+    setEntries(getRopeEntries(currentUserId));
+    setStreakVal(getStreak(currentUserId));
+    setBookFreq(getBookFrequency(currentUserId));
+    setExecRate(getExecutionRate(currentUserId));
+    setTopBook(getMostCommonBook(currentUserId));
+    setRopeBalance(getRopeBalance(currentUserId));
+    setThemes(getThemes(currentUserId));
+    const s = getStreak(currentUserId);
     setNextMilestone(getNextMilestone(s));
     setReachedMilestones(getAllReachedMilestones(s));
-    setRecommendations(getRecommendedVerses(u.id));
+    setRecommendations(getRecommendedVerses(currentUserId));
     // Prayer stats
     const allPrayers = getPrayers();
     const answered = allPrayers.filter(p => !!p.answeredAt);
@@ -59,9 +59,9 @@ export default function InsightsPage() {
       avgDays = Math.round(totalDays / answered.length);
     }
     setPrayerStats({ total: allPrayers.length, answered: answered.length, avgDays });
-  }, []);
+  }, [isLoaded, userId]);
 
-  if (!user) {
+  if (!isLoaded) {
     return (
       <div className="min-h-[80vh] flex items-center justify-center">
         <p className="text-muted font-serif">Loading...</p>
@@ -294,6 +294,9 @@ export default function InsightsPage() {
                 {i < recentEntries.length - 1 && (
                   <div className="w-px flex-1 bg-brown/20 my-1" />
                 )}
+                {i === recentEntries.length - 1 && entries.length > recentEntries.length && (
+                  <div className="w-px flex-1 bg-gradient-to-b from-brown/20 to-transparent my-1" />
+                )}
               </div>
 
               {/* Content */}
@@ -311,6 +314,13 @@ export default function InsightsPage() {
               </div>
             </div>
           ))}
+          {entries.length > recentEntries.length && (
+            <div className="mt-2 text-center">
+              <Link href="/history" className="text-brown text-sm font-serif font-medium hover:underline">
+                View All {entries.length} Reflections &rarr;
+              </Link>
+            </div>
+          )}
         </div>
       </section>
 
