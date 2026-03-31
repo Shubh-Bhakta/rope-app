@@ -8,7 +8,6 @@ export const entries = pgTable("entries", {
   createdAt: timestamp("created_at").defaultNow().notNull(),
   revelationVerse: text("revelation_verse").notNull(),
   revelationText: text("revelation_text").default("").notNull(),
-  heartReflection: text("heart_reflection").default("").notNull(),
   observation: text("observation").default("").notNull(),
   prayer: text("prayer").default("").notNull(),
   execution: text("execution").default("").notNull(),
@@ -43,6 +42,7 @@ export const verseComments = pgTable("verse_comments", {
   chapter: varchar("chapter", { length: 20 }).notNull(),
   verse: varchar("verse", { length: 20 }).notNull(),
   content: text("content").notNull(),
+  verseText: text("verse_text").default("").notNull(),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
@@ -139,5 +139,13 @@ export const publicHighlights = pgTable("public_highlights", {
   verse: varchar("verse", { length: 20 }).notNull(),
   color: varchar("color", { length: 50 }).notNull(),
   note: text("note").default("").notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export const prayerReplies = pgTable("prayer_replies", {
+  id: varchar("id", { length: 255 }).primaryKey(),
+  prayerId: varchar("prayer_id", { length: 255 }).notNull(),
+  userId: varchar("user_id", { length: 255 }).notNull(),
+  content: text("content").notNull(),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });

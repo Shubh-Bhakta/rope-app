@@ -16,8 +16,7 @@ import {
   updateBibleHistory,
   type BibleHighlight 
 } from "@/lib/store";
-import { getPublicHighlights, addPublicHighlight } from "@/lib/community-actions";
-import VerseDiscussionDrawer from "@/components/VerseDiscussionDrawer";
+import { getPublicHighlights, addPublicHighlight, getChapterCommentPreviews, getVerseComments, postVerseComment, voteComment } from "@/lib/community-actions";
 import { useAuth } from "@clerk/nextjs";
 
 const HIGHLIGHT_COLORS = [
@@ -62,6 +61,7 @@ function BibleContent() {
   const [chaptersExpanded, setChaptersExpanded] = useState(false);
   const [showDiscussion, setShowDiscussion] = useState(false);
   const [publicHighlightsData, setPublicHighlightsData] = useState<any[]>([]);
+  const [commentPreviews, setCommentPreviews] = useState<Record<string, any>>({});
   const { userId: currentUserId } = useAuth();
 
   const maxChapter = BOOK_CHAPTERS[book] || 1;
@@ -104,12 +104,17 @@ function BibleContent() {
       setVerses(data);
       setHighlights(getHighlightsForChapter(book, chapter));
       
-      // Fetch public highlights if in community mode
+      // Fetch previews and public highlights if in community mode
       if (communityMode) {
-        const ph = await getPublicHighlights(book, chapter.toString());
+        const [ph, cp] = await Promise.all([
+          getPublicHighlights(book, chapter.toString()),
+          getChapterCommentPreviews(book, chapter.toString())
+        ]);
         setPublicHighlightsData(ph);
+        setCommentPreviews(cp);
       } else {
         setPublicHighlightsData([]);
+        setCommentPreviews({});
       }
 
       updateBibleHistory(book, chapter);
@@ -402,41 +407,48 @@ function BibleContent() {
                   <span className="text-dark text-[15px] leading-relaxed tracking-wide">{v.text}</span>
                 </div>
 
-                {/* Verse action bar */}
+                 {/* Verse action bar */}
                 {isSelected && (
                   <div
-                    className="flex items-center gap-1.5 mt-2 ml-4 mb-3"
+                    className="flex items-center gap-1.5 mt-2 ml-4 mb-3 relative z-40 pointer-events-auto"
                     style={{ animation: "fadeIn 0.2s ease-out both" }}
                   >
-                    <button
-                      onClick={(e) => { e.stopPropagation(); setShowColorPicker(!showColorPicker); }}
-                      className="flex items-center gap-1.5 px-3 py-1.5 text-[10px] font-semibold text-muted hover:text-brown bg-ivory border border-brown/10 rounded-xl transition shadow-sm"
-                    >
-                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                        <path d="M12 20h9" /><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z" />
-                      </svg>
-                      Highlight
-                    </button>
+                    {!communityMode && (
+                      <>
+                        <button
+                          onClick={(e) => { e.stopPropagation(); setShowColorPicker(!showColorPicker); }}
+                          className="flex items-center gap-1.5 px-3 py-1.5 text-[10px] font-semibold text-muted hover:text-brown bg-ivory border border-brown/10 rounded-xl transition shadow-sm"
+                        >
+                          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                            <path d="M12 20h9" /><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z" />
+                          </svg>
+                          Highlight
+                        </button>
+
+                        <button
+                          onClick={(e) => { e.stopPropagation(); toggleVerseForJournal(v.verse); }}
+                          className={`flex items-center gap-1.5 px-3 py-1.5 text-[10px] font-semibold rounded-xl border transition shadow-sm ${isJournalSelected ? "bg-accent-gold/20 text-accent-gold border-accent-gold/40" : "text-muted hover:text-brown bg-ivory border-brown/10"}`}
+                        >
+                          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                            <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20" />
+                            <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z" />
+                          </svg>
+                          {isJournalSelected ? "Selected" : "Journal"}
+                        </button>
+                      </>
+                    )}
 
                     <button
-                      onClick={(e) => { e.stopPropagation(); toggleVerseForJournal(v.verse); }}
-                      className={`flex items-center gap-1.5 px-3 py-1.5 text-[10px] font-semibold rounded-xl border transition shadow-sm ${isJournalSelected ? "bg-accent-gold/20 text-accent-gold border-accent-gold/40" : "text-muted hover:text-brown bg-ivory border-brown/10"}`}
-                    >
-                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                        <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20" />
-                        <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z" />
-                      </svg>
-                      {isJournalSelected ? "Selected" : "Journal"}
-                    </button>
-
-                    <button
-                      onClick={(e) => { e.stopPropagation(); setShowDiscussion(true); }}
-                      className="flex items-center gap-1.5 px-3 py-1.5 text-[10px] font-semibold text-muted hover:text-brown bg-ivory border border-brown/10 rounded-xl transition shadow-sm"
+                      onClick={(e) => { 
+                        e.stopPropagation(); 
+                        setShowDiscussion(!showDiscussion); 
+                      }}
+                      className={`flex items-center gap-1.5 px-3 py-1.5 text-[10px] font-semibold border rounded-xl transition shadow-sm active:scale-95 z-50 pointer-events-auto ${showDiscussion ? "bg-brown text-ivory border-brown" : "text-muted hover:text-brown bg-ivory border-brown/10"}`}
                     >
                       <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                         <path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 1 1-7.6-7.6 8.38 8.38 0 0 1 3.8.9L21 3z" />
                       </svg>
-                      Discuss
+                      {showDiscussion ? "Close Discussion" : "Discuss"}
                     </button>
 
                     {highlight && (
@@ -465,22 +477,63 @@ function BibleContent() {
                       ))}
                     </div>
                     {!communityMode && (
-                      <button 
-                        onClick={async (e) => {
-                          e.stopPropagation();
-                          if (highlight) {
-                            await addPublicHighlight(book, chapter.toString(), v.verse.toString(), highlight.color);
-                            setShowColorPicker(false);
-                            loadChapter();
-                          }
-                        }}
-                        className="text-[9px] uppercase font-bold tracking-widest text-accent-gold hover:text-accent-gold/80 flex items-center gap-1 self-start ml-1"
-                      >
-                        <span className="text-sm">✦</span> Share to Community
-                      </button>
+                      <div className="flex flex-col gap-2">
+                        <button 
+                          onClick={async (e) => {
+                            e.stopPropagation();
+                            if (highlight) {
+                              await addPublicHighlight(book, chapter.toString(), v.verse.toString(), highlight.color);
+                              setShowColorPicker(false);
+                              loadChapter();
+                            }
+                          }}
+                          className="text-[9px] uppercase font-bold tracking-widest text-accent-gold hover:text-accent-gold/80 flex items-center gap-1 self-start ml-1"
+                        >
+                          <span className="text-sm">✦</span> Share to Community
+                        </button>
+                        <p className="text-[8px] text-muted-dark/40 italic ml-1 max-w-[200px]">
+                          This adds your highlight to the "Collective Wisdom" view for all users.
+                        </p>
+                      </div>
                     )}
                   </div>
                 )}
+
+                {/* Previews & Inline Discussion */}
+                <div className="ml-7 mr-3 mt-1 pb-2">
+                  {/* Top Reflection Preview */}
+                  {communityMode && !isSelected && commentPreviews[v.verse] && (
+                    <div 
+                      className="p-3 bg-brown/[0.03] border border-brown/5 rounded-xl animate-in fade-in slide-in-from-top-1 duration-300"
+                      onClick={(e) => { e.stopPropagation(); setSelectedVerse(v.verse); setShowDiscussion(true); }}
+                    >
+                      <div className="flex items-center gap-2 mb-1.5">
+                        <div className="w-4 h-4 rounded-full bg-brown/10 flex items-center justify-center text-[8px] font-bold text-brown/40 overflow-hidden">
+                          {commentPreviews[v.verse].profile?.imageUrl ? (
+                            <img src={commentPreviews[v.verse].profile.imageUrl} alt="" className="w-full h-full object-cover" />
+                          ) : (
+                            commentPreviews[v.verse].profile?.displayName?.charAt(0) || "?"
+                          )}
+                        </div>
+                        <span className="text-[10px] font-bold text-brown/60 uppercase tracking-tight">Top Discussion Post</span>
+                      </div>
+                      <p className="text-xs text-muted line-clamp-2 leading-relaxed italic">"{commentPreviews[v.verse].content}"</p>
+                    </div>
+                  )}
+
+                  {/* Inline Discussion Area */}
+                  {isSelected && showDiscussion && (
+                    <div className="animate-in fade-in slide-in-from-top-2 duration-400">
+                      <VerseDiscussionView 
+                        book={book} 
+                        chapter={chapter.toString()} 
+                        verse={v.verse.toString()} 
+                        verseText={v.text}
+                        onClose={() => setShowDiscussion(false)}
+                      />
+                    </div>
+                  )}
+                </div>
               </div>
             );
           })}
@@ -558,15 +611,138 @@ function BibleContent() {
         </div>
       )}
 
-      {/* Discussion Drawer */}
-      {showDiscussion && selectedVerse && (
-        <VerseDiscussionDrawer
-          book={book}
-          chapter={chapter.toString()}
-          verse={selectedVerse.toString()}
-          onClose={() => setShowDiscussion(false)}
+    </div>
+  );
+}
+
+function VerseDiscussionView({ book, chapter, verse, verseText, onClose }: { book: string; chapter: string; verse: string; verseText: string; onClose: () => void }) {
+  const [comments, setComments] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [newComment, setNewComment] = useState("");
+  const [posting, setPosting] = useState(false);
+  const [offset, setOffset] = useState(0);
+  const [hasMore, setHasMore] = useState(true);
+  const { userId } = useAuth();
+
+  const loadComments = async (isLoadMore = false) => {
+    if (!isLoadMore) setLoading(true);
+    try {
+      const data = await getVerseComments(book, chapter, verse, 'top', 10, isLoadMore ? offset + 10 : 0);
+      if (isLoadMore) {
+        setComments(prev => [...prev, ...data]);
+        setOffset(prev => prev + 10);
+      } else {
+        setComments(data);
+        setOffset(0);
+      }
+      setHasMore(data.length === 10);
+    } catch (err) {
+      console.error(err);
+    } finally {
+      if (!isLoadMore) setLoading(false);
+    }
+  };
+
+  useEffect(() => { loadComments(); }, [book, chapter, verse]);
+
+  const handlePost = async () => {
+    if (!newComment.trim() || !userId) return;
+    setPosting(true);
+    try {
+      await postVerseComment(book, chapter, verse, newComment, verseText);
+      setNewComment("");
+      loadComments();
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setPosting(false);
+    }
+  };
+
+  const handleVote = async (id: string, type: 'up' | 'down') => {
+    if (!userId) return;
+    setComments(prev => prev.map(c => {
+      if (c.id === id) {
+        const oldVote = c.userVote;
+        const newVote = oldVote === type ? null : type;
+        const adjust = newVote === type ? 1 : -1;
+        return { ...c, userVote: newVote, score: c.score + adjust };
+      }
+      return c;
+    }));
+    await voteComment(id, type);
+  };
+
+  return (
+    <div className="mt-4 p-4 bg-brown/[0.02] border border-brown/5 rounded-2xl space-y-4">
+      <div className="flex items-center justify-between mb-4">
+        <h4 className="text-[10px] text-brown font-bold uppercase tracking-widest flex items-center gap-2">
+          Conversations <span className="w-1 h-1 bg-brown/20 rounded-full" /> {book} {chapter}:{verse}
+        </h4>
+        <button onClick={onClose} className="text-muted hover:text-brown transition">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>
+        </button>
+      </div>
+
+      {/* Input */}
+      <div className="flex gap-2">
+        <input 
+          value={newComment}
+          onChange={(e) => setNewComment(e.target.value)}
+          placeholder="Share a discussion post..."
+          className="flex-1 px-3 py-2 bg-ivory border border-brown/10 rounded-xl text-xs text-dark focus:outline-none focus:ring-1 focus:ring-brown/20"
         />
-      )}
+        <button 
+          onClick={handlePost}
+          disabled={posting || !newComment.trim()}
+          className="px-4 bg-brown text-ivory text-[10px] font-bold uppercase tracking-widest rounded-xl disabled:opacity-30 transition"
+        >
+          {posting ? "..." : "Post"}
+        </button>
+      </div>
+
+      {/* List */}
+      <div className="space-y-4 pt-2">
+        {loading ? (
+          <div className="py-8 text-center text-xs text-muted italic">Gathering discussions...</div>
+        ) : comments.length === 0 ? (
+          <div className="py-4 text-center text-xs text-muted/60 italic">No discussions yet. Be the first to share.</div>
+        ) : (
+          <>
+            {comments.map(c => (
+              <div key={c.id} className="flex gap-3">
+                <div className="w-7 h-7 rounded-full bg-brown/5 flex items-center justify-center text-[10px] font-bold text-brown/40 shrink-0 overflow-hidden">
+                  {c.profile?.imageUrl ? <img src={c.profile.imageUrl} alt="" className="w-full h-full object-cover" /> : c.profile?.displayName?.charAt(0) || "?"}
+                </div>
+                <div className="flex-1">
+                  <div className="flex items-center gap-2 mb-0.5">
+                    <span className="text-[11px] font-bold text-brown/80">{c.profile?.displayName}</span>
+                    <span className="text-[9px] text-muted/50">{new Date(c.createdAt).toLocaleDateString()}</span>
+                  </div>
+                  <p className="text-xs text-dark leading-relaxed">{c.content}</p>
+                  <div className="flex items-center gap-3 mt-1.5">
+                    <button 
+                      onClick={() => handleVote(c.id, 'up')}
+                      className={`flex items-center gap-1 text-[10px] font-bold ${c.userVote === 'up' ? "text-accent-gold" : "text-muted hover:text-brown"}`}
+                    >
+                      <svg width="12" height="12" viewBox="0 0 24 24" fill={c.userVote === 'up' ? "currentColor" : "none"} stroke="currentColor" strokeWidth="2.5"><path d="M7 10l5-5 5 5" /><path d="M12 5v14" /></svg>
+                      {c.score}
+                    </button>
+                  </div>
+                </div>
+              </div>
+            ))}
+            {hasMore && (
+              <button 
+                onClick={() => loadComments(true)}
+                className="w-full py-2 text-[10px] text-brown/40 font-bold uppercase tracking-widest hover:text-brown transition"
+              >
+                Load more discussions
+              </button>
+            )}
+          </>
+        )}
+      </div>
     </div>
   );
 }

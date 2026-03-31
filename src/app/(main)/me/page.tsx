@@ -405,12 +405,10 @@ export default function MePage() {
                   {editingId === entry.id ? (
                     <div className="px-4 pb-4 space-y-3 border-t border-brown/8 pt-3">
                       {/* Revelation stays read-only */}
-                      {(entry.revelationText || entry.revelationReflection) && (
+                      {entry.revelationText && (
                         <div>
                           <p className="text-xs text-muted uppercase tracking-wide mb-1">Revelation</p>
-                          {entry.revelationText && (
-                            <p className="text-dark text-sm italic leading-relaxed">&ldquo;{entry.revelationText}&rdquo;</p>
-                          )}
+                          <p className="text-dark text-sm italic leading-relaxed">&ldquo;{entry.revelationText}&rdquo;</p>
                         </div>
                       )}
 
@@ -459,24 +457,14 @@ export default function MePage() {
                     </div>
                   ) : (
                     <div className="px-4 pb-4 space-y-3 border-t border-brown/8 pt-3">
-                      {(entry.revelationText || entry.revelationReflection) && (
+                      {entry.revelationText && (
                         <div>
                           <p className="text-xs text-muted uppercase tracking-wide mb-1">
                             Revelation
                           </p>
-                          {entry.revelationText && (
-                            <p className="text-dark text-sm italic leading-relaxed">
-                              &ldquo;{entry.revelationText}&rdquo;
-                            </p>
-                          )}
-                          {entry.revelationReflection && (
-                            <div className="mt-2 pt-2 border-t border-brown/6">
-                              <p className="text-[10px] text-muted uppercase tracking-wider mb-1">My Reflection</p>
-                              <p className="text-dark text-sm leading-relaxed border-l-2 border-accent-gold/20 pl-3">
-                                {entry.revelationReflection}
-                              </p>
-                            </div>
-                          )}
+                          <p className="text-dark text-sm italic leading-relaxed">
+                            &ldquo;{entry.revelationText}&rdquo;
+                          </p>
                         </div>
                       )}
                       <div>

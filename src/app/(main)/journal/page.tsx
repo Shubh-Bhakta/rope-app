@@ -299,7 +299,6 @@ export default function JournalPage() {
   const [verseLookedUp, setVerseLookedUp] = useState(false);
   const [lookingUp, setLookingUp] = useState(false);
   const [lookupError, setLookupError] = useState("");
-  const [heartReflection, setHeartReflection] = useState("");
   const [observation, setObservation] = useState("");
   const [prayer, setPrayer] = useState("");
   const [execution, setExecution] = useState("");
@@ -364,7 +363,6 @@ export default function JournalPage() {
         const d = JSON.parse(raw);
         if (d.verseRef) setVerseRef(d.verseRef);
         if (d.verseText) { setVerseText(d.verseText); setVerseLookedUp(true); }
-        if (d.heartReflection) setHeartReflection(d.heartReflection);
         if (d.observation) setObservation(d.observation);
         if (d.prayer) setPrayer(d.prayer);
         if (d.execution) setExecution(d.execution);
@@ -390,14 +388,14 @@ export default function JournalPage() {
   useEffect(() => {
     if (saved) return; // don't save after explicit save
     const timer = setTimeout(() => {
-      const draft = { verseRef, verseText, heartReflection, observation, prayer, execution };
+      const draft = { verseRef, verseText, observation, prayer, execution };
       // Only save if there's actual content
       if (verseRef || observation || prayer || execution) {
         localStorage.setItem(todayKey, JSON.stringify(draft));
       }
     }, 500);
     return () => clearTimeout(timer);
-  }, [verseRef, verseText, heartReflection, observation, prayer, execution, todayKey, saved]);
+  }, [verseRef, verseText, observation, prayer, execution, todayKey, saved]);
 
   // Keyboard shortcuts: Cmd+Enter to save, Cmd+L to focus verse lookup
   const canSave = !!(verseRef.trim() && observation.trim() && prayer.trim() && execution.trim());
@@ -483,7 +481,6 @@ export default function JournalPage() {
       userId: "local", // This will be overridden by Clerk on the server if authenticated
       revelationVerse: verseRef.trim(),
       revelationText: verseText,
-      heartReflection: heartReflection.trim(),
       observation: observation.trim(),
       prayer: prayer.trim(),
       execution: execution.trim(),
@@ -588,7 +585,6 @@ export default function JournalPage() {
             setVerseRef("");
             setVerseText("");
             setVerseLookedUp(false);
-            setHeartReflection("");
             setObservation("");
             setPrayer("");
             setExecution("");
@@ -606,7 +602,6 @@ export default function JournalPage() {
           <ShareCard
             verse={verseText}
             reference={verseRef}
-            reflection={heartReflection || undefined}
             onClose={() => setShowShare(false)}
           />
         )}
@@ -632,7 +627,7 @@ export default function JournalPage() {
         {["R", "O", "P", "E"].map((letter, i) => {
           const filled =
             (i === 0 && (verseLookedUp || verseRef.trim())) ||
-            (i === 1 && (observation.trim() || heartReflection.trim())) ||
+            (i === 1 && observation.trim()) ||
             (i === 2 && prayer.trim()) ||
             (i === 3 && execution.trim());
           return (
@@ -932,18 +927,6 @@ export default function JournalPage() {
                 onTranscript={(text) =>
                   setObservation((prev) => (prev ? prev + " " + text : text))
                 }
-              />
-            </div>
-
-            {/* Heart Reflection moved here */}
-            <div className="px-2">
-              <p className="text-[10px] uppercase tracking-[0.2em] text-muted font-medium mb-2.5 opacity-60 ml-2">Heart Reflection</p>
-              <textarea
-                value={heartReflection}
-                onChange={(e) => setHeartReflection(e.target.value)}
-                placeholder="What is the Holy Spirit highlighting for you in this verse? Record your initial impressions here..."
-                rows={3}
-                className="w-full px-4 py-3 bg-ivory border border-brown/10 rounded-xl text-dark text-sm placeholder:text-muted/30 focus:outline-none resize-none leading-relaxed italic"
               />
             </div>
           </div>
