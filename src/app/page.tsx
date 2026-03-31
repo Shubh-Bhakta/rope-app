@@ -395,14 +395,12 @@ export default function SplashPage() {
         {/* ═══ Hand of God image ═══ */}
         <div
           ref={sVerse.ref}
-          className="relative w-full mt-20 md:mt-28 overflow-hidden"
-          style={{ height: "480px" }}
+          className="relative w-full mt-20 md:mt-28"
         >
           <img
             src="/hand-god.jpg"
             alt="A hand reaching toward the hand of God"
-            className="absolute inset-0 w-full h-full"
-            style={{ objectFit: "contain", objectPosition: "center center" }}
+            className="w-full block"
           />
           {/* Fade top into cream */}
           <div
@@ -413,11 +411,6 @@ export default function SplashPage() {
           <div
             className="absolute inset-x-0 bottom-0 h-32 pointer-events-none"
             style={{ background: "linear-gradient(0deg, #f5efe3 0%, transparent 100%)" }}
-          />
-          {/* Subtle dark vignette on sides */}
-          <div
-            className="absolute inset-0 pointer-events-none"
-            style={{ background: "radial-gradient(ellipse 80% 100% at 50% 50%, transparent 50%, rgba(245,239,227,0.3) 100%)" }}
           />
         </div>
 
