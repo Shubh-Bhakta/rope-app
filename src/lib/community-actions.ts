@@ -220,12 +220,13 @@ export async function voteComment(commentId: string, voteType: 'up' | 'down' | n
 
 // ─── Public Prayers ──────────────────────────────────────────────────────────
 
-export async function getPublicPrayers() {
+export async function getPublicPrayers(limit: number = 20, offset: number = 0) {
   const { userId } = await auth();
   const results = await db.query.prayers.findMany({
     where: eq(prayersTable.isPublic, true),
     orderBy: [desc(prayersTable.publicAt)],
-    limit: 50,
+    limit,
+    offset,
   });
 
   return await Promise.all(results.map(async (p) => {
@@ -327,11 +328,13 @@ export async function togglePrayerPublic(prayerId: string, isPublic: boolean) {
 
 // ─── Forum ───────────────────────────────────────────────────────────────────
 
-export async function getForumPosts(category: string = "General") {
+export async function getForumPosts(category: string = "General", limit: number = 20, offset: number = 0) {
   const { userId } = await auth();
   const posts = await db.query.forumPosts.findMany({
     where: eq(forumPosts.category, category),
     orderBy: [desc(forumPosts.createdAt)],
+    limit,
+    offset,
   });
 
   return await Promise.all(posts.map(async (p) => {
@@ -388,11 +391,12 @@ export async function votePost(postId: string) {
   }
 }
 
-export async function getCommunityFeed(page: number = 0, limit: number = 20) {
+export async function getCommunityFeed(page: number = 0, limit: number = 10) {
+  const offset = page * limit;
   const [prayers, posts, discussions] = await Promise.all([
-    getPublicPrayers(),
-    getForumPosts(),
-    getGlobalVerseDiscussions(limit, page * limit)
+    getPublicPrayers(limit, offset),
+    getForumPosts("General", limit, offset),
+    getGlobalVerseDiscussions(limit, offset)
   ]);
 
   const feed = [

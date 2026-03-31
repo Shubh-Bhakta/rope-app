@@ -58,15 +58,15 @@ export default function CommunityPage() {
     setLoading(true);
     try {
       const [prayersData, postsData, feedData] = await Promise.all([
-        getPublicPrayers(),
-        getForumPosts(),
-        getCommunityFeed(0, 20)
+        getPublicPrayers(20, 0),
+        getForumPosts("General", 20, 0),
+        getCommunityFeed(0, 10)
       ]);
       setPrayers(prayersData);
       setPosts(postsData);
       setFeed(feedData);
       setFeedPage(0);
-      setHasMoreFeed(feedData.length >= 20);
+      setHasMoreFeed(feedData.length >= 10);
     } catch (err) {
       console.error(err);
     } finally {
@@ -79,13 +79,13 @@ export default function CommunityPage() {
     setLoadingMore(true);
     try {
       const nextPage = feedPage + 1;
-      const moreData = await getCommunityFeed(nextPage, 20);
+      const moreData = await getCommunityFeed(nextPage, 10);
       if (moreData.length === 0) {
         setHasMoreFeed(false);
       } else {
         setFeed(prev => [...prev, ...moreData]);
         setFeedPage(nextPage);
-        setHasMoreFeed(moreData.length >= 20);
+        setHasMoreFeed(moreData.length >= 10);
       }
     } catch (err) {
       console.error(err);
@@ -142,33 +142,41 @@ export default function CommunityPage() {
   const handleDeletePost = async (id: string) => {
     if (!confirm("Are you sure you want to delete this post?")) return;
     try {
+      // Optimistic delete from state
+      setPosts(prev => prev.filter(p => p.id !== id));
+      setFeed(prev => prev.filter(f => f.id !== id));
       await deleteForumPost(id);
-      loadData();
     } catch (err) {
       console.error(err);
       setErrorNotice("Could not delete post.");
+      loadData(); // Rollback/Refresh
     }
   };
 
   const handleDeleteComment = async (id: string) => {
     if (!confirm("Are you sure you want to delete this discussion?")) return;
     try {
+      // Optimistic delete from state
+      setFeed(prev => prev.filter(f => f.id !== id));
       await deleteVerseComment(id);
-      loadData();
     } catch (err) {
       console.error(err);
       setErrorNotice("Could not delete discussion.");
+      loadData(); // Rollback/Refresh
     }
   };
 
   const handleDeletePrayer = async (id: string) => {
     if (!confirm("Remove this testimony from the community feed?")) return;
     try {
+      // Optimistic delete from state
+      setPrayers(prev => prev.filter(p => p.id !== id));
+      setFeed(prev => prev.filter(f => f.id !== id));
       await togglePrayerPublic(id, false);
-      loadData();
     } catch (err) {
       console.error(err);
       setErrorNotice("Could not remove testimony.");
+      loadData(); // Rollback/Refresh
     }
   };
 

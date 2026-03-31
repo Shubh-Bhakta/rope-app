@@ -9,7 +9,7 @@ import Breathing from "@/components/Breathing";
 
 const steps = [
   { letter: "R", word: "Revelation", placeholder: "" },
-  { letter: "O", word: "Observation", placeholder: "What did you observe? Why did you stop here?" },
+  { letter: "O", word: "Observation", placeholder: "What did you observe? Why did you stop here? Reflect deeply, from your heart." },
   { letter: "P", word: "Prayer", placeholder: "Write your prayer about this passage." },
   { letter: "E", word: "Execution", placeholder: "How will you live this out tomorrow?" },
 ];
@@ -94,7 +94,7 @@ function useSpeechRecognition() {
     (onResult: (text: string) => void, onEnd: () => void) => {
       const w = window as unknown as Record<string, unknown>;
       const SpeechRecognition = (w.SpeechRecognition || w.webkitSpeechRecognition) as {
-        new (): {
+        new(): {
           continuous: boolean;
           interimResults: boolean;
           lang: string;
@@ -189,7 +189,7 @@ function MicButton({
         animationRef.current = null;
       }
       if (audioContextRef.current && audioContextRef.current.state !== "closed") {
-        audioContextRef.current.close().catch(() => {});
+        audioContextRef.current.close().catch(() => { });
         audioContextRef.current = null;
       }
       if (streamRef.current) {
@@ -223,17 +223,16 @@ function MicButton({
     <button
       type="button"
       onClick={toggle}
-      className={`absolute bottom-2.5 right-2.5 w-9 h-9 rounded-full flex items-center justify-center transition-all ${
-        listening
+      className={`absolute bottom-2.5 right-2.5 w-9 h-9 rounded-full flex items-center justify-center transition-all ${listening
           ? "bg-struggle text-white shadow-[0_0_20px_rgba(235,87,87,0.4)]"
           : "bg-brown/8 text-brown hover:bg-brown/15"
-      }`}
+        }`}
       aria-label={listening ? "Stop listening" : "Voice input"}
       title={listening ? "Stop listening" : "Voice input"}
     >
       {listening && (
-        <div 
-          className="absolute inset-0 rounded-full bg-struggle/30 animate-pulse pointer-events-none" 
+        <div
+          className="absolute inset-0 rounded-full bg-struggle/30 animate-pulse pointer-events-none"
           style={{ transform: `scale(${1 + (volume / 100)})` }}
         />
       )}
@@ -381,7 +380,7 @@ export default function JournalPage() {
         if (trans) { setTranslationState(trans); setTranslation(trans); }
       }
     } catch { /* ignore */ }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // Auto-save draft on field changes (debounced)
@@ -508,7 +507,7 @@ export default function JournalPage() {
   const allFilled = !!(verseRef.trim() && observation.trim() && prayer.trim() && execution.trim());
 
   if (saved) {
-    const currentStreak = getStreak("any"); 
+    const currentStreak = getStreak("any");
     const saveVerse = motivationalVerses[(savedCount - 1) % motivationalVerses.length];
 
     return (
@@ -612,7 +611,16 @@ export default function JournalPage() {
   return (
     <div className="px-5 pt-6 pb-8">
       {/* Date + Title with olive branch */}
-      <p className="text-muted text-sm mb-1">{today}</p>
+      <div className="flex justify-between items-start mb-1">
+        <p className="text-muted text-sm">{today}</p>
+        <a 
+          href="/me" 
+          className="text-[10px] uppercase font-bold tracking-widest text-accent-gold hover:text-accent-gold/80 transition-colors flex items-center gap-1.5"
+        >
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M12 20h9" /><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z" /></svg>
+          View Past Entries
+        </a>
+      </div>
       <div className="flex items-center gap-3 mb-2">
         <h1 className="font-serif text-2xl text-brown">Daily ROPE</h1>
       </div>
@@ -632,11 +640,10 @@ export default function JournalPage() {
             (i === 3 && execution.trim());
           return (
             <div key={letter} className="flex items-center gap-1.5 flex-1">
-              <div className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-serif font-bold transition-all duration-300 ${
-                filled
+              <div className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-serif font-bold transition-all duration-300 ${filled
                   ? "bg-brown text-ivory shadow-sm scale-100"
                   : "bg-brown/8 text-brown/40 scale-95"
-              }`}>
+                }`}>
                 {letter}
               </div>
               {i < 3 && (
@@ -702,7 +709,7 @@ export default function JournalPage() {
 
           <div className="space-y-4">
             <div className="flex justify-end">
-              <button 
+              <button
                 onClick={() => setIsQuickEntry(!isQuickEntry)}
                 className="text-[10px] text-muted hover:text-brown transition italic px-2 py-1"
               >
@@ -748,13 +755,13 @@ export default function JournalPage() {
                       {lookingUp ? "..." : "Look up"}
                     </button>
                   </div>
-                  
+
                   {/* About Quick Entry */}
                   <div className="mt-4 px-3 py-2 bg-brown/[0.03] rounded-lg border border-brown/5">
                     <p className="text-[11px] text-muted/70 leading-relaxed italic">
                       <span className="font-semibold text-brown/60 not-italic uppercase tracking-wider mr-1">Pro Tip:</span>
-                      Type any reference like <span className="text-brown/80 font-medium">John 3:16</span> or <span className="text-brown/80 font-medium">Ps 23</span>. 
-                      Use <span className="text-brown font-semibold not-italic">Tab</span> to auto-complete suggestions! 
+                      Type any reference like <span className="text-brown/80 font-medium">John 3:16</span> or <span className="text-brown/80 font-medium">Ps 23</span>.
+                      Use <span className="text-brown font-semibold not-italic">Tab</span> to auto-complete suggestions!
                       You can even select multiple verses like <span className="text-brown/80 font-medium">3,5-7</span>.
                     </p>
                   </div>
@@ -835,17 +842,17 @@ export default function JournalPage() {
               onClick={async () => {
                 const verse = getTodaysVerse();
                 setVerseRef(verse);
-                
+
                 // If in structured mode, try to parse and populate fields
                 if (!isQuickEntry) {
-                   const m = verse.match(/^(.+?)\s+(\d+)(?:[ :]+(.+))?$/);
-                   if (m) {
-                     setSelectedBook(m[1]);
-                     setSelectedChapter(m[2]);
-                     setSelectedVerses(m[3] || "");
-                   }
+                  const m = verse.match(/^(.+?)\s+(\d+)(?:[ :]+(.+))?$/);
+                  if (m) {
+                    setSelectedBook(m[1]);
+                    setSelectedChapter(m[2]);
+                    setSelectedVerses(m[3] || "");
+                  }
                 }
-                
+
                 setShowSuggestions(false);
                 setLookingUp(true);
                 setLookupError("");

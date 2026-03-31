@@ -372,7 +372,6 @@ export default function InsightsPage() {
           </div>
         </section>
       )}
-
       {/* Reflection Prompt */}
       {topBook && (
         <section className="card-surface rounded-2xl p-5 mb-4 border-l-3 border-l-accent-gold/25"
@@ -380,7 +379,7 @@ export default function InsightsPage() {
         >
           <p className="text-dark text-sm leading-relaxed italic">
             &ldquo;Based on your entries, you&apos;ve been drawn to{" "}
-            <span className="font-medium not-italic text-brown">{topBook}</span> lately.
+            <span className="font-medium not-italic text-brown">{topBook}</span>{" "}lately.
             What do you think God is showing you through these passages?&rdquo;
           </p>
         </section>
