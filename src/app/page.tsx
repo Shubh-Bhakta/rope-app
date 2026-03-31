@@ -35,6 +35,7 @@ export default function SplashPage() {
   const [hoveredIdx, setHoveredIdx] = useState<number | null>(null);
   const [exiting, setExiting] = useState(false);
   const [videoLoaded, setVideoLoaded] = useState(false);
+  const [crossHovered, setCrossHovered] = useState(false);
 
   /* Orchestrated entrance sequence */
   useEffect(() => {
@@ -134,15 +135,48 @@ export default function SplashPage() {
 
           {/* ═══ Small cross icon above ROPE ═══ */}
           <div
-            className="mb-5 transition-all duration-700 ease-out"
+            className="mb-5 transition-all duration-700 ease-out cursor-pointer"
             style={{
               opacity: phase >= 1 ? 1 : 0,
               transform: phase >= 1 ? "translateY(0)" : "translateY(12px)",
+              position: "relative",
             }}
+            onMouseEnter={() => setCrossHovered(true)}
+            onMouseLeave={() => setCrossHovered(false)}
           >
-            <svg width="20" height="28" viewBox="0 0 20 28" fill="none" className="mx-auto" aria-hidden="true">
-              <rect x="8" y="0" width="4" height="28" rx="1" fill="rgba(196, 162, 101, 0.25)" />
-              <rect x="0" y="6" width="20" height="4" rx="1" fill="rgba(196, 162, 101, 0.25)" />
+            {/* Aura glow behind cross */}
+            <div
+              className="absolute inset-0 pointer-events-none transition-all duration-500 ease-out"
+              style={{
+                opacity: crossHovered ? 1 : 0,
+                transform: crossHovered ? "scale(1)" : "scale(0.6)",
+                background: "radial-gradient(ellipse 60% 80% at 50% 50%, rgba(196, 162, 101, 0.45) 0%, rgba(196, 162, 101, 0.15) 50%, transparent 75%)",
+                filter: "blur(8px)",
+                borderRadius: "50%",
+                width: "80px",
+                height: "100px",
+                left: "50%",
+                top: "50%",
+                marginLeft: "-40px",
+                marginTop: "-50px",
+              }}
+            />
+            <svg
+              width="28"
+              height="40"
+              viewBox="0 0 20 28"
+              fill="none"
+              aria-hidden="true"
+              className="mx-auto relative transition-all duration-500 ease-out"
+              style={{
+                filter: crossHovered
+                  ? "drop-shadow(0 0 8px rgba(196, 162, 101, 0.8)) drop-shadow(0 0 20px rgba(196, 162, 101, 0.4))"
+                  : "none",
+                transform: crossHovered ? "scale(1.08)" : "scale(1)",
+              }}
+            >
+              <rect x="8" y="0" width="4" height="28" rx="1" fill={crossHovered ? "rgba(196, 162, 101, 0.85)" : "rgba(196, 162, 101, 0.25)"} style={{ transition: "fill 0.5s ease" }} />
+              <rect x="0" y="6" width="20" height="4" rx="1" fill={crossHovered ? "rgba(196, 162, 101, 0.85)" : "rgba(196, 162, 101, 0.25)"} style={{ transition: "fill 0.5s ease" }} />
             </svg>
           </div>
 
