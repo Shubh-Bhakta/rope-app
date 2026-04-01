@@ -157,3 +157,23 @@ export const verseReplies = pgTable("verse_replies", {
   content: text("content").notNull(),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
+
+export const feedback = pgTable("feedback", {
+  id: varchar("id", { length: 255 }).primaryKey(),
+  userId: varchar("user_id", { length: 255 }),
+  type: varchar("type", { length: 50 }).notNull(), // 'bug' | 'suggestion'
+  title: varchar("title", { length: 255 }).notNull(),
+  description: text("description").notNull(),
+  status: varchar("status", { length: 50 }).default("pending").notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export const errorLogs = pgTable("error_logs", {
+  id: varchar("id", { length: 255 }).primaryKey(),
+  userId: varchar("user_id", { length: 255 }),
+  message: text("message").notNull(),
+  stack: text("stack"),
+  pathname: text("pathname"),
+  context: text("context"), // JSON string
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});

@@ -9,6 +9,7 @@ import BottomNav from "@/components/BottomNav";
 import Onboarding from "@/components/Onboarding";
 import HelpCenter from "@/components/HelpCenter";
 import { OliveBranch } from "@/components/Accents";
+import { logErrorAction } from "@/lib/actions";
 
 const navItems = [
   {
@@ -162,13 +163,20 @@ export default function MainLayout({ children }: { children: React.ReactNode }) 
       setDarkModeState(e.detail.darkMode);
     };
  
+    const handleOpenHelp = (e: any) => {
+      if (e.detail?.view) setDefaultHelpView(e.detail.view);
+      setShowHelpCenter(true);
+    };
+ 
     mediaQuery.addEventListener("change", handleSystemChange);
     window.addEventListener("storage", handleStorageChange);
     window.addEventListener("rope-theme-toggle", handleCustomChange as any);
+    window.addEventListener("rope-open-help", handleOpenHelp as any);
     return () => {
       mediaQuery.removeEventListener("change", handleSystemChange);
       window.removeEventListener("storage", handleStorageChange);
       window.removeEventListener("rope-theme-toggle", handleCustomChange as any);
+      window.removeEventListener("rope-open-help", handleOpenHelp as any);
     };
   }, [isLoaded, isSignedIn]);
 
@@ -191,6 +199,36 @@ export default function MainLayout({ children }: { children: React.ReactNode }) 
   }
 
   const [showHelpCenter, setShowHelpCenter] = useState(false);
+  const [defaultHelpView, setDefaultHelpView] = useState<"guide" | "feedback">("guide");
+
+  useEffect(() => {
+    // Global client-side error tracking
+    const handleError = (event: ErrorEvent) => {
+      logErrorAction({
+        message: event.message,
+        stack: event.error?.stack,
+        pathname: window.location.pathname,
+        context: { type: "onerror", browser: navigator.userAgent }
+      });
+    };
+
+    const handleRejection = (event: PromiseRejectionEvent) => {
+      logErrorAction({
+        message: event.reason?.message || "Unhandled Promise Rejection",
+        stack: event.reason?.stack,
+        pathname: window.location.pathname,
+        context: { type: "unhandledrejection", browser: navigator.userAgent }
+      });
+    };
+
+    window.addEventListener("error", handleError);
+    window.addEventListener("unhandledrejection", handleRejection);
+
+    return () => {
+      window.removeEventListener("error", handleError);
+      window.removeEventListener("unhandledrejection", handleRejection);
+    };
+  }, []);
 
   if (!ready) {
     return (
@@ -209,9 +247,9 @@ export default function MainLayout({ children }: { children: React.ReactNode }) 
       {/* Desktop sidebar */}
       <aside className="hidden md:flex md:fixed md:inset-y-0 md:left-0 md:w-64 md:flex-col bg-sidebar border-r border-brown/8 z-40">
         {/* Help/Quick Guide Area */}
-        <div className="px-3 pt-20 pb-4">
+        <div className="px-3 pt-20 space-y-1">
           <button
-            onClick={() => setShowHelpCenter(true)}
+            onClick={() => { setDefaultHelpView("guide"); setShowHelpCenter(true); }}
             className="flex items-center gap-3 w-full px-4 py-3 rounded-xl text-sm font-medium transition-all text-muted hover:text-brown hover:bg-cream/50 group"
             aria-label="Help and info"
           >
@@ -221,6 +259,18 @@ export default function MainLayout({ children }: { children: React.ReactNode }) 
               </svg>
             </span>
             Quick Guide
+          </button>
+          <button
+            onClick={() => { setDefaultHelpView("feedback"); setShowHelpCenter(true); }}
+            className="flex items-center gap-3 w-full px-4 py-3 rounded-xl text-sm font-medium transition-all text-muted hover:text-brown hover:bg-cream/50 group"
+            aria-label="Report bugs or suggest features"
+          >
+            <span className="w-5 h-5 flex items-center justify-center rounded-full bg-struggle/5 text-muted group-hover:bg-struggle/10 group-hover:text-struggle transition-colors">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/>
+              </svg>
+            </span>
+            Bugs & Features
           </button>
         </div>
 
@@ -391,6 +441,7 @@ export default function MainLayout({ children }: { children: React.ReactNode }) 
         <HelpCenter 
           onClose={() => setShowHelpCenter(false)} 
           onRestartWalkthrough={() => { resetOnboarding(); setShowOnboarding(true); }} 
+          defaultView={defaultHelpView}
         />
       )}
     </div>

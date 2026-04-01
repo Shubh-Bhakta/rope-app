@@ -2,7 +2,7 @@
 
 import { auth } from "@clerk/nextjs/server";
 import { db } from "./server-db";
-import { entries, prayers as prayersTable, gratitude as gratitudeTable, highlights as highlightsTable, readingPlans as plansTable, memoryVerses, userSettings } from "./schema";
+import { entries, prayers as prayersTable, gratitude as gratitudeTable, highlights as highlightsTable, readingPlans as plansTable, memoryVerses, userSettings, feedback as feedbackTable, errorLogs as errorLogsTable } from "./schema";
 import { eq, and } from "drizzle-orm";
 import { RopeEntry, PrayerItem, GratitudeItem, BibleHighlight, PlanProgress } from "./store";
 
@@ -345,5 +345,70 @@ export async function clearAllDbData() {
     await tx.delete(userSettings).where(eq(userSettings.userId, userId));
   });
 
+  return true;
+}
+
+export async function submitFeedback(data: { type: string; title: string; description: string }) {
+  const { userId } = await auth();
+  const id = Math.random().toString(36).substring(2, 11);
+  const toSave = {
+    id,
+    userId: userId || null,
+    type: data.type,
+    title: data.title,
+    description: data.description,
+    status: "pending",
+    createdAt: new Date(),
+  };
+
+  await db.insert(feedbackTable).values(toSave);
+
+  // Webhook notification
+  const webhookUrl = process.env.DISCORD_WEBHOOK_URL;
+  if (webhookUrl) {
+    try {
+      await fetch(webhookUrl, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          embeds: [{
+            title: `New ${data.type.toUpperCase()}: ${data.title}`,
+            description: data.description,
+            color: data.type === "bug" ? 0xff0000 : 0x00ff00,
+            fields: [
+              { name: "User ID", value: userId || "Anonymous", inline: true },
+              { name: "Type", value: data.type, inline: true }
+            ],
+            footer: { text: "ROPE App Feedback" },
+            timestamp: new Date().toISOString(),
+          }]
+        }),
+      });
+    } catch (e) {
+      console.error("Failed to send webhook", e);
+    }
+  }
+
+  return true;
+}
+
+export async function logErrorAction(error: { message: string; stack?: string; pathname?: string; context?: any }) {
+  try {
+    const { userId } = await auth();
+    const id = Math.random().toString(36).substring(2, 11);
+    const toSave = {
+      id,
+      userId: userId || null,
+      message: error.message,
+      stack: error.stack || null,
+      pathname: error.pathname || null,
+      context: error.context ? JSON.stringify(error.context) : null,
+      createdAt: new Date(),
+    };
+
+    await db.insert(errorLogsTable).values(toSave);
+  } catch (e) {
+    console.error("Failed to log error to DB:", e);
+  }
   return true;
 }

@@ -538,6 +538,25 @@ export default function MePage() {
 
       <div className="section-divider mb-10" />
 
+      {/* Feedback & Support */}
+      <div className="card-surface rounded-2xl p-5 mb-8 border border-brown/10">
+        <h3 className="font-serif text-lg text-brown mb-2">Help make ROPE better</h3>
+        <p className="text-muted text-xs leading-relaxed mb-4">
+          Found a bug? Have an idea for a new feature? We&apos;d love to hear from you.
+        </p>
+        <button
+          onClick={() => {
+            window.dispatchEvent(new CustomEvent("rope-open-help", { detail: { view: "feedback" } }));
+          }}
+          className="w-full flex items-center justify-center gap-2 py-3 bg-brown/5 text-brown border border-brown/15 rounded-xl font-bold text-xs hover:bg-brown/10 transition-all active:scale-[0.98]"
+        >
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+          </svg>
+          Report Bug / Suggest Feature
+        </button>
+      </div>
+
       {/* Backup & Portability */}
       <div className="mb-12">
         <h2 className="font-serif text-lg text-brown mb-4 flex items-center gap-2">
