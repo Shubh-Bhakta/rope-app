@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { LampIcon, OliveBranch } from "@/components/Accents";
 import DataManagement from "@/components/DataManagement";
+import MemoryMode from "@/components/MemoryMode";
 import { useAuth, useUser, UserButton } from "@clerk/nextjs";
 import { 
   getRopeEntries, 
@@ -40,6 +41,7 @@ export default function MePage() {
   const [editFields, setEditFields] = useState({ observation: "", prayer: "", execution: "" });
   const [meView, setMeView] = useState<"entries" | "prayers">("entries");
   const [answeredPrayers, setAnsweredPrayers] = useState<PrayerItem[]>([]);
+  const [activeVerse, setActiveVerse] = useState<{ verse: string; text: string } | null>(null);
 
   useEffect(() => {
     if (!isLoaded) return;
@@ -218,14 +220,20 @@ export default function MePage() {
           <h2 className="font-serif text-lg text-brown mb-3">Memory Verses</h2>
           <div className="space-y-2">
             {memoryVerses.map((mv, i) => (
-              <div key={mv.verse} className="card-surface rounded-2xl p-4 flex items-start justify-between" style={{ animation: "fadeInUp 0.3s ease-out both", animationDelay: `${i * 0.05}s` }}>
-                <div className="min-w-0 flex-1">
-                  <p className="text-dark text-sm font-medium">{mv.verse}</p>
+              <div key={mv.verse} className="card-surface rounded-2xl p-4 flex items-start justify-between group hover:border-accent-gold/30 transition-colors cursor-pointer" style={{ animation: "fadeInUp 0.3s ease-out both", animationDelay: `${i * 0.05}s` }}>
+                <div 
+                  className="min-w-0 flex-1"
+                  onClick={() => setActiveVerse(mv)}
+                >
+                  <p className="text-dark text-sm font-medium group-hover:text-brown transition-colors flex items-center gap-2">
+                    {mv.verse}
+                    <span className="text-[10px] text-accent-gold opacity-0 group-hover:opacity-100 transition-opacity uppercase tracking-widest font-bold">Practice &rarr;</span>
+                  </p>
                   <p className="text-dark/70 text-xs italic mt-1 leading-relaxed line-clamp-2">&ldquo;{mv.text}&rdquo;</p>
                 </div>
                 <button
-                  onClick={() => { removeMemoryVerse(mv.verse); setMemoryVerses(getMemoryVerses()); }}
-                  className="text-muted hover:text-struggle text-xs ml-3 shrink-0"
+                  onClick={(e) => { e.stopPropagation(); removeMemoryVerse(mv.verse); setMemoryVerses([...getMemoryVerses()]); }}
+                  className="text-muted hover:text-struggle text-xs ml-3 shrink-0 p-2"
                 >
                   &times;
                 </button>
@@ -233,6 +241,14 @@ export default function MePage() {
             ))}
           </div>
         </div>
+      )}
+
+      {activeVerse && (
+        <MemoryMode 
+          verse={activeVerse.verse}
+          text={activeVerse.text}
+          onClose={() => setActiveVerse(null)}
+        />
       )}
 
 

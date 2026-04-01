@@ -14,6 +14,9 @@ import {
   removeBibleHighlight, 
   getBibleHistory,
   updateBibleHistory,
+  addMemoryVerse,
+  removeMemoryVerse,
+  getMemoryVerses,
   type BibleHighlight 
 } from "@/lib/store";
 import { getPublicHighlights, addPublicHighlight, getChapterCommentPreviews, getVerseComments, postVerseComment, voteComment } from "@/lib/community-actions";
@@ -56,12 +59,12 @@ function BibleContent() {
   const [showColorPicker, setShowColorPicker] = useState(false);
   const [showBookPicker, setShowBookPicker] = useState(false);
   const [bookSearch, setBookSearch] = useState("");
-  const [selectedForJournal, setSelectedForJournal] = useState<Set<number>>(new Set());
   const [history, setHistory] = useState<any[]>([]);
   const [chaptersExpanded, setChaptersExpanded] = useState(false);
   const [showDiscussion, setShowDiscussion] = useState(false);
   const [publicHighlightsData, setPublicHighlightsData] = useState<any[]>([]);
   const [commentPreviews, setCommentPreviews] = useState<Record<string, any>>({});
+  const [memoryVerses, setMemoryVerses] = useState<{ verse: string; text: string }[]>([]);
   const { userId: currentUserId } = useAuth();
 
   const maxChapter = BOOK_CHAPTERS[book] || 1;
@@ -80,6 +83,7 @@ function BibleContent() {
   useEffect(() => {
     setTranslationState(getTranslation());
     setHistory(getBibleHistory());
+    setMemoryVerses(getMemoryVerses());
   }, []);
 
   // Sync URL when state changes
@@ -97,7 +101,6 @@ function BibleContent() {
     setError("");
     setSelectedVerse(null);
     setShowColorPicker(false);
-    setSelectedForJournal(new Set());
 
     try {
       const data = await fetchChapterVerses(book, chapter, translation);
@@ -151,43 +154,6 @@ function BibleContent() {
     setSelectedVerse(null);
   }
 
-  function toggleVerseForJournal(verseNum: number) {
-    setSelectedForJournal(prev => {
-      const next = new Set(prev);
-      if (next.has(verseNum)) next.delete(verseNum);
-      else next.add(verseNum);
-      return next;
-    });
-  }
-
-  function sendToJournal() {
-    if (selectedForJournal.size === 0) return;
-    const sortedVerses = [...selectedForJournal].sort((a, b) => a - b);
-    const firstVerse = sortedVerses[0];
-    const lastVerse = sortedVerses[sortedVerses.length - 1];
-
-    // Build verse reference
-    let ref: string;
-    if (sortedVerses.length === 1) {
-      ref = `${book} ${chapter}:${firstVerse}`;
-    } else if (lastVerse - firstVerse === sortedVerses.length - 1) {
-      // Contiguous range
-      ref = `${book} ${chapter}:${firstVerse}-${lastVerse}`;
-    } else {
-      ref = `${book} ${chapter}:${sortedVerses.join(",")}`;
-    }
-
-    // Build verse text
-    const text = sortedVerses
-      .map(v => verses.find(vd => vd.verse === v))
-      .filter(Boolean)
-      .map(vd => `${vd!.verse} ${vd!.text}`)
-      .join(" ");
-
-    // Store in sessionStorage for the journal page to pick up
-    sessionStorage.setItem("rope_bible_to_journal", JSON.stringify({ ref, text, translation }));
-    router.push("/journal");
-  }
 
   const filteredBooks = bookSearch
     ? BIBLE_BOOKS.filter(b => b.name.toLowerCase().includes(bookSearch.toLowerCase()))
@@ -377,7 +343,6 @@ function BibleContent() {
             const hStyle = !communityMode && highlight ? getHighlightStyle(highlight.color) : null;
             
             const isSelected = selectedVerse === v.verse;
-            const isJournalSelected = selectedForJournal.has(v.verse);
 
             return (
               <div key={v.verse} className="relative">
@@ -391,7 +356,7 @@ function BibleContent() {
                       setShowColorPicker(false);
                     }
                   }}
-                  className={`px-3 py-2.5 rounded-xl cursor-pointer transition-all duration-200 ${isSelected ? "bg-cream-dark/30 ring-1 ring-brown/10 shadow-sm" : "hover:bg-cream/30"} ${isJournalSelected ? "bg-accent-gold/10 ring-2 ring-accent-gold/40 shadow-sm" : ""}`}
+                  className={`px-3 py-2.5 rounded-xl cursor-pointer transition-all duration-200 ${isSelected ? "bg-cream-dark/30 ring-1 ring-brown/10 shadow-sm" : "hover:bg-cream/30"}`}
                   style={hStyle ? { backgroundColor: hStyle.bg, borderLeft: `4px solid ${hStyle.border}` } : { borderLeft: "4px solid transparent" }}
                 >
                   <span className="text-muted/30 text-[10px] font-mono mr-3 select-none inline-block w-4">{v.verse}</span>
@@ -417,15 +382,48 @@ function BibleContent() {
                         </button>
 
                         <button
-                          onClick={(e) => { e.stopPropagation(); toggleVerseForJournal(v.verse); }}
-                          className={`flex items-center gap-1.5 px-3 py-1.5 text-[10px] font-semibold rounded-xl border transition shadow-sm ${isJournalSelected ? "bg-accent-gold/20 text-accent-gold border-accent-gold/40" : "text-muted hover:text-brown bg-ivory border-brown/10"}`}
+                          onClick={(e) => { 
+                            e.stopPropagation(); 
+                            const ref = `${book} ${chapter}:${v.verse}`;
+                            const text = `${v.verse} ${v.text}`;
+                            sessionStorage.setItem("rope_bible_to_journal", JSON.stringify({ ref, text, translation }));
+                            router.push("/journal");
+                          }}
+                          className="flex items-center gap-1.5 px-3 py-1.5 text-[10px] font-semibold text-muted hover:text-brown bg-ivory border border-brown/10 rounded-xl transition shadow-sm"
                         >
                           <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                             <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20" />
                             <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z" />
                           </svg>
-                          {isJournalSelected ? "Selected" : "Journal"}
+                          Journal
                         </button>
+
+                        <div className="flex flex-col items-start gap-0.5">
+                          <button
+                            onClick={(e) => { 
+                              e.stopPropagation(); 
+                              const ref = `${book} ${chapter}:${v.verse}`;
+                              const isSaved = memoryVerses.some(mv => mv.verse === ref);
+                              if (isSaved) {
+                                removeMemoryVerse(ref);
+                              } else {
+                                addMemoryVerse(ref, v.text);
+                              }
+                              setMemoryVerses(getMemoryVerses());
+                            }}
+                            className={`flex items-center gap-1.5 px-3 py-1.5 text-[10px] font-semibold border rounded-xl transition shadow-sm ${memoryVerses.some(mv => mv.verse === `${book} ${chapter}:${v.verse}`) ? "bg-accent-gold/20 text-accent-gold border-accent-gold/40" : "text-muted hover:text-brown bg-ivory border-brown/10"}`}
+                          >
+                            <svg width="12" height="12" viewBox="0 0 24 24" fill={memoryVerses.some(mv => mv.verse === `${book} ${chapter}:${v.verse}`) ? "currentColor" : "none"} stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                              <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
+                            </svg>
+                            {memoryVerses.some(mv => mv.verse === `${book} ${chapter}:${v.verse}`) ? "Added to Memory" : "Memorize"}
+                          </button>
+                          {memoryVerses.some(mv => mv.verse === `${book} ${chapter}:${v.verse}`) && (
+                            <a href="/me" className="text-[9px] text-accent-gold/60 underline hover:text-accent-gold ml-3 transition-all animate-in fade-in slide-in-from-top-1">
+                              View in Profile
+                            </a>
+                          )}
+                        </div>
                       </>
                     )}
 
@@ -517,31 +515,6 @@ function BibleContent() {
         </div>
       )}
 
-      {/* Send to Journal floating bar */}
-      {selectedForJournal.size > 0 && (
-        <div
-          className="fixed bottom-24 left-1/2 -translate-x-1/2 z-40 flex items-center gap-4 px-6 py-4 rounded-3xl shadow-xl border border-accent-gold/20"
-          style={{ background: "rgba(10,8,4,0.94)", backdropFilter: "blur(16px)", animation: "fadeInUp 0.4s cubic-bezier(0.16, 1, 0.3, 1) both" }}
-        >
-          <div className="flex flex-col">
-            <span className="text-ivory font-bold text-sm leading-none">{selectedForJournal.size}</span>
-            <span className="text-ivory/40 text-[10px] uppercase tracking-tighter">Selected</span>
-          </div>
-          <div className="w-px h-6 bg-ivory/10" />
-          <button
-            onClick={sendToJournal}
-            className="px-5 py-2.5 bg-accent-gold text-dark-brown text-sm font-bold rounded-2xl hover:bg-accent-gold/90 active:scale-95 transition-all"
-          >
-            Journal →
-          </button>
-          <button
-            onClick={() => setSelectedForJournal(new Set())}
-            className="text-ivory/30 text-xs hover:text-ivory transition-colors"
-          >
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>
-          </button>
-        </div>
-      )}
 
       {/* Chapter navigation footer */}
       {!loading && verses.length > 0 && (

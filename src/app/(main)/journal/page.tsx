@@ -909,18 +909,25 @@ export default function JournalPage() {
                 </p>
                 <div className="flex items-center justify-between mt-3">
                   <p className="text-muted text-xs">&mdash; {verseRef}</p>
-                  <div className="flex items-center gap-3">
-                    <button
-                      onClick={() => {
-                        if (isMemoryVerse) return;
-                        addMemoryVerse(verseRef.trim(), verseText);
-                        setIsMemoryVerse(true);
-                      }}
-                      className={`text-[10px] uppercase tracking-wider transition-colors flex items-center gap-1 ${isMemoryVerse ? "text-accent-gold" : "text-muted/50 hover:text-accent-gold"}`}
-                    >
-                      <svg width="12" height="12" viewBox="0 0 24 24" fill={isMemoryVerse ? "currentColor" : "none"} stroke="currentColor" strokeWidth="2"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" /></svg>
-                      {isMemoryVerse ? "Saved" : "Memorize"}
-                    </button>
+                    <div className="flex items-center gap-3">
+                      <div className="flex flex-col items-end">
+                        <button
+                          onClick={() => {
+                            if (isMemoryVerse) return;
+                            addMemoryVerse(verseRef.trim(), verseText);
+                            setIsMemoryVerse(true);
+                          }}
+                          className={`text-[10px] uppercase tracking-wider transition-colors flex items-center gap-1 ${isMemoryVerse ? "text-accent-gold" : "text-muted/50 hover:text-accent-gold"}`}
+                        >
+                          <svg width="12" height="12" viewBox="0 0 24 24" fill={isMemoryVerse ? "currentColor" : "none"} stroke="currentColor" strokeWidth="2"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" /></svg>
+                          {isMemoryVerse ? "Added to Memory" : "Memorize"}
+                        </button>
+                        {isMemoryVerse && (
+                          <a href="/me" className="text-[9px] text-accent-gold/60 underline hover:text-accent-gold transition-all animate-in fade-in slide-in-from-top-1">
+                            View in Profile
+                          </a>
+                        )}
+                      </div>
                     <a
                       href={`https://www.biblegateway.com/passage/?search=${encodeURIComponent(verseRef.trim().replace(/:\d+[-–]?\d*$/, ""))}&version=${getGatewayVersion(translation)}`}
                       target="_blank"
