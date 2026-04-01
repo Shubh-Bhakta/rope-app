@@ -798,12 +798,12 @@ function DiscussionExpansion({ postId, prayerId, verseCommentId, onClose }: { po
         )}
       </div>
 
-      <div className="flex gap-2 items-center">
+      <div className="flex gap-2 items-center w-full overflow-hidden">
         <input
           value={reply}
           onChange={(e) => setReply(e.target.value)}
           placeholder="Write a respectful reply..."
-          className="flex-1 px-4 py-3 bg-ivory/50 border border-brown/10 rounded-xl text-base text-dark focus:outline-none focus:ring-1 focus:ring-brown/20"
+          className="flex-1 min-w-0 px-4 py-3 bg-ivory/50 border border-brown/10 rounded-xl text-base text-dark focus:outline-none focus:ring-1 focus:ring-brown/20"
         />
         <button
           onClick={handlePostReply}

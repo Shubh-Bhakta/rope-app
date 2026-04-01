@@ -354,7 +354,7 @@ export default function MePage() {
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               placeholder="Search entries..."
-              className="flex-1 px-3 py-2 bg-ivory border border-brown/10 rounded-xl text-dark placeholder:text-muted/50 focus:outline-none text-sm"
+              className="flex-1 px-3 py-2 bg-ivory border border-brown/10 rounded-xl text-dark placeholder:text-muted/50 focus:outline-none text-base"
             />
             <select
               value={bookFilter}
@@ -445,7 +445,7 @@ export default function MePage() {
                           value={editFields.observation}
                           onChange={(e) => setEditFields(f => ({ ...f, observation: e.target.value }))}
                           rows={3}
-                          className="w-full px-3 py-2 bg-ivory border border-brown/10 rounded-xl text-dark text-sm leading-relaxed resize-none focus:outline-none"
+                          className="w-full px-3 py-2 bg-ivory border border-brown/10 rounded-xl text-dark text-base leading-relaxed resize-none focus:outline-none"
                         />
                       </div>
 
@@ -455,7 +455,7 @@ export default function MePage() {
                           value={editFields.prayer}
                           onChange={(e) => setEditFields(f => ({ ...f, prayer: e.target.value }))}
                           rows={3}
-                          className="w-full px-3 py-2 bg-ivory border border-brown/10 rounded-xl text-dark text-sm leading-relaxed resize-none focus:outline-none"
+                          className="w-full px-3 py-2 bg-ivory border border-brown/10 rounded-xl text-dark text-base leading-relaxed resize-none focus:outline-none"
                         />
                       </div>
 
@@ -465,7 +465,7 @@ export default function MePage() {
                           value={editFields.execution}
                           onChange={(e) => setEditFields(f => ({ ...f, execution: e.target.value }))}
                           rows={3}
-                          className="w-full px-3 py-2 bg-ivory border border-brown/10 rounded-xl text-dark text-sm leading-relaxed resize-none focus:outline-none"
+                          className="w-full px-3 py-2 bg-ivory border border-brown/10 rounded-xl text-dark text-base leading-relaxed resize-none focus:outline-none"
                         />
                       </div>
 

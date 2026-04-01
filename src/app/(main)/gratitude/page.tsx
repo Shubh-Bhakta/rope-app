@@ -65,14 +65,14 @@ export default function GratitudePage() {
             onChange={(e) => setText(e.target.value)}
             placeholder="What are you grateful for today?"
             rows={3}
-            className="w-full px-3 py-2.5 bg-ivory border border-brown/10 rounded-xl text-dark text-sm resize-none focus:outline-none placeholder:text-muted/50 mb-3"
+            className="w-full px-3 py-2.5 bg-ivory border border-brown/10 rounded-xl text-dark text-base resize-none focus:outline-none placeholder:text-muted/50 mb-3"
             autoFocus
           />
           <input
             value={verse}
             onChange={(e) => setVerse(e.target.value)}
             placeholder="Verse reference (optional)"
-            className="w-full px-3 py-2 bg-ivory border border-brown/10 rounded-xl text-dark text-sm focus:outline-none placeholder:text-muted/50 mb-3"
+            className="w-full px-3 py-2 bg-ivory border border-brown/10 rounded-xl text-dark text-base focus:outline-none placeholder:text-muted/50 mb-3"
           />
           <div className="flex gap-2 justify-end">
             <button

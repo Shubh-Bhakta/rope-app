@@ -99,14 +99,14 @@ export default function PrayersPage() {
             onChange={(e) => setText(e.target.value)}
             placeholder="What's on your heart?"
             rows={3}
-            className="w-full px-3 py-2.5 bg-ivory border border-brown/10 rounded-xl text-dark text-sm resize-none focus:outline-none placeholder:text-muted/50 mb-3"
+            className="w-full px-3 py-2.5 bg-ivory border border-brown/10 rounded-xl text-dark text-base resize-none focus:outline-none placeholder:text-muted/50 mb-3"
             autoFocus
           />
           <input
             value={verse}
             onChange={(e) => setVerse(e.target.value)}
             placeholder="Related verse (optional)"
-            className="w-full px-3 py-2 bg-ivory border border-brown/10 rounded-xl text-dark text-sm focus:outline-none placeholder:text-muted/50 mb-3"
+            className="w-full px-4 py-3 bg-ivory border border-brown/10 rounded-xl text-dark text-base focus:outline-none placeholder:text-muted/50 mb-4"
           />
           <div className="flex gap-2 justify-end">
             <button
@@ -196,7 +196,7 @@ export default function PrayersPage() {
                       onChange={(e) => setAnswerNote(e.target.value)}
                       placeholder="How did God answer this prayer?"
                       rows={3}
-                      className="w-full px-3 py-2.5 bg-ivory border border-brown/10 rounded-xl text-dark text-sm resize-none focus:outline-none placeholder:text-muted/50 mb-3"
+                      className="w-full px-3 py-2.5 bg-ivory border border-brown/10 rounded-xl text-dark text-base resize-none focus:outline-none placeholder:text-muted/50 mb-3"
                       autoFocus
                     />
                     <div className="flex items-center gap-2 mb-4 px-1">

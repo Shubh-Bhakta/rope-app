@@ -3,10 +3,10 @@
 import { auth, currentUser } from "@clerk/nextjs/server";
 import { db } from "./server-db";
 import { profiles, verseComments, commentVotes, forumPosts, forumReplies, prayers as prayersTable, postVotes, prayerAmens, publicHighlights, prayerReplies, verseReplies } from "./schema";
-import { eq, and, desc, sql as dSql, count } from "drizzle-orm";
+import { eq, and, desc, count, sql } from "drizzle-orm";
 import profanity from "leo-profanity";
 import { enforceRateLimit } from "./rate-limit";
-import { ForumPostSchema, VerseCommentSchema, ReplySchema } from "./validations";
+import { ForumPostSchema, VerseCommentSchema, ReplySchema, PublicHighlightSchema } from "./validations";
 
 function containsVulgarity(text: string): boolean {
   return profanity.check(text);
@@ -18,25 +18,40 @@ export async function syncProfile() {
   const { userId } = await auth();
   if (!userId) return null;
 
+  // Optimize: Only sync once every 24 hours unless data changes
+  const existing = await db.query.profiles.findFirst({
+    where: eq(profiles.userId, userId),
+  });
+
+  const now = new Date();
+  const oneDayAgo = new Date(now.getTime() - 24 * 60 * 60 * 1000);
+
   const user = await currentUser();
   if (!user) return null;
 
   const displayName = `${user.firstName || ""} ${user.lastName || ""}`.trim() || user.username || "Anonymous";
   const imageUrl = user.imageUrl;
 
-  const profile = {
+  if (existing && existing.updatedAt > oneDayAgo) {
+    // If name/image haven't changed, skip sync
+    if (existing.displayName === displayName && existing.imageUrl === imageUrl) {
+      return existing;
+    }
+  }
+
+  const profileData = {
     userId,
     displayName,
     imageUrl,
-    updatedAt: new Date(),
+    updatedAt: now,
   };
 
-  await db.insert(profiles).values(profile).onConflictDoUpdate({
+  await db.insert(profiles).values(profileData).onConflictDoUpdate({
     target: profiles.userId,
-    set: profile,
+    set: profileData,
   });
 
-  return profile;
+  return profileData;
 }
 
 export async function getProfile(userId: string) {
@@ -67,8 +82,8 @@ export async function getVerseComments(book: string, chapter: string, verse: str
     
     // Calculate score
     const votes = await db.select({ 
-      up: dSql<number>`count(*) filter (where vote_type = 'up')`,
-      down: dSql<number>`count(*) filter (where vote_type = 'down')`
+      up: sql<number>`count(*) filter (where vote_type = 'up')`,
+      down: sql<number>`count(*) filter (where vote_type = 'down')`
     }).from(commentVotes).where(eq(commentVotes.commentId, c.id));
     
     const score = Number(votes[0].up || 0) - Number(votes[0].down || 0);
@@ -106,11 +121,19 @@ export async function getChapterCommentPreviews(book: string, chapter: string) {
     orderBy: [desc(verseComments.createdAt)],
   });
 
+  if (comments.length === 0) return {};
+
+  // Batch fetch unique profiles to avoid waterfall
+  const uniqueUserIds = Array.from(new Set(comments.map(c => c.userId)));
+  const profileList = await db.query.profiles.findMany({
+    where: sql`${profiles.userId} IN ${uniqueUserIds}`,
+  });
+  const profileMap = new Map(profileList.map(p => [p.userId, p]));
+
   const previews: Record<string, any> = {};
   for (const c of comments) {
     if (!previews[c.verse]) {
-      const profile = await getProfile(c.userId);
-      previews[c.verse] = { ...c, profile };
+      previews[c.verse] = { ...c, profile: profileMap.get(c.userId) || null };
     }
   }
   return previews;
@@ -203,6 +226,7 @@ export async function postVerseReply(verseCommentId: string, content: string) {
 export async function deleteVerseReply(id: string) {
   const { userId } = await auth();
   if (!userId) throw new Error("Unauthorized");
+  await enforceRateLimit("deleteVerseReply", "Community");
   await db.delete(verseReplies).where(and(eq(verseReplies.id, id), eq(verseReplies.userId, userId)));
   return true;
 }
@@ -246,11 +270,11 @@ export async function getPublicPrayers(limit: number = 20, offset: number = 0) {
     const profile = await getProfile(p.userId);
     
     // Get amen count
-    const amenCountRes = await db.select({ count: dSql<number>`count(*)` }).from(prayerAmens).where(eq(prayerAmens.prayerId, p.id));
+    const amenCountRes = await db.select({ count: sql<number>`count(*)` }).from(prayerAmens).where(eq(prayerAmens.prayerId, p.id));
     const amenCount = Number(amenCountRes[0].count);
 
     // Get reply count
-    const replyCountRes = await db.select({ count: dSql<number>`count(*)` }).from(prayerReplies).where(eq(prayerReplies.prayerId, p.id));
+    const replyCountRes = await db.select({ count: sql<number>`count(*)` }).from(prayerReplies).where(eq(prayerReplies.prayerId, p.id));
     const replyCount = Number(replyCountRes[0].count);
     
     // Check if current user said amen
@@ -291,7 +315,10 @@ export async function postPrayerReply(prayerId: string, content: string) {
   const { userId } = await auth();
   if (!userId) throw new Error("Unauthorized");
 
-  if (containsVulgarity(content)) {
+  await enforceRateLimit("postPrayerReply", "Community");
+  const validated = ReplySchema.parse({ content });
+
+  if (containsVulgarity(validated.content)) {
     throw new Error("Content contains inappropriate language. Please keep the conversation respectful.");
   }
 
@@ -302,7 +329,7 @@ export async function postPrayerReply(prayerId: string, content: string) {
     id,
     prayerId,
     userId,
-    content,
+    content: validated.content,
   });
 
   return id;
@@ -311,6 +338,8 @@ export async function postPrayerReply(prayerId: string, content: string) {
 export async function amenPrayer(prayerId: string) {
   const { userId } = await auth();
   if (!userId) throw new Error("Unauthorized");
+
+  await enforceRateLimit("amenPrayer", "Community");
 
   const existing = await db.query.prayerAmens.findFirst({
     where: and(eq(prayerAmens.prayerId, prayerId), eq(prayerAmens.userId, userId))
@@ -352,10 +381,10 @@ export async function getForumPosts(category: string = "General", limit: number 
 
   return await Promise.all(posts.map(async (p) => {
     const profile = await getProfile(p.userId);
-    const replyCount = await db.select({ count: dSql<number>`count(*)` }).from(forumReplies).where(eq(forumReplies.postId, p.id));
+    const replyCount = await db.select({ count: sql<number>`count(*)` }).from(forumReplies).where(eq(forumReplies.postId, p.id));
     
     // Get like count
-    const likeCountRes = await db.select({ count: dSql<number>`count(*)` }).from(postVotes).where(eq(postVotes.postId, p.id));
+    const likeCountRes = await db.select({ count: sql<number>`count(*)` }).from(postVotes).where(eq(postVotes.postId, p.id));
     const likeCount = Number(likeCountRes[0].count);
 
     // Check if current user liked
@@ -389,6 +418,8 @@ export async function deleteForumPost(id: string) {
 export async function votePost(postId: string) {
   const { userId } = await auth();
   if (!userId) throw new Error("Unauthorized");
+
+  await enforceRateLimit("votePost", "Community");
 
   const existing = await db.query.postVotes.findFirst({
     where: and(eq(postVotes.postId, postId), eq(postVotes.userId, userId))
@@ -436,14 +467,14 @@ export async function getGlobalVerseDiscussions(limit: number = 50, offset: numb
     
     // Check user vote for score calculation
     const votes = await db.select({ 
-      up: dSql<number>`count(*) filter (where vote_type = 'up')`,
-      down: dSql<number>`count(*) filter (where vote_type = 'down')`
+      up: sql<number>`count(*) filter (where vote_type = 'up')`,
+      down: sql<number>`count(*) filter (where vote_type = 'down')`
     }).from(commentVotes).where(eq(commentVotes.commentId, c.id));
     
     const score = Number(votes[0].up || 0) - Number(votes[0].down || 0);
 
     // Get reply count
-    const replyCountRes = await db.select({ count: dSql<number>`count(*)` }).from(verseReplies).where(eq(verseReplies.verseCommentId, c.id));
+    const replyCountRes = await db.select({ count: sql<number>`count(*)` }).from(verseReplies).where(eq(verseReplies.verseCommentId, c.id));
     const replyCount = Number(replyCountRes[0].count);
 
     return { ...c, profile, score, replyCount }; 
@@ -523,6 +554,7 @@ export async function postReply(postId: string, content: string) {
 export async function deleteForumReply(id: string) {
   const { userId } = await auth();
   if (!userId) throw new Error("Unauthorized");
+  await enforceRateLimit("deleteForumReply", "Community");
   await db.delete(forumReplies).where(and(eq(forumReplies.id, id), eq(forumReplies.userId, userId)));
   return true;
 }
@@ -530,6 +562,7 @@ export async function deleteForumReply(id: string) {
 export async function deletePrayerReply(id: string) {
   const { userId } = await auth();
   if (!userId) throw new Error("Unauthorized");
+  await enforceRateLimit("deletePrayerReply", "Community");
   await db.delete(prayerReplies).where(and(eq(prayerReplies.id, id), eq(prayerReplies.userId, userId)));
   return true;
 }
@@ -550,17 +583,24 @@ export async function addPublicHighlight(book: string, chapter: string, verse: s
   const { userId } = await auth();
   if (!userId) throw new Error("Unauthorized");
 
+  await enforceRateLimit("addPublicHighlight", "Community");
+  const validated = PublicHighlightSchema.parse({ book, chapter, verse, color, note });
+
+  if (validated.note && containsVulgarity(validated.note)) {
+    throw new Error("Note contains inappropriate language. Please keep it respectful.");
+  }
+
   await syncProfile();
 
   const id = crypto.randomUUID();
   await db.insert(publicHighlights).values({
     id,
     userId,
-    book,
-    chapter: chapter.toString(),
-    verse: verse.toString(),
-    color,
-    note,
+    book: validated.book,
+    chapter: validated.chapter,
+    verse: validated.verse,
+    color: validated.color,
+    note: validated.note,
   });
 
   return id;

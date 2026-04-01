@@ -44,7 +44,7 @@ export default function SearchEntries({ entries, onFiltered }: SearchEntriesProp
             placeholder="Search verse, theme, or text..."
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            className="w-full pl-10 pr-10 py-2.5 bg-ivory border border-brown/10 rounded-xl text-dark placeholder:text-muted/50 focus:outline-none focus:ring-1 focus:ring-brown/20 text-sm shadow-sm"
+            className="w-full pl-10 pr-10 py-2.5 bg-ivory border border-brown/10 rounded-xl text-dark placeholder:text-muted/50 focus:outline-none focus:ring-1 focus:ring-brown/20 text-base shadow-sm"
           />
           {query && (
             <button
@@ -61,9 +61,9 @@ export default function SearchEntries({ entries, onFiltered }: SearchEntriesProp
             type="date"
             value={dateFilter}
             onChange={(e) => setDateFilter(e.target.value)}
-            className="w-full sm:w-auto px-4 py-2.5 bg-ivory border border-brown/10 rounded-xl text-dark text-sm focus:outline-none focus:ring-1 focus:ring-brown/20 shadow-sm appearance-none"
+            className="w-full sm:w-auto px-4 py-2.5 bg-ivory border border-brown/10 rounded-xl text-dark text-base focus:outline-none focus:ring-1 focus:ring-brown/20 shadow-sm appearance-none"
           />
-          {!dateFilter && <div className="absolute inset-0 pointer-events-none flex items-center px-4 text-muted/40 text-sm">Filter by date</div>}
+          {!dateFilter && <div className="absolute inset-0 pointer-events-none flex items-center px-4 text-muted/40 text-base">Filter by date</div>}
         </div>
       </div>
       {(query || dateFilter) && (

@@ -16,8 +16,8 @@ export default clerkMiddleware(async (auth, request) => {
   const cspHeader = `
     default-src 'self';
     script-src 'self' 'unsafe-inline' 'unsafe-eval' blob: https://clerk.rope.app https://*.clerk.accounts.dev;
-    connect-src 'self' https://clerk.rope.app https://*.clerk.accounts.dev https://discord.com https://bible-api.com https://bolls.life;
-    img-src 'self' blob: data: https://img.clerk.com https://images.unsplash.com;
+    connect-src 'self' https://clerk.rope.app https://*.clerk.accounts.dev https://discord.com https://bible-api.com https://*.bible-api.com https://bolls.life https://*.bolls.life https://api.clerk.com;
+    img-src 'self' blob: data: https://img.clerk.com https://images.unsplash.com https://*.googleusercontent.com;
     style-src 'self' 'unsafe-inline' https://fonts.googleapis.com;
     font-src 'self' https://fonts.gstatic.com;
     frame-src 'self' https://clerk.rope.app https://*.clerk.accounts.dev;

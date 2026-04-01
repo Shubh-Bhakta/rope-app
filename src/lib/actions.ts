@@ -6,7 +6,7 @@ import { entries, prayers as prayersTable, gratitude as gratitudeTable, highligh
 import { eq, and } from "drizzle-orm";
 import { RopeEntry, PrayerItem, GratitudeItem, BibleHighlight, PlanProgress } from "./store";
 import { enforceRateLimit } from "./rate-limit";
-import { RopeEntrySchema, PrayerItemSchema, FeedbackSchema, ErrorLogSchema } from "./validations";
+import { RopeEntrySchema, PrayerItemSchema, FeedbackSchema, ErrorLogSchema, BibleHighlightSchema, GratitudeItemSchema, MemoryVerseSchema, UserSettingsSchema } from "./validations";
 
 // ─── Entry Actions ───────────────────────────────────────────────────────────
 
@@ -179,13 +179,16 @@ export async function saveDbHighlight(h: BibleHighlight) {
   const { userId } = await auth();
   if (!userId) throw new Error("Unauthorized");
 
+  await enforceRateLimit("saveDbHighlight", "Standard");
+  const validated = BibleHighlightSchema.parse(h);
+
   const toSave = {
-    ...h,
-    id: `${userId}_${h.book}_${h.chapter}_${h.verse}`, // unique id for conflict
+    ...validated,
+    id: `${userId}_${validated.book}_${validated.chapter}_${validated.verse}`, // unique id for conflict
     userId,
-    chapter: h.chapter.toString(),
-    verse: h.verse.toString(),
-    createdAt: new Date(h.createdAt),
+    chapter: validated.chapter.toString(),
+    verse: validated.verse.toString(),
+    createdAt: new Date(validated.createdAt),
   };
 
   await db.insert(highlightsTable).values(toSave).onConflictDoUpdate({ target: highlightsTable.id, set: toSave });
@@ -195,6 +198,7 @@ export async function saveDbHighlight(h: BibleHighlight) {
 export async function deleteDbHighlight(book: string, chapter: number, verse: number) {
   const { userId } = await auth();
   if (!userId) throw new Error("Unauthorized");
+  await enforceRateLimit("deleteDbHighlight", "Destructive");
   await db.delete(highlightsTable).where(and(
     eq(highlightsTable.userId, userId),
     eq(highlightsTable.book, book),
@@ -207,14 +211,16 @@ export async function deleteDbHighlight(book: string, chapter: number, verse: nu
 export async function syncHighlights(local: BibleHighlight[]) {
   const { userId } = await auth();
   if (!userId) throw new Error("Unauthorized");
+  await enforceRateLimit("syncHighlights", "Standard");
   for (const h of local) {
+    const validated = BibleHighlightSchema.parse(h);
     const toSave = {
-      ...h,
-      id: `${userId}_${h.book}_${h.chapter}_${h.verse}`,
+      ...validated,
+      id: `${userId}_${validated.book}_${validated.chapter}_${validated.verse}`,
       userId,
-      chapter: h.chapter.toString(),
-      verse: h.verse.toString(),
-      createdAt: new Date(h.createdAt),
+      chapter: validated.chapter.toString(),
+      verse: validated.verse.toString(),
+      createdAt: new Date(validated.createdAt),
     };
     await db.insert(highlightsTable).values(toSave).onConflictDoUpdate({ target: highlightsTable.id, set: toSave });
   }
@@ -233,7 +239,11 @@ export async function getDbGratitude() {
 export async function saveDbGratitude(item: GratitudeItem) {
   const { userId } = await auth();
   if (!userId) throw new Error("Unauthorized");
-  const toSave = { ...item, userId, createdAt: new Date(item.createdAt) };
+  
+  await enforceRateLimit("saveDbGratitude", "Standard");
+  const validated = GratitudeItemSchema.parse(item);
+  
+  const toSave = { ...validated, userId, createdAt: new Date(validated.createdAt) };
   await db.insert(gratitudeTable).values(toSave).onConflictDoUpdate({ target: gratitudeTable.id, set: toSave });
   return true;
 }
@@ -241,6 +251,7 @@ export async function saveDbGratitude(item: GratitudeItem) {
 export async function deleteDbGratitude(id: string) {
   const { userId } = await auth();
   if (!userId) throw new Error("Unauthorized");
+  await enforceRateLimit("deleteDbGratitude", "Destructive");
   await db.delete(gratitudeTable).where(and(eq(gratitudeTable.id, id), eq(gratitudeTable.userId, userId)));
   return true;
 }
@@ -248,8 +259,10 @@ export async function deleteDbGratitude(id: string) {
 export async function syncGratitude(local: GratitudeItem[]) {
   const { userId } = await auth();
   if (!userId) throw new Error("Unauthorized");
+  await enforceRateLimit("syncGratitude", "Standard");
   for (const item of local) {
-    const toSave = { ...item, userId, createdAt: new Date(item.createdAt) };
+    const validated = GratitudeItemSchema.parse(item);
+    const toSave = { ...validated, userId, createdAt: new Date(validated.createdAt) };
     await db.insert(gratitudeTable).values(toSave).onConflictDoUpdate({ target: gratitudeTable.id, set: toSave });
   }
   return true;
@@ -274,6 +287,7 @@ export async function getDbPlanProgress() {
 export async function saveDbPlanProgress(p: PlanProgress) {
   const { userId } = await auth();
   if (!userId) throw new Error("Unauthorized");
+  await enforceRateLimit("saveDbPlanProgress", "Standard");
   const toSave = {
     userId,
     planId: p.planId,
@@ -298,8 +312,12 @@ export async function getDbMemoryVerses() {
 export async function saveDbMemoryVerse(mv: { verse: string; text: string; addedAt: string }) {
   const { userId } = await auth();
   if (!userId) throw new Error("Unauthorized");
-  const id = `${userId}_${mv.verse.replace(/\s+/g, "_")}`;
-  const toSave = { ...mv, id, userId, addedAt: new Date(mv.addedAt) };
+
+  await enforceRateLimit("saveDbMemoryVerse", "Standard");
+  const validated = MemoryVerseSchema.parse(mv);
+
+  const id = `${userId}_${validated.verse.replace(/\s+/g, "_")}`;
+  const toSave = { ...validated, id, userId, addedAt: new Date(validated.addedAt) };
   await db.insert(memoryVerses).values(toSave).onConflictDoUpdate({ target: memoryVerses.id, set: toSave });
   return true;
 }
@@ -307,6 +325,7 @@ export async function saveDbMemoryVerse(mv: { verse: string; text: string; added
 export async function deleteDbMemoryVerse(verse: string) {
   const { userId } = await auth();
   if (!userId) throw new Error("Unauthorized");
+  await enforceRateLimit("deleteDbMemoryVerse", "Destructive");
   const id = `${userId}_${verse.replace(/\s+/g, "_")}`;
   await db.delete(memoryVerses).where(and(eq(memoryVerses.id, id), eq(memoryVerses.userId, userId)));
   return true;
@@ -315,6 +334,7 @@ export async function deleteDbMemoryVerse(verse: string) {
 export async function syncMemoryVerses(local: { verse: string; text: string; addedAt: string }[]) {
   const { userId } = await auth();
   if (!userId) throw new Error("Unauthorized");
+  await enforceRateLimit("syncMemoryVerses", "Standard");
   for (const mv of local) {
     const id = `${userId}_${mv.verse.replace(/\s+/g, "_")}`;
     const toSave = { ...mv, id, userId, addedAt: new Date(mv.addedAt) };
@@ -339,12 +359,16 @@ export async function getDbSettings() {
 export async function saveDbSettings(s: { darkMode: boolean; translation: string; onboardingComplete: boolean; lastRead: any[] }) {
   const { userId } = await auth();
   if (!userId) throw new Error("Unauthorized");
+
+  await enforceRateLimit("saveDbSettings", "Standard");
+  const validated = UserSettingsSchema.parse(s);
+
   const toSave = {
     userId,
-    darkMode: s.darkMode,
-    translation: s.translation,
-    onboardingComplete: s.onboardingComplete,
-    lastRead: JSON.stringify(s.lastRead),
+    darkMode: validated.darkMode,
+    translation: validated.translation,
+    onboardingComplete: validated.onboardingComplete,
+    lastRead: JSON.stringify(validated.lastRead),
     updatedAt: new Date()
   };
   await db.insert(userSettings).values(toSave).onConflictDoUpdate({ target: userSettings.userId, set: toSave });

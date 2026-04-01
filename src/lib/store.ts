@@ -372,40 +372,32 @@ export function getStreak(userId: string): number {
   const entries = getRopeEntries(userId);
   if (entries.length === 0) return 0;
 
-  // Get unique LOCAL dates (sorted descending)
-  const dates = Array.from(
-    new Set(entries.map((e) => formatLocalDate(new Date(e.createdAt))))
-  ).sort((a, b) => b.localeCompare(a));
-
+  // Get unique LOCAL dates as 'YYYY-MM-DD'
+  const dateSet = new Set(entries.map((e) => formatLocalDate(new Date(e.createdAt))));
+  
   let streak = 0;
-  const now = new Date();
-  let checkYear = now.getFullYear();
-  let checkMonth = now.getMonth();
-  let checkDay = now.getDate();
-
-  for (const dateStr of dates) {
-    const [y, m, d] = dateStr.split('-').map(Number);
-    const checkDateObj = new Date(checkYear, checkMonth, checkDay);
-    const entryDateObj = new Date(y, m - 1, d);
-    const diffDays = Math.round((checkDateObj.getTime() - entryDateObj.getTime()) / (1000 * 60 * 60 * 24));
-
-    if (diffDays === 0) {
-      streak++;
-      // Move check date to yesterday
-      const prev = new Date(checkYear, checkMonth, checkDay - 1);
-      checkYear = prev.getFullYear();
-      checkMonth = prev.getMonth();
-      checkDay = prev.getDate();
-    } else if (diffDays === 1 && streak === 0) {
-      // No entry today, but yesterday has one - start streak from yesterday
-      streak = 1;
-      const prev = new Date(y, m - 1, d - 1);
-      checkYear = prev.getFullYear();
-      checkMonth = prev.getMonth();
-      checkDay = prev.getDate();
+  let curr = new Date(); // Start at today
+  
+  // Check if there's an entry today
+  if (dateSet.has(formatLocalDate(curr))) {
+    streak++;
+    curr.setDate(curr.getDate() - 1); // Move to yesterday
+  } else {
+    // If no entry today, check if there was one yesterday
+    const yesterday = new Date();
+    yesterday.setDate(yesterday.getDate() - 1);
+    if (dateSet.has(formatLocalDate(yesterday))) {
+      streak = 0; // Streak hasn't started yet today, but yesterday was active
+      curr = yesterday;
     } else {
-      break;
+      return 0; // No entry today or yesterday
     }
+  }
+
+  // Count backwards
+  while (dateSet.has(formatLocalDate(curr))) {
+    streak++;
+    curr.setDate(curr.getDate() - 1);
   }
 
   return streak;

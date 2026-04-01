@@ -227,7 +227,7 @@ export default function CheckinPage() {
           onChange={(e) => setReflection(e.target.value)}
           placeholder="Write your reflection..."
           rows={5}
-          className="w-full px-4 py-3.5 bg-ivory border border-brown/10 rounded-xl text-dark placeholder:text-muted/50 focus:outline-none text-sm leading-relaxed resize-none min-h-[140px]"
+          className="w-full px-4 py-3.5 bg-ivory border border-brown/10 rounded-xl text-dark placeholder:text-muted/50 focus:outline-none text-base leading-relaxed resize-none min-h-[140px]"
         />
       </div>
 

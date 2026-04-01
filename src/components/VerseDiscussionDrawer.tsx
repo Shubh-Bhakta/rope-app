@@ -25,24 +25,22 @@ export default function VerseDiscussionDrawer({
   verse: string;
   onClose: () => void;
 }) {
-  const [comments, setComments] = useState<Comment[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [newComment, setNewComment] = useState("");
-  const [posting, setPosting] = useState(false);
-  const [sortBy, setSortBy] = useState<'top' | 'recent'>('top');
+    const [error, setError] = useState<string | null>(null);
   const { isLoaded, userId } = useAuth();
-
-  const loadComments = async () => {
-    setLoading(true);
-    try {
-      const data = await getVerseComments(book, chapter, verse, sortBy);
-      setComments(data as any);
-    } catch (err) {
-      console.error(err);
-    } finally {
-      setLoading(false);
-    }
-  };
+ 
+   const loadComments = async () => {
+     setLoading(true);
+     setError(null);
+     try {
+       const data = await getVerseComments(book, chapter, verse, sortBy);
+       setComments(data as any);
+     } catch (err: any) {
+       console.error(err);
+       setError(err.message || "Failed to load reflections");
+     } finally {
+       setLoading(false);
+     }
+   };
 
   useEffect(() => {
     loadComments();
@@ -51,12 +49,14 @@ export default function VerseDiscussionDrawer({
   const handlePost = async () => {
     if (!newComment.trim() || !userId) return;
     setPosting(true);
+    setError(null);
     try {
       await postVerseComment(book, chapter, verse, newComment);
       setNewComment("");
       loadComments();
-    } catch (err) {
+    } catch (err: any) {
       console.error(err);
+      setError(err.message || "Failed to post reflection. Please try again.");
     } finally {
       setPosting(false);
     }
@@ -85,8 +85,9 @@ export default function VerseDiscussionDrawer({
       const currentVote = comments.find(c => c.id === commentId)?.userVote;
       const finalVote = currentVote === type ? null : type;
       await voteComment(commentId, finalVote);
-    } catch (err) {
+    } catch (err: any) {
       console.error(err);
+      setError(err.message || "Failed to vote. Please try again.");
       loadComments(); // Revert on failure
     }
   };
@@ -201,8 +202,9 @@ export default function VerseDiscussionDrawer({
               onChange={(e) => setNewComment(e.target.value)}
               placeholder="What is God teaching you here?"
               rows={2}
-              className="w-full px-4 py-3 bg-cream/50 border border-brown/10 rounded-2xl text-dark text-sm placeholder:text-muted/40 focus:outline-none focus:ring-1 focus:ring-brown/20 resize-none transition-all"
+              className="w-full px-4 py-3 bg-cream/50 border border-brown/10 rounded-2xl text-dark text-base placeholder:text-muted/40 focus:outline-none focus:ring-1 focus:ring-brown/20 resize-none transition-all"
             />
+            {error && <p className="absolute -bottom-5 left-1 text-[10px] text-red-500 italic truncate w-[calc(100%-12px)]">{error}</p>}
           </div>
           <button
             onClick={handlePost}

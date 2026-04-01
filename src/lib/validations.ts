@@ -27,6 +27,38 @@ export const PrayerItemSchema = z.object({
   publicAt: z.string().or(z.date()).nullable().optional(),
 });
 
+export const BibleHighlightSchema = z.object({
+  book: z.string().max(100),
+  chapter: z.number().int().min(1).max(150),
+  verse: z.number().int().min(1).max(200),
+  color: z.enum(["gold", "green", "blue", "red"]),
+  createdAt: z.string().or(z.date()),
+});
+
+export const GratitudeItemSchema = z.object({
+  id: z.string().max(255),
+  text: z.string().min(1, "Gratitude text is required").max(1000),
+  createdAt: z.string().or(z.date()),
+});
+
+export const MemoryVerseSchema = z.object({
+  verse: z.string().max(255),
+  text: z.string().max(5000),
+  addedAt: z.string().or(z.date()),
+});
+
+export const UserSettingsSchema = z.object({
+  darkMode: z.boolean(),
+  translation: z.string().max(20),
+  onboardingComplete: z.boolean(),
+  lastRead: z.array(z.object({
+    book: z.string(),
+    chapter: z.number(),
+    lastRead: z.string().or(z.date()),
+  })).max(10),
+});
+
+
 // ─── Community Validations ───────────────────────────────────────────────────
 
 export const ForumPostSchema = z.object({
@@ -46,6 +78,15 @@ export const VerseCommentSchema = z.object({
 export const ReplySchema = z.object({
   content: z.string().min(1, "Reply cannot be empty").max(5000),
 });
+
+export const PublicHighlightSchema = z.object({
+  book: z.string().max(100),
+  chapter: z.string().or(z.number()).transform(v => v.toString()).pipe(z.string().max(20)),
+  verse: z.string().or(z.number()).transform(v => v.toString()).pipe(z.string().max(20)),
+  color: z.string().max(50),
+  note: z.string().max(1000).optional().default(""),
+});
+
 
 // ─── Support Validations ─────────────────────────────────────────────────────
 
