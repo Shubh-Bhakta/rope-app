@@ -5,6 +5,8 @@ import { db } from "./server-db";
 import { profiles, verseComments, commentVotes, forumPosts, forumReplies, prayers as prayersTable, postVotes, prayerAmens, publicHighlights, prayerReplies, verseReplies } from "./schema";
 import { eq, and, desc, sql as dSql, count } from "drizzle-orm";
 import profanity from "leo-profanity";
+import { enforceRateLimit } from "./rate-limit";
+import { ForumPostSchema, VerseCommentSchema, ReplySchema } from "./validations";
 
 function containsVulgarity(text: string): boolean {
   return profanity.check(text);
@@ -118,7 +120,10 @@ export async function postVerseComment(book: string, chapter: string, verse: str
   const { userId } = await auth();
   if (!userId) throw new Error("Unauthorized");
 
-  if (containsVulgarity(content)) {
+  await enforceRateLimit("postVerseComment", "Community");
+  const validated = VerseCommentSchema.parse({ book, chapter, verse, content, verseText });
+
+  if (containsVulgarity(validated.content)) {
     throw new Error("Content contains inappropriate language. Please keep discussions respectful.");
   }
 
@@ -128,11 +133,11 @@ export async function postVerseComment(book: string, chapter: string, verse: str
   await db.insert(verseComments).values({
     id,
     userId,
-    book,
-    chapter: chapter.toString(),
-    verse: verse.toString(),
-    content,
-    verseText,
+    book: validated.book,
+    chapter: validated.chapter,
+    verse: validated.verse,
+    content: validated.content,
+    verseText: validated.verseText,
   });
 
   return id;
@@ -141,6 +146,9 @@ export async function postVerseComment(book: string, chapter: string, verse: str
 export async function deleteVerseComment(id: string) {
   const { userId } = await auth();
   if (!userId) throw new Error("Unauthorized");
+  
+  await enforceRateLimit("deleteVerseComment", "Community");
+
   await db.delete(verseComments).where(and(eq(verseComments.id, id), eq(verseComments.userId, userId)));
   // Delete associated replies
   await db.delete(verseReplies).where(eq(verseReplies.verseCommentId, id));
@@ -172,7 +180,10 @@ export async function postVerseReply(verseCommentId: string, content: string) {
   const { userId } = await auth();
   if (!userId) throw new Error("Unauthorized");
 
-  if (containsVulgarity(content)) {
+  await enforceRateLimit("postVerseReply", "Community");
+  const validated = ReplySchema.parse({ content });
+
+  if (containsVulgarity(validated.content)) {
     throw new Error("Content contains inappropriate language. Please keep the conversation respectful.");
   }
 
@@ -183,7 +194,7 @@ export async function postVerseReply(verseCommentId: string, content: string) {
     id,
     verseCommentId,
     userId,
-    content,
+    content: validated.content,
   });
 
   return id;
@@ -199,6 +210,8 @@ export async function deleteVerseReply(id: string) {
 export async function voteComment(commentId: string, voteType: 'up' | 'down' | null) {
   const { userId } = await auth();
   if (!userId) throw new Error("Unauthorized");
+
+  await enforceRateLimit("voteComment", "Community");
 
   if (voteType === null) {
     await db.delete(commentVotes).where(and(eq(commentVotes.commentId, commentId), eq(commentVotes.userId, userId)));
@@ -441,7 +454,10 @@ export async function createForumPost(title: string, content: string, category: 
   const { userId } = await auth();
   if (!userId) throw new Error("Unauthorized");
 
-  if (containsVulgarity(title) || containsVulgarity(content)) {
+  await enforceRateLimit("createForumPost", "Community");
+  const validated = ForumPostSchema.parse({ title, content, category });
+
+  if (containsVulgarity(validated.title) || containsVulgarity(validated.content)) {
     throw new Error("Content contains inappropriate language. Please keep the discussion respectful.");
   }
 
@@ -451,9 +467,9 @@ export async function createForumPost(title: string, content: string, category: 
   await db.insert(forumPosts).values({
     id,
     userId,
-    title,
-    content,
-    category,
+    title: validated.title,
+    content: validated.content,
+    category: validated.category,
   });
 
   return id;
@@ -484,7 +500,10 @@ export async function postReply(postId: string, content: string) {
   const { userId } = await auth();
   if (!userId) throw new Error("Unauthorized");
 
-  if (containsVulgarity(content)) {
+  await enforceRateLimit("postReply", "Community");
+  const validated = ReplySchema.parse({ content });
+
+  if (containsVulgarity(validated.content)) {
     throw new Error("Content contains inappropriate language. Please keep the conversation respectful.");
   }
 
@@ -495,7 +514,7 @@ export async function postReply(postId: string, content: string) {
     id,
     postId,
     userId,
-    content,
+    content: validated.content,
   });
 
   return id;

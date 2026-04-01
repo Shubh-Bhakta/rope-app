@@ -143,7 +143,6 @@ export default function MainLayout({ children }: { children: React.ReactNode }) 
     }
     init();
 
-    // Listen for system theme changes
     const mediaQuery = window.matchMedia("(prefers-color-scheme: dark)");
     const handleSystemChange = (e: MediaQueryListEvent) => {
       if (localStorage.getItem("rope_dark_mode") === null) {
@@ -151,14 +150,12 @@ export default function MainLayout({ children }: { children: React.ReactNode }) 
       }
     };
     
-    // Listen for manual changes in other tabs/components
     const handleStorageChange = (e: StorageEvent) => {
       if (e.key === "rope_dark_mode") {
         setDarkModeState(e.newValue === "true");
       }
     };
 
-    // Listen for custom event within the same tab
     const handleCustomChange = (e: any) => {
       setDarkModeState(e.detail.darkMode);
     };
@@ -180,7 +177,6 @@ export default function MainLayout({ children }: { children: React.ReactNode }) 
     };
   }, [isLoaded, isSignedIn]);
 
-  // Sync darkMode state with document root for instant theme switching
   useEffect(() => {
     if (darkMode) {
       document.documentElement.classList.add("dark");
@@ -192,9 +188,7 @@ export default function MainLayout({ children }: { children: React.ReactNode }) 
   function toggleDarkMode() {
     const next = !darkMode;
     setDarkModeState(next);
-    setDarkMode(next); // Saves to localStorage, overriding system
-    
-    // Notify other components in the same tab
+    setDarkMode(next);
     window.dispatchEvent(new CustomEvent("rope-theme-toggle", { detail: { darkMode: next } }));
   }
 
@@ -202,7 +196,6 @@ export default function MainLayout({ children }: { children: React.ReactNode }) 
   const [defaultHelpView, setDefaultHelpView] = useState<"guide" | "feedback">("guide");
 
   useEffect(() => {
-    // Global client-side error tracking
     const handleError = (event: ErrorEvent) => {
       logErrorAction({
         message: event.message,
@@ -243,10 +236,8 @@ export default function MainLayout({ children }: { children: React.ReactNode }) 
   const todayPrompt = reflectionPrompts[dayIndex];
 
   return (
-    <div className="min-h-screen bg-ivory">
-      {/* Desktop sidebar */}
+    <div className="min-h-[100dvh] bg-ivory overflow-x-hidden">
       <aside className="hidden md:flex md:fixed md:inset-y-0 md:left-0 md:w-64 md:flex-col bg-sidebar border-r border-brown/8 z-40">
-        {/* Help/Quick Guide Area */}
         <div className="px-3 pt-20 space-y-1">
           <button
             onClick={() => { setDefaultHelpView("guide"); setShowHelpCenter(true); }}
@@ -274,7 +265,6 @@ export default function MainLayout({ children }: { children: React.ReactNode }) 
           </button>
         </div>
 
-        {/* Navigation */}
         <nav className="flex-1 px-3 space-y-0.5">
           {navItems.map((item) => {
             const isActive = pathname === item.href || pathname.startsWith(item.href + "/");
@@ -298,7 +288,6 @@ export default function MainLayout({ children }: { children: React.ReactNode }) 
           })}
         </nav>
 
-        {/* Dark mode toggle */}
         <div className="px-6 py-3">
           <button
             onClick={toggleDarkMode}
@@ -321,7 +310,6 @@ export default function MainLayout({ children }: { children: React.ReactNode }) 
           </button>
         </div>
 
-        {/* Bottom section with olive branch and scripture */}
         <div className="px-6 py-6 space-y-3">
           <OliveBranch className="mx-auto opacity-60" />
           <p className="text-muted/40 text-xs italic leading-relaxed text-center">
@@ -332,12 +320,10 @@ export default function MainLayout({ children }: { children: React.ReactNode }) 
         </div>
       </aside>
 
-      {/* Main content area */}
       <main className="pb-24 pt-16 md:pb-8 md:ml-64 xl:mr-[280px]">
         <div className="max-w-lg mx-auto md:max-w-2xl md:px-4">
           {children}
           
-          {/* Creator Credit Footer */}
           <footer className="mt-12 py-8 border-t border-brown/5 text-center px-4">
             <p className="text-muted/30 text-[10px] uppercase tracking-[0.2em] font-medium leading-loose">
               Created by <span className="text-muted/40">Shubh Bhakta</span> & <span className="text-muted/40">Tiernan Lindauer</span>

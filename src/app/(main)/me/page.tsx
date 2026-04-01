@@ -185,6 +185,21 @@ export default function MePage() {
             Start Stillness
           </button>
         </div>
+
+        <div className="flex items-center justify-between p-3 bg-struggle/[0.03] rounded-xl hover:bg-struggle/[0.06] transition-colors group">
+          <div className="flex flex-col">
+            <span className="text-sm text-dark font-medium">Feedback & Bugs</span>
+            <span className="text-[10px] text-muted italic">Help us improve ROPE</span>
+          </div>
+          <button
+            onClick={() => {
+              window.dispatchEvent(new CustomEvent("rope-open-help", { detail: { view: "feedback" } }));
+            }}
+            className="px-4 py-1.5 bg-struggle/10 text-struggle rounded-lg text-xs font-semibold hover:bg-struggle hover:text-ivory transition-all active:scale-95"
+          >
+            Report / Request
+          </button>
+        </div>
       </div>
 
       {/* Data privacy note */}

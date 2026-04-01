@@ -138,8 +138,8 @@ export default function BottomNav() {
   const pathname = usePathname();
 
   return (
-    <nav className="fixed bottom-0 left-0 right-0 z-50 md:hidden border-t border-brown/8 bg-cream/90 backdrop-blur-md overflow-hidden">
-      <div className="flex items-center justify-around h-16 pb-[env(safe-area-inset-bottom)] max-w-lg mx-auto w-full">
+    <nav className="fixed bottom-0 left-0 right-0 z-50 md:hidden border-t border-brown/8 bg-cream/90 backdrop-blur-md pb-[env(safe-area-inset-bottom)]">
+      <div className="flex items-center justify-around h-16 max-w-lg mx-auto w-full">
         {tabs.map((tab) => {
           const isActive =
             pathname === tab.href || pathname.startsWith(tab.href + "/");
@@ -154,7 +154,7 @@ export default function BottomNav() {
                 {tab.icon(isActive)}
               </div>
               <span
-                className={`text-[10px] leading-tight ${
+                className={`text-[10px] tracking-tight ${
                   isActive
                     ? "text-brown font-semibold"
                     : "text-muted"
@@ -162,9 +162,9 @@ export default function BottomNav() {
               >
                 {tab.label}
               </span>
-              {/* Active indicator dot */}
+              {/* Active indicator bar - cleaner than a dot */}
               {isActive && (
-                <span className="absolute -bottom-0.5 w-1 h-1 bg-brown rounded-full" />
+                <span className="absolute bottom-0 w-8 h-0.5 bg-brown rounded-full" />
               )}
             </Link>
           );

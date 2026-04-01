@@ -13,19 +13,25 @@ export default function FeedbackForm({ onClose }: FeedbackFormProps) {
   const [description, setDescription] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (!title || !description) return;
 
     setIsSubmitting(true);
+    setError(null);
     try {
-      await submitFeedback({ type, title, description });
-      setIsSuccess(true);
-      setTimeout(() => onClose(), 2000);
-    } catch (e) {
+      const result = await submitFeedback({ type, title, description });
+      if (result.success) {
+        setIsSuccess(true);
+        setTimeout(() => onClose(), 2000);
+      } else {
+        setError(result.error || "Failed to submit feedback");
+      }
+    } catch (e: any) {
       console.error(e);
-      alert("Failed to submit feedback. Please try again.");
+      setError(e.message || "An unexpected error occurred. Please try again.");
     } finally {
       setIsSubmitting(false);
     }
@@ -101,6 +107,14 @@ export default function FeedbackForm({ onClose }: FeedbackFormProps) {
           >
             {isSubmitting ? "Submitting..." : "Send Feedback"}
           </button>
+
+          {error && (
+            <div className="p-3 bg-red-500/10 border border-red-500/20 rounded-xl animate-in fade-in slide-in-from-top-1 duration-200">
+              <p className="text-[11px] text-red-600 font-medium text-center">
+                {error}
+              </p>
+            </div>
+          )}
         </form>
       )}
     </div>

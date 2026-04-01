@@ -5,6 +5,8 @@ import { db } from "./server-db";
 import { entries, prayers as prayersTable, gratitude as gratitudeTable, highlights as highlightsTable, readingPlans as plansTable, memoryVerses, userSettings, feedback as feedbackTable, errorLogs as errorLogsTable } from "./schema";
 import { eq, and } from "drizzle-orm";
 import { RopeEntry, PrayerItem, GratitudeItem, BibleHighlight, PlanProgress } from "./store";
+import { enforceRateLimit } from "./rate-limit";
+import { RopeEntrySchema, PrayerItemSchema, FeedbackSchema, ErrorLogSchema } from "./validations";
 
 // ─── Entry Actions ───────────────────────────────────────────────────────────
 
@@ -27,11 +29,14 @@ export async function saveDbEntry(entry: RopeEntry) {
   const { userId } = await auth();
   if (!userId) throw new Error("Unauthorized");
 
+  await enforceRateLimit("saveDbEntry", "Standard");
+  const validated = RopeEntrySchema.parse(entry);
+
   const entryToSave = {
-    ...entry,
+    ...validated,
     userId,
-    createdAt: new Date(entry.createdAt),
-    executionStatus: entry.executionStatus as "yes" | "partly" | "not_yet" | null,
+    createdAt: new Date(validated.createdAt),
+    executionStatus: validated.executionStatus as "yes" | "partly" | "not_yet" | null,
   };
 
   await db.insert(entries)
@@ -48,6 +53,8 @@ export async function deleteDbEntry(id: string) {
   const { userId } = await auth();
   if (!userId) throw new Error("Unauthorized");
 
+  await enforceRateLimit("deleteDbEntry", "Destructive");
+
   await db.delete(entries)
     .where(and(eq(entries.id, id), eq(entries.userId, userId)));
     
@@ -59,12 +66,15 @@ export async function syncEntries(localEntries: RopeEntry[]) {
   if (!userId) throw new Error("Unauthorized");
   if (localEntries.length === 0) return true;
 
+  await enforceRateLimit("syncEntries", "Standard");
+
   for (const entry of localEntries) {
+    const validated = RopeEntrySchema.parse(entry);
     const formatted = {
-      ...entry,
+      ...validated,
       userId,
-      createdAt: new Date(entry.createdAt),
-      executionStatus: entry.executionStatus as "yes" | "partly" | "not_yet" | null,
+      createdAt: new Date(validated.createdAt),
+      executionStatus: validated.executionStatus as "yes" | "partly" | "not_yet" | null,
     };
     await db.insert(entries).values(formatted).onConflictDoUpdate({ target: entries.id, set: formatted });
   }
@@ -94,16 +104,19 @@ export async function saveDbPrayer(prayer: PrayerItem) {
   const { userId } = await auth();
   if (!userId) throw new Error("Unauthorized");
 
+  await enforceRateLimit("saveDbPrayer", "Standard");
+  const validated = PrayerItemSchema.parse(prayer);
+
   const toSave = {
-    id: prayer.id,
+    id: validated.id,
     userId,
-    text: prayer.text,
-    verse: prayer.verse,
-    answeredNote: prayer.answeredNote,
-    isPublic: prayer.isPublic,
-    createdAt: new Date(prayer.createdAt),
-    answeredAt: prayer.answeredAt ? new Date(prayer.answeredAt) : null,
-    publicAt: prayer.publicAt ? new Date(prayer.publicAt) : null,
+    text: validated.text,
+    verse: validated.verse,
+    answeredNote: validated.answeredNote,
+    isPublic: validated.isPublic,
+    createdAt: new Date(validated.createdAt),
+    answeredAt: validated.answeredAt ? new Date(validated.answeredAt) : null,
+    publicAt: validated.publicAt ? new Date(validated.publicAt) : null,
   };
 
   await db.insert(prayersTable).values(toSave).onConflictDoUpdate({ target: prayersTable.id, set: toSave });
@@ -113,6 +126,9 @@ export async function saveDbPrayer(prayer: PrayerItem) {
 export async function deleteDbPrayer(id: string) {
   const { userId } = await auth();
   if (!userId) throw new Error("Unauthorized");
+
+  await enforceRateLimit("deleteDbPrayer", "Destructive");
+
   await db.delete(prayersTable).where(and(eq(prayersTable.id, id), eq(prayersTable.userId, userId)));
   return true;
 }
@@ -120,17 +136,21 @@ export async function deleteDbPrayer(id: string) {
 export async function syncPrayers(local: PrayerItem[]) {
   const { userId } = await auth();
   if (!userId) throw new Error("Unauthorized");
+
+  await enforceRateLimit("syncPrayers", "Standard");
+
   for (const item of local) {
+    const validated = PrayerItemSchema.parse(item);
     const toSave = { 
-      id: item.id,
+      id: validated.id,
       userId,
-      text: item.text,
-      verse: item.verse,
-      answeredNote: item.answeredNote,
-      isPublic: item.isPublic,
-      createdAt: new Date(item.createdAt), 
-      answeredAt: item.answeredAt ? new Date(item.answeredAt) : null,
-      publicAt: item.publicAt ? new Date(item.publicAt) : null,
+      text: validated.text,
+      verse: validated.verse,
+      answeredNote: validated.answeredNote,
+      isPublic: validated.isPublic,
+      createdAt: new Date(validated.createdAt), 
+      answeredAt: validated.answeredAt ? new Date(validated.answeredAt) : null,
+      publicAt: validated.publicAt ? new Date(validated.publicAt) : null,
     };
     await db.insert(prayersTable).values(toSave).onConflictDoUpdate({ target: prayersTable.id, set: toSave });
   }
@@ -335,6 +355,8 @@ export async function clearAllDbData() {
   const { userId } = await auth();
   if (!userId) throw new Error("Unauthorized");
 
+  await enforceRateLimit("clearAllDbData", "Destructive");
+
   await db.transaction(async (tx) => {
     await tx.delete(entries).where(eq(entries.userId, userId));
     await tx.delete(prayersTable).where(eq(prayersTable.userId, userId));
@@ -350,13 +372,26 @@ export async function clearAllDbData() {
 
 export async function submitFeedback(data: { type: string; title: string; description: string }) {
   const { userId } = await auth();
+  
+  await enforceRateLimit("submitFeedback", "Support");
+  
+  const validation = FeedbackSchema.safeParse(data);
+  if (!validation.success) {
+    return { 
+      success: false, 
+      error: validation.error.issues[0]?.message || "Invalid feedback data" 
+    };
+  }
+
+  const validated = validation.data;
+
   const id = Math.random().toString(36).substring(2, 11);
   const toSave = {
     id,
     userId: userId || null,
-    type: data.type,
-    title: data.title,
-    description: data.description,
+    type: validated.type,
+    title: validated.title,
+    description: validated.description,
     status: "pending",
     createdAt: new Date(),
   };
@@ -372,12 +407,12 @@ export async function submitFeedback(data: { type: string; title: string; descri
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           embeds: [{
-            title: `New ${data.type.toUpperCase()}: ${data.title}`,
-            description: data.description,
-            color: data.type === "bug" ? 0xff0000 : 0x00ff00,
+            title: `New ${validated.type.toUpperCase()}: ${validated.title}`,
+            description: validated.description,
+            color: validated.type === "bug" ? 0xff0000 : 0x00ff00,
             fields: [
               { name: "User ID", value: userId || "Anonymous", inline: true },
-              { name: "Type", value: data.type, inline: true }
+              { name: "Type", value: validated.type, inline: true }
             ],
             footer: { text: "ROPE App Feedback" },
             timestamp: new Date().toISOString(),
@@ -389,20 +424,25 @@ export async function submitFeedback(data: { type: string; title: string; descri
     }
   }
 
-  return true;
+  return { success: true };
 }
 
 export async function logErrorAction(error: { message: string; stack?: string; pathname?: string; context?: any }) {
   try {
+    // Only log if authenticated or if it's a critical anonymous error
     const { userId } = await auth();
+    
+    await enforceRateLimit("logErrorAction", "Support");
+    const validated = ErrorLogSchema.parse(error);
+
     const id = Math.random().toString(36).substring(2, 11);
     const toSave = {
       id,
       userId: userId || null,
-      message: error.message,
-      stack: error.stack || null,
-      pathname: error.pathname || null,
-      context: error.context ? JSON.stringify(error.context) : null,
+      message: validated.message,
+      stack: validated.stack || null,
+      pathname: validated.pathname || null,
+      context: validated.context ? JSON.stringify(validated.context) : null,
       createdAt: new Date(),
     };
 

@@ -6,6 +6,7 @@ import Navbar from "@/components/Navbar";
 export const metadata: Metadata = {
   title: "ROPE — Bible Journaling",
   description: "A daily rhythm of Revelation, Observation, Prayer, and Execution.",
+  viewport: "width=device-width, initial-scale=1, viewport-fit=cover",
 };
 
 export default function RootLayout({
