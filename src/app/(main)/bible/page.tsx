@@ -182,7 +182,7 @@ function BibleContent() {
         <select
           value={translation}
           onChange={(e) => { setTranslationState(e.target.value); saveTranslation(e.target.value); }}
-          className="px-2 py-1.5 bg-ivory border border-brown/10 rounded-lg text-dark text-xs focus:outline-none"
+          className="px-2 py-1.5 bg-ivory border border-brown/10 rounded-lg text-dark text-base focus:outline-none"
         >
           {TRANSLATIONS.map(t => (
             <option key={t.id} value={t.id}>{t.label}</option>
@@ -262,7 +262,7 @@ function BibleContent() {
             value={bookSearch}
             onChange={(e) => setBookSearch(e.target.value)}
             placeholder="Search books..."
-            className="w-full px-4 py-3 bg-ivory border border-brown/10 rounded-xl text-dark text-sm focus:outline-none placeholder:text-muted/50 mb-4"
+            className="w-full px-4 py-3 bg-ivory border border-brown/10 rounded-xl text-dark text-base focus:outline-none placeholder:text-muted/50 mb-4"
             autoFocus
           />
           {otBooks.length > 0 && (
@@ -649,12 +649,12 @@ function VerseDiscussionView({ book, chapter, verse, verseText, onClose }: { boo
           value={newComment}
           onChange={(e) => setNewComment(e.target.value)}
           placeholder="Share a discussion post..."
-          className="flex-1 px-3 py-2 bg-ivory border border-brown/10 rounded-xl text-xs text-dark focus:outline-none focus:ring-1 focus:ring-brown/20"
+          className="flex-1 px-3 py-2 bg-ivory border border-brown/10 rounded-xl text-base text-dark focus:outline-none focus:ring-1 focus:ring-brown/20"
         />
         <button 
           onClick={handlePost}
           disabled={posting || !newComment.trim()}
-          className="px-4 bg-brown text-ivory text-[10px] font-bold uppercase tracking-widest rounded-xl disabled:opacity-30 transition"
+          className="px-4 bg-brown text-ivory text-[10px] font-bold uppercase tracking-widest rounded-xl disabled:opacity-30 transition shrink-0 whitespace-nowrap"
         >
           {posting ? "..." : "Post"}
         </button>

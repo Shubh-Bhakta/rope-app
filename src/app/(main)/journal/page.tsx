@@ -837,12 +837,12 @@ export default function JournalPage() {
                         }
                       }}
                       placeholder="e.g. Romans 8:28"
-                      className="flex-1 min-w-[200px] px-4 py-2.5 bg-ivory border border-brown/10 rounded-xl text-dark placeholder:text-muted/50 focus:outline-none text-sm"
+                      className="flex-1 min-w-[200px] px-4 py-2.5 bg-ivory border border-brown/10 rounded-xl text-dark placeholder:text-muted/50 focus:outline-none text-base"
                     />
                     <select
                       value={translation}
                       onChange={(e) => { setTranslationState(e.target.value); setTranslation(e.target.value); }}
-                      className="px-2 py-2.5 bg-ivory border border-brown/10 rounded-xl text-dark text-xs focus:outline-none shrink-0"
+                      className="px-2 py-2.5 bg-ivory border border-brown/10 rounded-xl text-dark text-base focus:outline-none shrink-0"
                     >
                       {TRANSLATIONS.map(t => (
                         <option key={t.id} value={t.id}>{t.label}</option>
@@ -874,7 +874,7 @@ export default function JournalPage() {
                       <select
                         value={selectedBook}
                         onChange={(e) => setSelectedBook(e.target.value)}
-                        className="w-full px-4 py-2.5 bg-ivory border border-brown/10 rounded-xl text-dark text-sm focus:outline-none focus:ring-1 focus:ring-brown/20 appearance-none bg-[url('data:image/svg+xml;charset=US-ASCII,%3Csvg%20width%3D%2220%22%20height%3D%2220%22%20viewBox%3D%220%200%2020%2020%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22%235C4327%22%20stroke-width%3D%221.5%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%3Cpath%20d%3D%22m6%209%204%204%204-4%22%2F%3E%3C%2Fsvg%3E')] bg-[length:20px] bg-[right_10px_center] bg-no-repeat"
+                        className="w-full px-4 py-2.5 bg-ivory border border-brown/10 rounded-xl text-dark text-base focus:outline-none focus:ring-1 focus:ring-brown/20 appearance-none bg-[url('data:image/svg+xml;charset=US-ASCII,%3Csvg%20width%3D%2220%22%20height%3D%2220%22%20viewBox%3D%220%200%2020%2020%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22%235C4327%22%20stroke-width%3D%221.5%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%3Cpath%20d%3D%22m6%209%204%204%204-4%22%2F%3E%3C%2Fsvg%3E')] bg-[length:20px] bg-[right_10px_center] bg-no-repeat"
                       >
                         <option value="">Select Bible Book</option>
                         {BIBLE_BOOKS.map(book => (
@@ -888,21 +888,21 @@ export default function JournalPage() {
                       placeholder="Ch"
                       value={selectedChapter}
                       onChange={(e) => setSelectedChapter(e.target.value)}
-                      className="px-4 py-2.5 bg-ivory border border-brown/10 rounded-xl text-dark placeholder:text-muted/50 focus:outline-none text-sm"
+                      className="px-4 py-2.5 bg-ivory border border-brown/10 rounded-xl text-dark placeholder:text-muted/50 focus:outline-none text-base"
                     />
                     <input
                       type="text"
                       placeholder="Verse(s) ex: 1-5"
                       value={selectedVerses}
                       onChange={(e) => setSelectedVerses(e.target.value)}
-                      className="px-4 py-2.5 bg-ivory border border-brown/10 rounded-xl text-dark placeholder:text-muted/50 focus:outline-none text-sm"
+                      className="px-4 py-2.5 bg-ivory border border-brown/10 rounded-xl text-dark placeholder:text-muted/50 focus:outline-none text-base"
                     />
                   </div>
                   <div className="flex flex-wrap gap-2">
                     <select
                       value={translation}
                       onChange={(e) => { setTranslationState(e.target.value); setTranslation(e.target.value); }}
-                      className="flex-1 sm:flex-initial px-4 py-2.5 bg-ivory border border-brown/10 rounded-xl text-dark text-xs focus:outline-none shrink-0"
+                      className="flex-1 sm:flex-initial px-4 py-2.5 bg-ivory border border-brown/10 rounded-xl text-dark text-base focus:outline-none shrink-0"
                     >
                       {TRANSLATIONS.map(t => (
                         <option key={t.id} value={t.id}>{t.label}</option>
@@ -1034,7 +1034,7 @@ export default function JournalPage() {
                 onChange={(e) => setObservation(e.target.value)}
                 placeholder={steps[1].placeholder}
                 rows={4}
-                className="w-full px-4 py-3 bg-ivory border border-brown/10 rounded-xl text-dark placeholder:text-muted/50 focus:outline-none text-sm leading-relaxed resize-none min-h-[120px]"
+                className="w-full px-4 py-3 bg-ivory border border-brown/10 rounded-xl text-dark placeholder:text-muted/50 focus:outline-none text-base leading-relaxed resize-none min-h-[120px]"
               />
               <MicButton
                 supported={speechSupported}
@@ -1073,7 +1073,7 @@ export default function JournalPage() {
               onChange={(e) => setPrayer(e.target.value)}
               placeholder={steps[2].placeholder}
               rows={4}
-              className="w-full px-4 py-3 bg-ivory border border-brown/10 rounded-xl text-dark placeholder:text-muted/50 focus:outline-none text-sm leading-relaxed resize-none min-h-[120px]"
+              className="w-full px-4 py-3 bg-ivory border border-brown/10 rounded-xl text-dark placeholder:text-muted/50 focus:outline-none text-base leading-relaxed resize-none min-h-[120px]"
             />
             <MicButton
               supported={speechSupported}
@@ -1121,7 +1121,7 @@ export default function JournalPage() {
               onChange={(e) => setExecution(e.target.value)}
               placeholder={steps[3].placeholder}
               rows={4}
-              className="w-full px-4 py-3 bg-ivory border border-brown/10 rounded-xl text-dark placeholder:text-muted/50 focus:outline-none text-sm leading-relaxed resize-none min-h-[120px]"
+              className="w-full px-4 py-3 bg-ivory border border-brown/10 rounded-xl text-dark placeholder:text-muted/50 focus:outline-none text-base leading-relaxed resize-none min-h-[120px]"
             />
             <MicButton
               supported={speechSupported}

@@ -85,7 +85,7 @@ export default function FeedbackForm({ onClose }: FeedbackFormProps) {
               value={title}
               onChange={(e) => setTitle(e.target.value)}
               placeholder={type === "bug" ? "What's broken?" : "What's your idea?"}
-              className="w-full bg-brown/5 border border-brown/10 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-brown/20 transition-all placeholder:text-muted/50 text-dark"
+              className="w-full bg-brown/5 border border-brown/10 rounded-xl px-4 py-3 text-base focus:outline-none focus:ring-2 focus:ring-brown/20 transition-all placeholder:text-muted/50 text-dark"
             />
           </div>
 
@@ -97,7 +97,7 @@ export default function FeedbackForm({ onClose }: FeedbackFormProps) {
               value={description}
               onChange={(e) => setDescription(e.target.value)}
               placeholder={type === "bug" ? "How can we reproduce this? What happened?" : "Tell us more about your suggestion..."}
-              className="w-full bg-brown/5 border border-brown/10 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-brown/20 transition-all placeholder:text-muted/50 resize-none text-dark"
+              className="w-full bg-brown/5 border border-brown/10 rounded-xl px-4 py-3 text-base focus:outline-none focus:ring-2 focus:ring-brown/20 transition-all placeholder:text-muted/50 resize-none text-dark"
             />
           </div>
 

@@ -403,14 +403,14 @@ export default function CommunityPage() {
                 value={newPost.title}
                 onChange={(e) => setNewPost({ ...newPost, title: e.target.value })}
                 placeholder="Title"
-                className="w-full px-4 py-3 bg-brown/5 border border-brown/10 rounded-xl text-dark text-sm focus:outline-none focus:ring-1 focus:ring-brown/30"
+                className="w-full px-4 py-3 bg-brown/5 border border-brown/10 rounded-xl text-dark text-base focus:outline-none focus:ring-1 focus:ring-brown/30"
               />
               <textarea
                 value={newPost.content}
                 onChange={(e) => setNewPost({ ...newPost, content: e.target.value })}
                 placeholder="What's on your heart?"
                 rows={4}
-                className="w-full px-4 py-3 bg-brown/5 border border-brown/10 rounded-xl text-dark text-sm focus:outline-none focus:ring-1 focus:ring-brown/30 resize-none"
+                className="w-full px-4 py-3 bg-brown/5 border border-brown/10 rounded-xl text-dark text-base focus:outline-none focus:ring-1 focus:ring-brown/30 resize-none"
               />
               <div className="flex justify-end gap-3 pt-2">
                 <button
@@ -798,17 +798,17 @@ function DiscussionExpansion({ postId, prayerId, verseCommentId, onClose }: { po
         )}
       </div>
 
-      <div className="flex gap-2">
+      <div className="flex gap-2 items-center">
         <input
           value={reply}
           onChange={(e) => setReply(e.target.value)}
           placeholder="Write a respectful reply..."
-          className="flex-1 px-4 py-2 bg-ivory/50 border border-brown/10 rounded-xl text-xs text-dark focus:outline-none focus:ring-1 focus:ring-brown/20"
+          className="flex-1 px-4 py-3 bg-ivory/50 border border-brown/10 rounded-xl text-base text-dark focus:outline-none focus:ring-1 focus:ring-brown/20"
         />
         <button
           onClick={handlePostReply}
           disabled={posting || !reply.trim()}
-          className="px-4 bg-brown text-ivory text-[10px] font-bold uppercase tracking-widest rounded-xl disabled:opacity-30 transition-all hover:scale-105 active:scale-95"
+          className="px-5 py-3 bg-brown text-ivory text-[10px] font-bold uppercase tracking-widest rounded-xl disabled:opacity-30 transition-all hover:scale-105 active:scale-95 shrink-0 whitespace-nowrap"
         >
           {posting ? "..." : "Reply"}
         </button>
