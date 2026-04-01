@@ -25,7 +25,12 @@ export default function VerseDiscussionDrawer({
   verse: string;
   onClose: () => void;
 }) {
-    const [error, setError] = useState<string | null>(null);
+  const [comments, setComments] = useState<Comment[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [newComment, setNewComment] = useState("");
+  const [posting, setPosting] = useState(false);
+  const [sortBy, setSortBy] = useState<'top' | 'recent'>('top');
+  const [error, setError] = useState<string | null>(null);
   const { isLoaded, userId } = useAuth();
  
    const loadComments = async () => {
