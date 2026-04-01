@@ -213,7 +213,7 @@ export default function CommunityPage() {
     <div className="px-5 pt-6 pb-20 max-w-2xl mx-auto relative min-h-screen" style={{ animation: "fadeIn 0.4s ease-out both" }}>
       <div className="flex items-center justify-center gap-4 mb-6 relative">
         <h1 className="font-serif text-3xl text-brown">Community</h1>
-        <button 
+        <button
           onClick={() => setShowHelp(true)}
           className="w-8 h-8 rounded-full bg-brown/5 flex items-center justify-center text-muted hover:text-brown transition-all"
           title="Community Help"
@@ -258,7 +258,7 @@ export default function CommunityPage() {
           ROPE is free and ad-free. If this tool has helped your walk with God, consider supporting its maintenance. All funds go to site maintenance.
         </p>
         <a
-          href="https://www.buymeacoffee.com/tlind"
+          href="https://www.buymeacoffee.com/ropescripture"
           target="_blank"
           rel="noopener noreferrer"
           className="inline-flex items-center gap-2 px-6 py-2.5 bg-accent-gold text-dark-brown text-[10px] font-bold uppercase tracking-widest rounded-xl hover:bg-accent-gold/90 transition-all shadow-lg shadow-accent-gold/10"
@@ -304,7 +304,7 @@ export default function CommunityPage() {
                   )}
                   {expandedId === item.id && (
                     <div className="ml-4 pl-4 border-l-2 border-brown/5 pt-2 pb-4 animate-in fade-in slide-in-from-top-2 duration-300">
-                      <DiscussionExpansion 
+                      <DiscussionExpansion
                         postId={item.type === 'post' ? item.id : null}
                         prayerId={item.type === 'prayer' ? item.id : null}
                         verseCommentId={item.type === 'discussion' ? item.id : null}
@@ -344,16 +344,16 @@ export default function CommunityPage() {
                     onDelete={() => handleDeletePost(post.id)}
                     currentUserId={userId}
                   />
-                    {expandedId === post.id && (
-                      <div className="ml-4 pl-4 border-l-2 border-brown/5 pt-2 pb-4 animate-in fade-in slide-in-from-top-2 duration-300">
-                        <DiscussionExpansion 
-                          postId={post.id}
-                          prayerId={null}
-                          verseCommentId={null}
-                          onClose={() => setExpandedId(null)}
-                        />
-                      </div>
-                    )}
+                  {expandedId === post.id && (
+                    <div className="ml-4 pl-4 border-l-2 border-brown/5 pt-2 pb-4 animate-in fade-in slide-in-from-top-2 duration-300">
+                      <DiscussionExpansion
+                        postId={post.id}
+                        prayerId={null}
+                        verseCommentId={null}
+                        onClose={() => setExpandedId(null)}
+                      />
+                    </div>
+                  )}
                 </div>
               ))}
             </div>
@@ -374,7 +374,7 @@ export default function CommunityPage() {
                   />
                   {expandedId === prayer.id && (
                     <div className="ml-4 pl-4 border-l-2 border-brown/5 pt-2 pb-4 animate-in fade-in slide-in-from-top-2 duration-300">
-                      <DiscussionExpansion 
+                      <DiscussionExpansion
                         postId={null}
                         prayerId={prayer.id}
                         verseCommentId={null}
