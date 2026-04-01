@@ -16,7 +16,7 @@ export default function RootLayout({
 }) {
   return (
     <ClerkThemeWrapper>
-      <html lang="en" className="overflow-x-hidden" suppressHydrationWarning>
+      <html lang="en" suppressHydrationWarning>
         <head>
           <link
             href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;600;700&family=Inter:wght@400;500;600&display=swap"
@@ -40,7 +40,7 @@ export default function RootLayout({
             }}
           />
         </head>
-        <body className="min-h-screen bg-ivory text-dark antialiased overflow-x-hidden">
+        <body className="min-h-screen bg-ivory text-dark antialiased">
           <Navbar />
           {children}
         </body>

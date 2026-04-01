@@ -122,7 +122,12 @@ export default function MainLayout({ children }: { children: React.ReactNode }) 
   const pathname = usePathname();
   const { isLoaded, isSignedIn } = useAuth();
   const [ready, setReady] = useState(false);
-  const [darkMode, setDarkModeState] = useState(false);
+  const [darkMode, setDarkModeState] = useState<boolean>(() => {
+    if (typeof window !== "undefined") {
+      return document.documentElement.classList.contains("dark");
+    }
+    return false;
+  });
   const [showOnboarding, setShowOnboarding] = useState(false);
 
   useEffect(() => {
@@ -178,10 +183,14 @@ export default function MainLayout({ children }: { children: React.ReactNode }) 
   }, [isLoaded, isSignedIn]);
 
   useEffect(() => {
-    if (darkMode) {
-      document.documentElement.classList.add("dark");
-    } else {
-      document.documentElement.classList.remove("dark");
+    // Only toggle if the current DOM state differs from our state
+    const isCurrentlyDark = document.documentElement.classList.contains("dark");
+    if (darkMode !== isCurrentlyDark) {
+      if (darkMode) {
+        document.documentElement.classList.add("dark");
+      } else {
+        document.documentElement.classList.remove("dark");
+      }
     }
   }, [darkMode]);
 
