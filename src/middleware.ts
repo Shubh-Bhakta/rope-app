@@ -22,6 +22,7 @@ export default clerkMiddleware(async (auth, request) => {
     font-src 'self' https://fonts.gstatic.com;
     frame-src 'self' https://clerk.rope.app https://*.clerk.accounts.dev;
     worker-src 'self' blob:;
+    media-src 'self';
     object-src 'none';
     base-uri 'self';
     form-action 'self';
