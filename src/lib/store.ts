@@ -1115,6 +1115,10 @@ export function addMemoryVerse(verse: string, text: string): void {
   verses.unshift(item);
   if (storeInitialized && cachedMemoryVerses) cachedMemoryVerses = verses;
   localStorage.setItem("rope_memory_verses", JSON.stringify(verses));
+  
+  // Notify other components for immediate UI update
+  window.dispatchEvent(new CustomEvent("rope-memory-update", { detail: { verses } }));
+  
   saveDbMemoryVerse(item).catch(console.error);
 }
 
@@ -1122,6 +1126,10 @@ export function removeMemoryVerse(verse: string): void {
   const verses = getMemoryVerses().filter(v => v.verse !== verse);
   if (storeInitialized && cachedMemoryVerses) cachedMemoryVerses = verses;
   localStorage.setItem("rope_memory_verses", JSON.stringify(verses));
+  
+  // Notify other components for immediate UI update
+  window.dispatchEvent(new CustomEvent("rope-memory-update", { detail: { verses } }));
+  
   deleteDbMemoryVerse(verse).catch(console.error);
 }
 

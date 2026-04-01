@@ -18,7 +18,7 @@ export default function MemoryMode({ verse, text, onClose }: MemoryModeProps) {
   const words = text.split(/\s+/).filter(w => w.length > 0);
   const [currentIndex, setCurrentIndex] = useState(-1);
   const [playing, setPlaying] = useState(false);
-  const [speed, setSpeed] = useState(400); // ms per word
+  const [speed, setSpeed] = useState(800); // ms per word (reversed logic)
   const timerRef = useRef<NodeJS.Timeout | null>(null);
 
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -48,7 +48,7 @@ export default function MemoryMode({ verse, text, onClose }: MemoryModeProps) {
           }
           return prev + 1;
         });
-      }, speed);
+      }, 1350 - speed); // Reverse: higher slider value = shorter delay
     } else {
       if (timerRef.current) clearInterval(timerRef.current);
     }
@@ -166,7 +166,7 @@ export default function MemoryMode({ verse, text, onClose }: MemoryModeProps) {
         <div className="w-full max-w-xs space-y-2">
           <div className="flex justify-between items-center px-1">
             <span className="text-[8px] uppercase tracking-widest text-white/30 font-bold">Speed</span>
-            <span className="text-[10px] text-accent-gold font-mono">{Math.round(60000 / speed)} wpm</span>
+            <span className="text-[10px] text-accent-gold font-mono">{Math.round(60000 / (1350 - speed))} wpm</span>
           </div>
           <input 
             type="range"

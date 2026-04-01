@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef, useCallback } from "react";
 import { useAuth } from "@clerk/nextjs";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { 
   addRopeEntry, 
   suggestBooks, 
@@ -350,6 +351,9 @@ export default function JournalPage() {
   const [planSuggestedVerse, setPlanSuggestedVerse] = useState<string | null>(null);
 
   const { isLoaded, isSignedIn } = useAuth();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
+  const router = useRouter();
   const { supported: speechSupported, startListening } = useSpeechRecognition();
 
   const today = new Date().toLocaleDateString("en-US", {
@@ -377,37 +381,108 @@ export default function JournalPage() {
   // ─── Draft persistence ─────────────────────────────────────────────────────
   const todayKey = `rope_draft_${new Date().toISOString().split("T")[0]}`;
 
-  // Restore draft on mount
+  // Restore draft and check for incoming Bible verses (URL/Session)
   useEffect(() => {
-    try {
-      const raw = localStorage.getItem(todayKey);
-      if (raw) {
-        const d = JSON.parse(raw);
-        if (d.verseRef) setVerseRef(d.verseRef);
-        if (d.verseText) { setVerseText(d.verseText); setVerseLookedUp(true); }
-        if (d.observation) setObservation(d.observation);
-        if (d.prayer) setPrayer(d.prayer);
-        if (d.execution) setExecution(d.execution);
-      }
-    } catch { /* ignore */ }
+    // Only run when loaded
+    if (!isLoaded) return;
 
-    // Check if Bible reader sent a verse
-    try {
-      const bibleData = sessionStorage.getItem("rope_bible_to_journal");
-      if (bibleData) {
-        const { ref, text, translation: trans } = JSON.parse(bibleData);
-        sessionStorage.removeItem("rope_bible_to_journal");
-        setVerseRef(ref);
-        setVerseText(text);
-        setVerseLookedUp(true);
-        if (trans) { setTranslationState(trans); setTranslation(trans); }
-      }
-    } catch { /* ignore */ }
+    function checkIncoming() {
+      // 1. Check URL Parameters (Highest Priority)
+      const urlVerse = searchParams.get("verse");
+      const urlText = searchParams.get("text");
+      const urlTrans = searchParams.get("t");
+      
+      if (urlVerse) {
+        // Clear previous draft text to start fresh
+        setObservation("");
+        setPrayer("");
+        setExecution("");
+        setPrayerSuggestion(null);
+        setExecutionSuggestion(null);
+        
+        setVerseRef(urlVerse);
+        if (urlText) {
+          setVerseText(urlText);
+          setVerseLookedUp(true);
+        } else {
+          // If text wasn't provided, we'd normally lookup, but bible/page.tsx provides it
+          setVerseLookedUp(false);
+          lookupVerse();
+        }
+        
+        if (urlTrans) { 
+          setTranslationState(urlTrans); 
+          setTranslation(urlTrans); 
+        }
 
-    // Update suggested verse
-    setPlanSuggestedVerse(getPlanSuggestedVerse());
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+        // Check if it's already a memory verse
+        const memVerses = getMemoryVerses();
+        setIsMemoryVerse(memVerses.some(v => v.verse === urlVerse));
+
+        // Clean up URL to avoid re-applying on refresh
+        router.replace(pathname);
+        
+        // Force scroll to top
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+        
+        setPlanSuggestedVerse(getPlanSuggestedVerse());
+        return;
+      }
+
+      // 2. Check if Bible reader sent a verse via Session (Middle Priority)
+      try {
+        const bibleData = sessionStorage.getItem("rope_bible_to_journal");
+        if (bibleData) {
+          const { ref, text, translation: trans } = JSON.parse(bibleData);
+          sessionStorage.removeItem("rope_bible_to_journal");
+          
+          setObservation("");
+          setPrayer("");
+          setExecution("");
+          
+          setVerseRef(ref);
+          setVerseText(text);
+          setVerseLookedUp(true);
+          
+          if (trans) { 
+            setTranslationState(trans); 
+            setTranslation(trans); 
+          }
+
+          const memVerses = getMemoryVerses();
+          setIsMemoryVerse(memVerses.some(v => v.verse === ref));
+
+          window.scrollTo({ top: 0, behavior: 'smooth' });
+          setPlanSuggestedVerse(getPlanSuggestedVerse());
+          return;
+        }
+      } catch { /* ignore */ }
+
+      // 3. Restore draft (only if no incoming bible data)
+      try {
+        const raw = localStorage.getItem(todayKey);
+        if (raw) {
+          const d = JSON.parse(raw);
+          if (d.verseRef) setVerseRef(d.verseRef);
+          if (d.verseText) { setVerseText(d.verseText); setVerseLookedUp(true); }
+          if (d.observation) setObservation(d.observation);
+          if (d.prayer) setPrayer(d.prayer);
+          if (d.execution) setExecution(d.execution);
+          
+          const memVerses = getMemoryVerses();
+          setIsMemoryVerse(memVerses.some(v => v.verse === d.verseRef));
+        }
+      } catch { /* ignore */ }
+
+      setPlanSuggestedVerse(getPlanSuggestedVerse());
+    }
+
+    checkIncoming();
+
+    // Re-check when window refocuses or user navigates
+    window.addEventListener('focus', checkIncoming);
+    return () => window.removeEventListener('focus', checkIncoming);
+  }, [isLoaded, todayKey, translation, pathname]);
 
   // Auto-save draft on field changes (debounced)
   useEffect(() => {

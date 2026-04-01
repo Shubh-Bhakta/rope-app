@@ -60,9 +60,15 @@ export default function MePage() {
       setIsDark(e.detail.darkMode);
     };
 
+    const handleMemoryChange = (e: any) => {
+      setMemoryVerses(e.detail.verses);
+    };
+
     window.addEventListener("rope-theme-toggle", handleCustomChange as any);
+    window.addEventListener("rope-memory-update", handleMemoryChange as any);
     return () => {
       window.removeEventListener("rope-theme-toggle", handleCustomChange as any);
+      window.removeEventListener("rope-memory-update", handleMemoryChange as any);
     };
   }, [isLoaded, userId]);
 
@@ -232,7 +238,7 @@ export default function MePage() {
                   <p className="text-dark/70 text-xs italic mt-1 leading-relaxed line-clamp-2">&ldquo;{mv.text}&rdquo;</p>
                 </div>
                 <button
-                  onClick={(e) => { e.stopPropagation(); removeMemoryVerse(mv.verse); setMemoryVerses([...getMemoryVerses()]); }}
+                  onClick={(e) => { e.stopPropagation(); removeMemoryVerse(mv.verse); }}
                   className="text-muted hover:text-struggle text-xs ml-3 shrink-0 p-2"
                 >
                   &times;

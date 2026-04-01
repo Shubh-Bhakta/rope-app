@@ -84,6 +84,15 @@ function BibleContent() {
     setTranslationState(getTranslation());
     setHistory(getBibleHistory());
     setMemoryVerses(getMemoryVerses());
+
+    const handleMemoryChange = (e: any) => {
+      setMemoryVerses(e.detail.verses);
+    };
+
+    window.addEventListener("rope-memory-update", handleMemoryChange as any);
+    return () => {
+      window.removeEventListener("rope-memory-update", handleMemoryChange as any);
+    };
   }, []);
 
   // Sync URL when state changes
@@ -386,8 +395,7 @@ function BibleContent() {
                             e.stopPropagation(); 
                             const ref = `${book} ${chapter}:${v.verse}`;
                             const text = `${v.verse} ${v.text}`;
-                            sessionStorage.setItem("rope_bible_to_journal", JSON.stringify({ ref, text, translation }));
-                            router.push("/journal");
+                            router.push(`/journal?verse=${encodeURIComponent(ref)}&text=${encodeURIComponent(text)}&t=${translation}`);
                           }}
                           className="flex items-center gap-1.5 px-3 py-1.5 text-[10px] font-semibold text-muted hover:text-brown bg-ivory border border-brown/10 rounded-xl transition shadow-sm"
                         >
@@ -409,7 +417,6 @@ function BibleContent() {
                               } else {
                                 addMemoryVerse(ref, v.text);
                               }
-                              setMemoryVerses(getMemoryVerses());
                             }}
                             className={`flex items-center gap-1.5 px-3 py-1.5 text-[10px] font-semibold border rounded-xl transition shadow-sm ${memoryVerses.some(mv => mv.verse === `${book} ${chapter}:${v.verse}`) ? "bg-accent-gold/20 text-accent-gold border-accent-gold/40" : "text-muted hover:text-brown bg-ivory border-brown/10"}`}
                           >
@@ -427,18 +434,20 @@ function BibleContent() {
                       </>
                     )}
 
-                    <button
-                      onClick={(e) => { 
-                        e.stopPropagation(); 
-                        setShowDiscussion(!showDiscussion); 
-                      }}
-                      className={`flex items-center gap-1.5 px-3 py-1.5 text-[10px] font-semibold border rounded-xl transition shadow-sm active:scale-95 z-50 pointer-events-auto ${showDiscussion ? "bg-brown text-ivory border-brown" : "text-muted hover:text-brown bg-ivory border-brown/10"}`}
-                    >
-                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                        <path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 1 1-7.6-7.6 8.38 8.38 0 0 1 3.8.9L21 3z" />
-                      </svg>
-                      {showDiscussion ? "Close Discussion" : "Discuss"}
-                    </button>
+                    {communityMode && (
+                      <button
+                        onClick={(e) => { 
+                          e.stopPropagation(); 
+                          setShowDiscussion(!showDiscussion); 
+                        }}
+                        className={`flex items-center gap-1.5 px-3 py-1.5 text-[10px] font-semibold border rounded-xl transition shadow-sm active:scale-95 z-50 pointer-events-auto ${showDiscussion ? "bg-brown text-ivory border-brown" : "text-muted hover:text-brown bg-ivory border-brown/10"}`}
+                      >
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                          <path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 1 1-7.6-7.6 8.38 8.38 0 0 1 3.8.9L21 3z" />
+                        </svg>
+                        {showDiscussion ? "Close Discussion" : "Discuss"}
+                      </button>
+                    )}
                   </div>
                 )}
 
