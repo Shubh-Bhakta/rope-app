@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import "./globals.css";
 import ClerkThemeWrapper from "@/components/ClerkThemeWrapper";
-import Navbar from "@/components/Navbar";
+// import Navbar from "@/components/Navbar";
 
 export const metadata: Metadata = {
   title: "ROPE — Bible Journaling",
@@ -41,7 +41,7 @@ export default function RootLayout({
           />
         </head>
         <body className="min-h-screen bg-ivory text-dark antialiased">
-          <Navbar />
+          {/* <Navbar /> */}
           {children}
         </body>
       </html>

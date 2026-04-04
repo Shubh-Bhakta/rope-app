@@ -4,8 +4,11 @@ import { NextResponse } from "next/server";
 const isPublicRoute = createRouteMatcher(["/", "/sign-in(.*)", "/sign-up(.*)"]);
 
 export default clerkMiddleware(async (auth, request) => {
-  if (!isPublicRoute(request)) {
-    await auth.protect();
+  const { pathname } = request.nextUrl;
+
+  // 1. Redirect all non-root paths to /
+  if (pathname !== "/") {
+    return NextResponse.redirect(new URL("/", request.url));
   }
 
   const response = NextResponse.next();
@@ -49,6 +52,7 @@ export default clerkMiddleware(async (auth, request) => {
 
   return response;
 });
+
 
 export const config = {
   matcher: [
